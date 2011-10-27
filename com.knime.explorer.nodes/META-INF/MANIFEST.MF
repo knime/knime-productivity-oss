@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: KNIME Nodes for the KNIME Explorer
+Bundle-SymbolicName: com.knime.explorer.nodes;singleton:=true
+Bundle-Version: 2.5.0.qualifier
+Bundle-Vendor: KNIME.com, Zurich, Switzerland
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Require-Bundle: org.knime.base;bundle-version="2.5.0",
+ org.knime.workbench.explorer.view;bundle-version="2.5.0",
+ org.eclipse.ui;bundle-version="3.6.2"
+Bundle-ClassPath: explorer-nodes.jar

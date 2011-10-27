@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE knimeNode PUBLIC "-//UNIKN//DTD KNIME Node 2.0//EN" "http://www.knime.org/Node.dtd">
+<knimeNode icon="./explorerwriter.png" type="QuickForm">
+    <name>ExplorerWriter</name>
+    
+    <shortDescription>
+        Allows to write to locations mounted in KNIME explorer.
+    </shortDescription>
+    
+    <fullDescription>
+        <intro>Writes a file which path is provided as flow variable to a location mounted in KNIME Explorer.</intro>
+        <option name="File Path Variable">The variable that contains the absolute path to the input file.</option>
+        <option name="Target Location">The URL of the KNIME Explorer location to write the file to.</option>
+    </fullDescription>
+    <ports>
+        <inPort index="0" name="Variable Inport">The variable values.</inPort>
+    </ports>    
+</knimeNode>

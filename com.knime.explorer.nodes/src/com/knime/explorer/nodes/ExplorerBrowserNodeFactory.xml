@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE knimeNode PUBLIC "-//UNIKN//DTD KNIME Node 2.0//EN" "http://www.knime.org/Node.dtd">
+<knimeNode icon="./explorer_browser.png" type="QuickForm">
+    <name>ExplorerBrowser</name>
+    
+    <shortDescription>
+        Allows to browse the locations mounted in KNIME explorer and exposes the
+        result as URL and absolute file path.
+    </shortDescription>
+    
+    <fullDescription>
+        <intro>Allows to browse the location mounted in KNIME Explorer and to 
+            specify the name of a file to be written there. The resulting file
+            path and URL are exposed as flow variables and can be used be
+            consecutive writer nodes to write to. </intro>
+        <option name="Filename">The output filename.</option>
+        <option name="Target Location">
+           The URL of the KNIME Explorer location to write the file to.</option>
+    </fullDescription>
+    <ports>
+        <outPort index="0" name="Variable Outport">The variable values. The URL 
+            is exported as "explorer_url". If the URL can be resolved to a local
+            file in addition the absolute path is exported as "explorer_path".
+        </outPort>
+    </ports>    
+</knimeNode>
