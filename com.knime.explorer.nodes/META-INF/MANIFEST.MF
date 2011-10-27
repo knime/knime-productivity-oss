@@ -7,5 +7,5 @@ Bundle-Vendor: KNIME.com, Zurich, Switzerland
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Require-Bundle: org.knime.base;bundle-version="2.5.0",
  org.knime.workbench.explorer.view;bundle-version="2.5.0",
- org.eclipse.ui;bundle-version="3.6.2"
+ org.eclipse.ui
 Bundle-ClassPath: explorer-nodes.jar
