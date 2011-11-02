@@ -81,7 +81,8 @@ public abstract class AbstractExplorerLocationSelectionNodeDialog extends
                             String mountID = entry.getKey();
                             AbstractContentProvider acp = entry.getValue();
                             if (!(acp
-                                    instanceof LocalWorkspaceContentProvider)) {
+                                    instanceof LocalWorkspaceContentProvider
+                                    || acp.isRemote())) {
                                 mountIDs.add(mountID);
                             }
 
