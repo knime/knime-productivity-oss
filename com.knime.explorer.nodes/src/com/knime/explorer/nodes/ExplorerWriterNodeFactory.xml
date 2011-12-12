@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE knimeNode PUBLIC "-//UNIKN//DTD KNIME Node 2.0//EN" "http://www.knime.org/Node.dtd">
-<knimeNode icon="./explorerwriter.png" type="QuickForm">
-    <name>ExplorerWriter</name>
+<knimeNode icon="./explorerwriter.png" type="Sink">
+    <name>Explorer Writer</name>
     
     <shortDescription>
-        Allows to write to locations mounted in KNIME explorer.
+        Allows copying files to locations mounted in the KNIME explorer.
     </shortDescription>
     
     <fullDescription>
-        <intro>Writes a file which path is provided as flow variable to a location mounted in KNIME Explorer.</intro>
-        <option name="File Path Variable">The variable that contains the absolute path to the input file.</option>
-        <option name="Target Location">The URL of the KNIME Explorer location to write the file to.</option>
+        <intro>Writes/Copies a file whose path is provided as flow variable to a location mounted in KNIME Explorer.
+        The file to be copied must exist and be accessible. This node is mostly used in conjunction with file writers
+        nodes, which are not able to write to the explorer directly (because of missing URL uploading or 
+        missing path information), whereby the temporary location on the client to which the file is written to, 
+        is determined using the "Create Temp Dir" node.
+        </intro>
+        <option name="File Path Variable">The variable that contains the absolute path to the input file or an URL.</option>
+        <option name="Target Location">The URL of the KNIME Explorer location to write the file to.
+        This value only represents a directory; the file name is derived from the source file.</option>
     </fullDescription>
     <ports>
         <inPort index="0" name="Variable Inport">The variable values.</inPort>

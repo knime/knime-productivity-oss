@@ -70,7 +70,29 @@ public class ExplorerBrowserNodeModel extends NodeModel {
     @Override
     protected PortObject[] execute(final PortObject[] inObjects,
             final ExecutionContext exec) throws Exception {
+        publishVariables();
+        return new PortObject[] {FlowVariablePortObject.INSTANCE};
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs)
+            throws InvalidSettingsException {
+        publishVariables();
+        return new PortObjectSpec[] {FlowVariablePortObjectSpec.INSTANCE};
+    }
+
+    private void publishVariables() throws InvalidSettingsException {
+        if (m_config == null) {
+            throw new InvalidSettingsException("No configuration available.");
+        }
+
         String url = m_config.getFullOutputURL();
+        if (url == null || url.isEmpty()) {
+            throw new InvalidSettingsException("No configuration available.");
+        }
 
         /* Try to resolve the URI to a local file. If this is possible the
          * absolute path is exported as flow variable as well. */
@@ -96,16 +118,6 @@ public class ExplorerBrowserNodeModel extends NodeModel {
                     + "\" could not be resolved to a local file.", e);
         }
         pushFlowVariableString("explorer_url", url);
-        return new PortObject[] {FlowVariablePortObject.INSTANCE};
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs)
-            throws InvalidSettingsException {
-        return new PortObjectSpec[] {FlowVariablePortObjectSpec.INSTANCE};
     }
 
     /**
