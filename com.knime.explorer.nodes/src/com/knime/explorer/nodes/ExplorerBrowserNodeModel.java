@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import org.knime.core.internal.CorePlugin;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
@@ -41,6 +40,7 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObjectSpec;
+import org.knime.core.util.pathresolve.ResolverUtil;
 
 /**
  * Allows to browse the locations mounted in KNIME explorer and exposes the
@@ -105,7 +105,7 @@ public class ExplorerBrowserNodeModel extends NodeModel {
                     + url + "\".", e);
         }
         try {
-            resolvedFile = CorePlugin.resolveURItoLocalFile(uri);
+            resolvedFile = ResolverUtil.resolveURItoLocalFile(uri);
             if (resolvedFile != null) {
                 pushFlowVariableString("explorer_path",
                         resolvedFile.getAbsolutePath());
