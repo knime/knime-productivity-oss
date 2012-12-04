@@ -43,7 +43,6 @@ import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.dialogs.SpaceResourceSelectionDialog;
 import org.knime.workbench.explorer.dialogs.SpaceResourceSelectionDialog.SelectionValidator;
 import org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore;
-import org.knime.workbench.explorer.localworkspace.LocalWorkspaceContentProvider;
 import org.knime.workbench.explorer.view.AbstractContentProvider;
 
 /**
@@ -80,9 +79,7 @@ public abstract class AbstractExplorerLocationSelectionNodeDialog extends
                                 .getMountedContent().entrySet()) {
                             String mountID = entry.getKey();
                             AbstractContentProvider acp = entry.getValue();
-                            if (!(acp
-                                    instanceof LocalWorkspaceContentProvider
-                                    || acp.isRemote())) {
+                            if (acp.canHostDataFiles()) {
                                 mountIDs.add(mountID);
                             }
 
