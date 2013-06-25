@@ -39,6 +39,7 @@ import javax.swing.JTextField;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Display;
 import org.knime.core.node.NodeDialogPane;
+import org.knime.core.util.ThreadUtils;
 import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.dialogs.SpaceResourceSelectionDialog;
 import org.knime.workbench.explorer.dialogs.SpaceResourceSelectionDialog.SelectionValidator;
@@ -69,7 +70,7 @@ public abstract class AbstractExplorerLocationSelectionNodeDialog extends
              */
             @Override
             public void actionPerformed(final ActionEvent arg0) {
-                Display.getDefault().syncExec(new Runnable() {
+                Display.getDefault().syncExec(ThreadUtils.runnableWithContext(new Runnable() {
                     @Override
                     public void run() {
                         // collect all non-local mount ids
@@ -104,7 +105,7 @@ public abstract class AbstractExplorerLocationSelectionNodeDialog extends
                             textField.setText(url);
                         }
                     }
-                });
+                }));
             }
         });
         return browseButton;
