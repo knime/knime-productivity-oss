@@ -2,7 +2,7 @@
   * This source code, its documentation and all appendant files
   * are protected by copyright law. All rights reserved.
   *
-  * Copyright by 
+  * Copyright by
   * KNIME.com, Zurich, Switzerland
   *
   * You may not modify, publish, transmit, transfer or sell, reproduce,
@@ -42,7 +42,7 @@ import org.knime.core.node.NodeDialogPane;
 import org.knime.core.util.ThreadUtils;
 import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.dialogs.SpaceResourceSelectionDialog;
-import org.knime.workbench.explorer.dialogs.SpaceResourceSelectionDialog.SelectionValidator;
+import org.knime.workbench.explorer.dialogs.Validator;
 import org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore;
 import org.knime.workbench.explorer.view.AbstractContentProvider;
 
@@ -95,7 +95,6 @@ public abstract class AbstractExplorerLocationSelectionNodeDialog extends
                                 "Please select the location to write to.");
                         dialog.setValidator(WorkflowGroupSelectionValidator
                                 .getInstance());
-                        dialog.scaleDialogSize(1, 2);
 
                         if (Window.OK == dialog.open()) {
                             String url = dialog.getSelection().toString();
@@ -148,14 +147,12 @@ public abstract class AbstractExplorerLocationSelectionNodeDialog extends
     }
 
     /**
-     * Allows only to select workflow groups in the
-     * {@link SpaceResourceSelectionDialog}.
+     * Allows only to select workflow groups in the {@link SpaceResourceSelectionDialog}.
      *
      * @author Dominik Morent, KNIME.com, Zurich, Switzerland
      *
      */
-    protected final static class WorkflowGroupSelectionValidator implements
-            SelectionValidator {
+    protected final static class WorkflowGroupSelectionValidator extends Validator {
         private WorkflowGroupSelectionValidator() {
             // hide constructor of singleton
         }
@@ -174,7 +171,7 @@ public abstract class AbstractExplorerLocationSelectionNodeDialog extends
          * {@inheritDoc}
          */
         @Override
-        public String isValid(final AbstractExplorerFileStore selection) {
+        public String validateSelectionValue(final AbstractExplorerFileStore selection, final String name) {
             return AbstractExplorerFileStore.isWorkflowGroup(selection) ? null
                     : "Only workflow groups can be selected as target.";
         }
