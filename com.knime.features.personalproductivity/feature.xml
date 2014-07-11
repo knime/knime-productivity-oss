@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.knime.features.personalproductivity"
+      label="KNIME Personal Productivity Tools"
+      version="2.10.0.qualifier"
+      provider-name="KNIME.com, Zurich, Switzerland">
+
+   <description url="http://www.knime.org/knime-personal-productivity">
+      This feature contains the KNIME Personal Productivity Tools.
+   </description>
+
+   <copyright>
+      Copyright by
+KNIME.com, Zurich, Switzerland
+All rights reserved.
+   </copyright>
+
+   <license>
+      All rights reserved.
+Copyright by 
+KNIME.com, Zurich, Switzerland
+You may not use, modify, publish, transmit, transfer or sell,
+reproduce, create derivative works from, distribute, perform,
+display, or in any way exploit any of the content, in whole 
+or in part, except as otherwise expressly permitted in writing
+by the copyright owner.
+In case of any questions, please contact KNIME.com at contact@knime.com
+   </license>
+
+   <requires>
+      <import plugin="com.knime.licenses" version="5" match="greaterOrEqual"/>
+   </requires>
+
+</feature>
