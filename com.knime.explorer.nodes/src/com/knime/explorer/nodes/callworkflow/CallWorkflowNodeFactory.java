@@ -25,8 +25,8 @@ import org.knime.core.node.NodeFactory;
 import org.knime.core.node.NodeView;
 
 /**
- *
- * @author wiswedel
+ * Factory to node.
+ * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 public final class CallWorkflowNodeFactory extends NodeFactory<CallWorkflowNodeModel> {
 

@@ -59,8 +59,8 @@ import org.knime.core.util.UniqueNameGenerator;
 import com.knime.explorer.nodes.callworkflow.IWorkflowBackend.WorkflowState;
 
 /**
- *
- * @author wiswedel
+ * Model to node.
+ * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class CallWorkflowNodeModel extends NodeModel {
 
@@ -90,9 +90,12 @@ final class CallWorkflowNodeModel extends NodeModel {
         String workflow = m_configuration.getWorkflowPath();
         BufferedDataContainer container = null;
         Map<String, Integer> outputColIndexMap = new HashMap<>();
+        // the rows that fail - collected in chunks and written/flushed when we see a good case.
         Map<RowKey, String> consecutiveFailRowKeys = new LinkedHashMap<RowKey, String>();
         try (LocalWorkflowBackend localWorkflowBackend = LocalWorkflowBackend.get(workflow)) {
             Map<String, String> parameterToJsonColumnMap = m_configuration.getParameterToJsonColumnMap();
+            // set static input once
+            // dynamic input (columns variable) is set in a loop further down below.
             localWorkflowBackend.setInputNodes(m_configuration.getParameterToJsonConfigMap());
             final int rowCount = inData[0].getRowCount();
             int rowIndex = 0;

@@ -36,8 +36,8 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.util.CheckUtils;
 
 /**
- * Config object to node.
- * @author wiswedel
+ * Config object to node. Holds (remote) workflow URI and parameters.
+ * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class CallWorkflowConfiguration {
 

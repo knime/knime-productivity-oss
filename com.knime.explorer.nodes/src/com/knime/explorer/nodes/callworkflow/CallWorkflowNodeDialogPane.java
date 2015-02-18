@@ -60,8 +60,8 @@ import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.ColumnSelectionPanel;
 
 /**
- *
- * @author wiswedel
+ * Dialog to node.
+ * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class CallWorkflowNodeDialogPane extends NodeDialogPane {
 

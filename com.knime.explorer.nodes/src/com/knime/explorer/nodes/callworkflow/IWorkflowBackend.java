@@ -25,11 +25,12 @@ import java.util.Map;
 import javax.json.JsonObject;
 
 /**
- *
- * @author wiswedel
+ * Interface to access a workflow. Can be either a local workflow or a remote flow (via REST calls then).
+ * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 interface IWorkflowBackend {
 
+    /** Wraps the workflow state - either translates to node container state (local) or the REST version. */
     public enum WorkflowState {
         IDLE,
         RUNNING,

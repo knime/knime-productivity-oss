@@ -46,8 +46,8 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
 /**
- *
- * @author wiswedel
+ * A local workflow representation. Workflows are kept in a cache and re-used with exclusive locks.
+ * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class LocalWorkflowBackend implements IWorkflowBackend, AutoCloseable {
 
