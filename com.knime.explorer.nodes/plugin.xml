@@ -11,6 +11,12 @@
        <node category-path="/misc" 
         factory-class="com.knime.explorer.nodes.ExplorerBrowserNodeFactory" 
         id="com.knime.explorer.nodes.writer.ExplorerBrowserNodeFactory"/>
+       <node
+             category-path="/knime-server"
+             expert-flag="false"
+             factory-class="com.knime.explorer.nodes.callworkflow.CallWorkflowNodeFactory"
+             id="com.knime.explorer.nodes.callworkflow.CallWorkflowNodeFactory">
+       </node>
     </extension>
 
 </plugin>
