@@ -140,7 +140,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend, AutoCloseable {
 
     /** {@inheritDoc} */
     @Override
-    public void discard() {
+    public void close() throws Exception {
         m_isInUse = false;
         KNIMETimer.getInstance().schedule(new TimerTask() {
             @Override
@@ -148,12 +148,6 @@ final class LocalWorkflowBackend implements IWorkflowBackend, AutoCloseable {
                 CACHE.cleanUp();
             }
         }, TimeUnit.SECONDS.toMillis(65L));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void close() throws Exception {
-        discard();
     }
 
 }

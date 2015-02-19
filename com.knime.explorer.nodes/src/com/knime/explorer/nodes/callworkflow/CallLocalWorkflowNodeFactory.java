@@ -16,33 +16,18 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Created on Feb 17, 2015 by wiswedel
+ *   Created on Feb 19, 2015 by wiswedel
  */
 package com.knime.explorer.nodes.callworkflow;
 
-import java.util.Map;
-
-import javax.json.JsonObject;
-
 /**
- * Interface to access a workflow. Can be either a local workflow or a remote flow (via REST calls then).
- * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
+ *
+ * @author wiswedel
  */
-interface IWorkflowBackend extends AutoCloseable {
+public final class CallLocalWorkflowNodeFactory extends CallWorkflowNodeFactory {
 
-    /** Wraps the workflow state - either translates to node container state (local) or the REST version. */
-    public enum WorkflowState {
-        IDLE,
-        RUNNING,
-        EXECUTED,
+    public CallLocalWorkflowNodeFactory() {
+        super(false);
     }
-
-    public Map<String, JsonObject> getInputNodes();
-
-    public void setInputNodes(Map<String, JsonObject> input);
-
-    public Map<String, JsonObject> getOutputNodes();
-
-    public WorkflowState execute();
 
 }

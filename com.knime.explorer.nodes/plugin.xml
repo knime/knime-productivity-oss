@@ -14,8 +14,14 @@
        <node
              category-path="/knime-server"
              expert-flag="false"
-             factory-class="com.knime.explorer.nodes.callworkflow.CallWorkflowNodeFactory"
-             id="com.knime.explorer.nodes.callworkflow.CallWorkflowNodeFactory">
+             factory-class="com.knime.explorer.nodes.callworkflow.CallRemoteWorkflowNodeFactory"
+             id="com.knime.explorer.nodes.callworkflow.CallRemoteWorkflowNodeFactory">
+       </node>
+       <node
+             category-path="/knime-server"
+             expert-flag="false"
+             factory-class="com.knime.explorer.nodes.callworkflow.CallLocalWorkflowNodeFactory"
+             id="com.knime.explorer.nodes.callworkflow.CallLocalWorkflowNodeFactory">
        </node>
     </extension>
 

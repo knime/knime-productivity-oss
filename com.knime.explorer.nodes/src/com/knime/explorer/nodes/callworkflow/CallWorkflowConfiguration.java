@@ -35,16 +35,26 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.util.CheckUtils;
 
+import com.knime.explorer.nodes.callworkflow.RemoteWorkflowBackend.Lookup;
+
 /**
  * Config object to node. Holds (remote) workflow URI and parameters.
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class CallWorkflowConfiguration {
 
+    private final boolean m_isRemote;
     private Map<String, JsonObject> m_parameterToJsonConfigMap = Collections.emptyMap();
     private Map<String, String> m_parameterToJsonColumnMap = Collections.emptyMap();
     private String m_workflowPath;
+    private String m_remoteHostAndPort;
+    private String m_username;
+    private String m_password;
 
+    /** @param isRemote */
+    CallWorkflowConfiguration(final boolean isRemote) {
+        m_isRemote = isRemote;
+    }
     /** @return the parameterToJsonConfigMap */
     Map<String, JsonObject> getParameterToJsonConfigMap() {
         return m_parameterToJsonConfigMap;
@@ -74,7 +84,37 @@ final class CallWorkflowConfiguration {
         m_workflowPath = workflowPath;
     }
 
+    /** @return the remoteHostAndPort */
+    String getRemoteHostAndPort() {
+        return m_remoteHostAndPort;
+    }
+    /** @param remoteHostAndPort the remoteHostAndPort to set */
+    void setRemoteHostAndPort(final String remoteHostAndPort) {
+        m_remoteHostAndPort = remoteHostAndPort;
+    }
+    /** @return the username */
+    String getUsername() {
+        return m_username;
+    }
+    /** @param username the username to set */
+    void setUsername(final String username) {
+        m_username = username;
+    }
+    /** @return the password */
+    String getPassword() {
+        return m_password;
+    }
+    /** @param password the password to set */
+    void setPassword(final String password) {
+        m_password = password;
+    }
+
     void save(final NodeSettingsWO settings) {
+        if (m_isRemote) {
+            settings.addString("remoteHostAndPort", m_remoteHostAndPort);
+            settings.addString("username", m_username);
+            settings.addPassword("password", "GladYouFoundIt", m_password);
+        }
         settings.addString("workflow", m_workflowPath);
         NodeSettingsWO settings2 = settings.addNodeSettings("parameterToJsonConfigMap");
         for (Map.Entry<String, JsonObject> entry : m_parameterToJsonConfigMap.entrySet()) {
@@ -90,6 +130,13 @@ final class CallWorkflowConfiguration {
     }
 
     CallWorkflowConfiguration loadInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
+        if (m_isRemote) {
+            m_remoteHostAndPort = settings.getString("remoteHostAndPort");
+            CheckUtils.checkSetting(StringUtils.isNotBlank(m_remoteHostAndPort), "Host must not be empty");
+            m_username = settings.getString("username");
+            CheckUtils.checkSetting(StringUtils.isNotBlank(m_username), "User must not be empty");
+            m_password = settings.getPassword("password", "GladYouFoundIt");
+        }
         m_workflowPath = settings.getString("workflow");
         NodeSettingsRO settings2 = settings.getNodeSettings("parameterToJsonConfigMap");
         m_parameterToJsonConfigMap = new LinkedHashMap<>();
@@ -110,6 +157,13 @@ final class CallWorkflowConfiguration {
     }
 
     void loadInDialog(final NodeSettingsRO settings) {
+        if (m_isRemote) {
+            m_remoteHostAndPort = settings.getString("remoteHostAndPort", null);
+            m_remoteHostAndPort = StringUtils.defaultIfBlank(m_remoteHostAndPort,
+                "http://localhost:8080/com.knime.enterprise.server/rest");
+            m_username = settings.getString("username", System.getProperty("user.name"));
+            m_password = settings.getPassword("password", "GladYouFoundIt", "");
+        }
         m_workflowPath = settings.getString("workflow", "");
         m_parameterToJsonConfigMap = new LinkedHashMap<>();
         m_parameterToJsonColumnMap = new LinkedHashMap<>();
@@ -150,6 +204,15 @@ final class CallWorkflowConfiguration {
             } catch (InvalidSettingsException e) {
                 continue;
             }
+        }
+    }
+
+    IWorkflowBackend newBackend() throws Exception {
+        if (m_isRemote) {
+            return RemoteWorkflowBackend.newInstance(
+                Lookup.newLookup(m_remoteHostAndPort, m_workflowPath, m_username, m_password));
+        } else {
+            return LocalWorkflowBackend.get(m_workflowPath);
         }
     }
 

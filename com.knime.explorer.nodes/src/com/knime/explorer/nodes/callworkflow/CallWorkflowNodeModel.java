@@ -65,9 +65,11 @@ import com.knime.explorer.nodes.callworkflow.IWorkflowBackend.WorkflowState;
 final class CallWorkflowNodeModel extends NodeModel {
 
     private CallWorkflowConfiguration m_configuration;
+    private final boolean m_isRemote;
 
-    CallWorkflowNodeModel() {
+    CallWorkflowNodeModel(final boolean isRemote) {
         super(1, 1);
+        m_isRemote = isRemote;
     }
 
     /** {@inheritDoc} */
@@ -87,16 +89,15 @@ final class CallWorkflowNodeModel extends NodeModel {
     @Override
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData,
         final ExecutionContext exec) throws Exception {
-        String workflow = m_configuration.getWorkflowPath();
         BufferedDataContainer container = null;
         Map<String, Integer> outputColIndexMap = new HashMap<>();
         // the rows that fail - collected in chunks and written/flushed when we see a good case.
         Map<RowKey, String> consecutiveFailRowKeys = new LinkedHashMap<RowKey, String>();
-        try (LocalWorkflowBackend localWorkflowBackend = LocalWorkflowBackend.get(workflow)) {
+        try (IWorkflowBackend backend = m_configuration.newBackend()) {
             Map<String, String> parameterToJsonColumnMap = m_configuration.getParameterToJsonColumnMap();
             // set static input once
             // dynamic input (columns variable) is set in a loop further down below.
-            localWorkflowBackend.setInputNodes(m_configuration.getParameterToJsonConfigMap());
+            backend.setInputNodes(m_configuration.getParameterToJsonConfigMap());
             final int rowCount = inData[0].getRowCount();
             int rowIndex = 0;
             for (DataRow r : inData[0]) {
@@ -119,15 +120,15 @@ final class CallWorkflowNodeModel extends NodeModel {
                     JsonObject jsonObject = (JsonObject)jsonValue;
                     input.put(staticEntry.getKey(), jsonObject);
                 }
-                localWorkflowBackend.setInputNodes(input);
+                backend.setInputNodes(input);
                 long start = System.currentTimeMillis();
-                WorkflowState execute = localWorkflowBackend.execute();
+                WorkflowState execute = backend.execute();
                 long delay = System.currentTimeMillis() - start;
                 if (!execute.equals(WorkflowState.EXECUTED)) {
                     consecutiveFailRowKeys.put(r.getKey(), "Fail. Workflow not executed.");
                     continue;
                 }
-                Map<String, JsonObject> outputNodes = localWorkflowBackend.getOutputNodes();
+                Map<String, JsonObject> outputNodes = backend.getOutputNodes();
                 if (container == null) {
                     container = createDataContainer(inData[0].getDataTableSpec(),
                         exec, outputNodes.keySet(), outputColIndexMap);
@@ -194,13 +195,13 @@ final class CallWorkflowNodeModel extends NodeModel {
     /** {@inheritDoc} */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        new CallWorkflowConfiguration().loadInModel(settings);
+        new CallWorkflowConfiguration(m_isRemote).loadInModel(settings);
     }
 
     /** {@inheritDoc} */
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_configuration = new CallWorkflowConfiguration().loadInModel(settings);
+        m_configuration = new CallWorkflowConfiguration(m_isRemote).loadInModel(settings);
     }
 
     /** {@inheritDoc} */

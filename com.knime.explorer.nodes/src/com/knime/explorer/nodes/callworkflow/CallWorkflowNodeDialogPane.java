@@ -40,6 +40,7 @@ import javax.json.stream.JsonGenerator;
 import javax.swing.ButtonGroup;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.border.Border;
@@ -59,22 +60,32 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.ColumnSelectionPanel;
 
+import com.knime.explorer.nodes.callworkflow.RemoteWorkflowBackend.Lookup;
+
 /**
  * Dialog to node.
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class CallWorkflowNodeDialogPane extends NodeDialogPane {
 
-    private final JTextField m_workflowPath;
+    private final JTextField m_hostField;
+    private final JTextField m_usernameField;
+    private final JPasswordField m_passwordField;
+    private final JTextField m_workflowPathField;
     private final JLabel m_errorLabel;
     private final VerticalCollapsablePanels m_collapsablePanels;
     private final Map<String, MyPanel> m_panelMap;
 
     private DataTableSpec m_spec;
+    private final boolean m_isRemote;
 
-    CallWorkflowNodeDialogPane() {
-        m_workflowPath = new JTextField();
-        m_workflowPath.addActionListener(new ActionListener() {
+    CallWorkflowNodeDialogPane(final boolean isRemote) {
+        m_isRemote = isRemote;
+        m_hostField = new JTextField();
+        m_usernameField = new JTextField();
+        m_passwordField = new JPasswordField();
+        m_workflowPathField = new JTextField();
+        m_workflowPathField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(final ActionEvent e) {
                 updatePanels();
@@ -87,13 +98,50 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
         JPanel p = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
+
         gbc.weightx = 1.0;
         gbc.gridx = gbc.gridy = 0;
         gbc.weighty = 0.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        p.add(new JLabel("Workflow URI (can use \"knime://knime.workflow/..\"): "), gbc);
-        gbc.gridy += 1;
-        p.add(m_workflowPath, gbc);
+        if (m_isRemote) {
+            gbc.weightx = 0.0;
+            p.add(new JLabel("Host: "), gbc);
+            gbc.gridx += 1;
+            gbc.weightx = 1.0;
+            p.add(m_hostField, gbc);
+            gbc.gridx = 0;
+            gbc.gridy += 1;
+
+            gbc.weightx = 0.0;
+            p.add(new JLabel("User: "), gbc);
+            gbc.gridx += 1;
+            gbc.weightx = 1.0;
+            p.add(m_usernameField, gbc);
+            gbc.gridx = 0;
+            gbc.gridy += 1;
+
+            gbc.weightx = 0.0;
+            p.add(new JLabel("Password: "), gbc);
+            gbc.gridx += 1;
+            gbc.weightx = 1.0;
+            p.add(m_passwordField, gbc);
+            gbc.gridx = 0;
+            gbc.gridy += 1;
+        }
+
+        gbc.weightx = 0.0;
+        p.add(new JLabel("Workflow Path: "), gbc);
+        gbc.gridx += 1;
+        gbc.weightx = 1.0;
+        p.add(m_workflowPathField, gbc);
+
+        if (!m_isRemote) {
+            gbc.gridy += 1;
+            p.add(new JLabel("(can use \"knime://knime.workflow/..\"): "), gbc);
+        }
+
+        gbc.gridwidth = 2;
+        gbc.gridx = 0;
         gbc.gridy += 1;
         p.add(m_errorLabel, gbc);
         gbc.gridy += 1;
@@ -107,8 +155,13 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         CheckUtils.checkSetting(StringUtils.isBlank(m_errorLabel.getText()) , "No valid workflow selected");
-        CallWorkflowConfiguration c = new CallWorkflowConfiguration();
-        c.setWorkflowPath(m_workflowPath.getText());
+        CallWorkflowConfiguration c = new CallWorkflowConfiguration(m_isRemote);
+        c.setWorkflowPath(m_workflowPathField.getText());
+        if (m_isRemote) {
+            c.setRemoteHostAndPort(m_hostField.getText());
+            c.setUsername(m_usernameField.getText());
+            c.setPassword(new String(m_passwordField.getPassword()));
+        }
         Map<String, String> parameterToJsonColumnMap = new LinkedHashMap<>();
         Map<String, JsonObject> parameterToJsonConfigMap = new LinkedHashMap<>();
         for (Map.Entry<String, MyPanel> entry : m_panelMap.entrySet()) {
@@ -130,11 +183,14 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final DataTableSpec[] specs)
             throws NotConfigurableException {
-        CallWorkflowConfiguration c = new CallWorkflowConfiguration();
+        CallWorkflowConfiguration c = new CallWorkflowConfiguration(m_isRemote);
         c.loadInDialog(settings);
+        m_hostField.setText(c.getRemoteHostAndPort());
+        m_usernameField.setText(c.getUsername());
+        m_passwordField.setText(c.getPassword());
         m_spec = specs[0];
 
-        m_workflowPath.setText(c.getWorkflowPath());
+        m_workflowPathField.setText(c.getWorkflowPath());
         updatePanels();
 
         for (Map.Entry<String, JsonObject> entry : c.getParameterToJsonConfigMap().entrySet()) {
@@ -157,8 +213,8 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
         m_panelMap.clear();
         m_errorLabel.setText(" ");
 
-        try (LocalWorkflowBackend localWF = LocalWorkflowBackend.get(m_workflowPath.getText())) {
-            Map<String, JsonObject> inputNodes = localWF.getInputNodes();
+        try (IWorkflowBackend backend = newBackend()) {
+            Map<String, JsonObject> inputNodes = backend.getInputNodes();
             for (Map.Entry<String, JsonObject> entry : inputNodes.entrySet()) {
                 MyPanel p = new MyPanel(entry.getValue(), m_spec);
                 m_panelMap.put(entry.getKey(), p);
@@ -167,6 +223,18 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
         } catch (Exception e) {
             m_errorLabel.setText("<html><body>" + e.getMessage() + "</body></html>");
             return;
+        }
+    }
+
+    private IWorkflowBackend newBackend() throws Exception {
+        final String workflowPath = m_workflowPathField.getText();
+        if (m_isRemote) {
+            final String hostAndPort = m_hostField.getText();
+            String username = m_usernameField.getText();
+            String password = new String(m_passwordField.getPassword());
+            return RemoteWorkflowBackend.newInstance(Lookup.newLookup(hostAndPort, workflowPath, username, password));
+        } else {
+            return LocalWorkflowBackend.get(workflowPath);
         }
     }
 

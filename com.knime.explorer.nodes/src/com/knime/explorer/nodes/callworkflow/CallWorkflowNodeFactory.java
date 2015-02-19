@@ -28,12 +28,18 @@ import org.knime.core.node.NodeView;
  * Factory to node.
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
-public final class CallWorkflowNodeFactory extends NodeFactory<CallWorkflowNodeModel> {
+abstract class CallWorkflowNodeFactory extends NodeFactory<CallWorkflowNodeModel> {
+
+    private final boolean m_isRemote;
+
+    CallWorkflowNodeFactory(final boolean isRemote) {
+        m_isRemote = isRemote;
+    }
 
     /** {@inheritDoc} */
     @Override
     public CallWorkflowNodeModel createNodeModel() {
-        return new CallWorkflowNodeModel();
+        return new CallWorkflowNodeModel(m_isRemote);
     }
 
     /** {@inheritDoc} */
@@ -57,7 +63,7 @@ public final class CallWorkflowNodeFactory extends NodeFactory<CallWorkflowNodeM
     /** {@inheritDoc} */
     @Override
     protected NodeDialogPane createNodeDialogPane() {
-        return new CallWorkflowNodeDialogPane();
+        return new CallWorkflowNodeDialogPane(m_isRemote);
     }
 
 }
