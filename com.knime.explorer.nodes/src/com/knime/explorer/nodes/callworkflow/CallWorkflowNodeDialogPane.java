@@ -26,6 +26,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Collections;
@@ -38,6 +40,7 @@ import javax.json.JsonReader;
 import javax.json.JsonWriter;
 import javax.json.stream.JsonGenerator;
 import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
@@ -80,23 +83,31 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
     private final boolean m_isRemote;
 
     CallWorkflowNodeDialogPane(final boolean isRemote) {
+        final JPanel p = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+
         m_isRemote = isRemote;
         m_hostField = new JTextField();
         m_usernameField = new JTextField();
         m_passwordField = new JPasswordField();
         m_workflowPathField = new JTextField();
-        m_workflowPathField.addActionListener(new ActionListener() {
+        m_workflowPathField.addKeyListener(new KeyAdapter() {
+            /**
+             * {@inheritDoc}
+             */
             @Override
-            public void actionPerformed(final ActionEvent e) {
-                updatePanels();
+            public void keyTyped(final KeyEvent e) {
+                m_collapsablePanels.removeAll();
+                m_panelMap.clear();
+                m_errorLabel.setText(" ");
+                p.revalidate();
             }
         });
+
         m_errorLabel = new JLabel();
         m_errorLabel.setForeground(Color.RED.darker());
         m_collapsablePanels = new VerticalCollapsablePanels(true, 0);
         m_panelMap = new LinkedHashMap<>();
-        JPanel p = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
 
         gbc.weightx = 1.0;
@@ -108,39 +119,56 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
             p.add(new JLabel("Host: "), gbc);
             gbc.gridx += 1;
             gbc.weightx = 1.0;
+            gbc.gridwidth = 2;
             p.add(m_hostField, gbc);
             gbc.gridx = 0;
             gbc.gridy += 1;
 
+            gbc.gridwidth = 1;
             gbc.weightx = 0.0;
             p.add(new JLabel("User: "), gbc);
             gbc.gridx += 1;
             gbc.weightx = 1.0;
+            gbc.gridwidth = 2;
             p.add(m_usernameField, gbc);
             gbc.gridx = 0;
             gbc.gridy += 1;
 
+            gbc.gridwidth = 1;
             gbc.weightx = 0.0;
             p.add(new JLabel("Password: "), gbc);
             gbc.gridx += 1;
             gbc.weightx = 1.0;
+            gbc.gridwidth = 2;
             p.add(m_passwordField, gbc);
             gbc.gridx = 0;
             gbc.gridy += 1;
         }
 
+        gbc.gridwidth = 1;
         gbc.weightx = 0.0;
         p.add(new JLabel("Workflow Path: "), gbc);
         gbc.gridx += 1;
         gbc.weightx = 1.0;
         p.add(m_workflowPathField, gbc);
 
+        JButton b = new JButton("Load input format");
+        b.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(final ActionEvent e) {
+                updatePanels();
+            }
+        });
+        gbc.gridx++;
+        gbc.weightx = 0;
+        p.add(b, gbc);
+
         if (!m_isRemote) {
             gbc.gridy += 1;
             p.add(new JLabel("(can use \"knime://knime.workflow/..\"): "), gbc);
         }
 
-        gbc.gridwidth = 2;
+        gbc.gridwidth = 3;
         gbc.gridx = 0;
         gbc.gridy += 1;
         p.add(m_errorLabel, gbc);
@@ -212,17 +240,20 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
         m_collapsablePanels.removeAll();
         m_panelMap.clear();
         m_errorLabel.setText(" ");
-
-        try (IWorkflowBackend backend = newBackend()) {
-            Map<String, JsonObject> inputNodes = backend.getInputNodes();
-            for (Map.Entry<String, JsonObject> entry : inputNodes.entrySet()) {
-                MyPanel p = new MyPanel(entry.getValue(), m_spec);
-                m_panelMap.put(entry.getKey(), p);
-                m_collapsablePanels.addPanel(p, false, entry.getKey());
+        if (m_workflowPathField.getText().isEmpty()) {
+            m_errorLabel.setText("No workflow path provided");
+        } else {
+            try (IWorkflowBackend backend = newBackend()) {
+                Map<String, JsonObject> inputNodes = backend.getInputNodes();
+                for (Map.Entry<String, JsonObject> entry : inputNodes.entrySet()) {
+                    MyPanel p = new MyPanel(entry.getValue(), m_spec);
+                    m_panelMap.put(entry.getKey(), p);
+                    m_collapsablePanels.addPanel(p, false, entry.getKey());
+                }
+            } catch (Exception e) {
+                m_errorLabel.setText("<html><body>" + e.getMessage() + "</body></html>");
+                return;
             }
-        } catch (Exception e) {
-            m_errorLabel.setText("<html><body>" + e.getMessage() + "</body></html>");
-            return;
         }
     }
 
