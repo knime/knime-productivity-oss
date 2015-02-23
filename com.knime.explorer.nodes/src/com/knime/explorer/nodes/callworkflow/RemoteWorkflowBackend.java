@@ -106,6 +106,13 @@ final class RemoteWorkflowBackend implements IWorkflowBackend, AutoCloseable {
 
     /** {@inheritDoc} */
     @Override
+    public String getWorkflowMessage() {
+        // TODO
+        return "";
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void close() throws Exception {
         try {
             m_jobs.discard(m_uuid);

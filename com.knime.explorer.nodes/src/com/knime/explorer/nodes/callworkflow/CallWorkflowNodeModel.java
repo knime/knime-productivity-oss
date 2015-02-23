@@ -33,6 +33,7 @@ import java.util.Map;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
 
+import org.apache.commons.lang3.StringUtils;
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataRow;
@@ -125,7 +126,12 @@ final class CallWorkflowNodeModel extends NodeModel {
                 WorkflowState execute = backend.execute();
                 long delay = System.currentTimeMillis() - start;
                 if (!execute.equals(WorkflowState.EXECUTED)) {
-                    consecutiveFailRowKeys.put(r.getKey(), "Fail. Workflow not executed.");
+                    String m = "Fail. Workflow not executed.";
+                    String workflowMessage = backend.getWorkflowMessage();
+                    if (StringUtils.isNotBlank(workflowMessage)) {
+                        m = m + "\n" + workflowMessage;
+                    }
+                    consecutiveFailRowKeys.put(r.getKey(), m);
                     continue;
                 }
                 Map<String, JsonObject> outputNodes = backend.getOutputNodes();

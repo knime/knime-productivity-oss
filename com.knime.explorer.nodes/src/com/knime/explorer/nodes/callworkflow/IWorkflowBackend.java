@@ -45,4 +45,6 @@ interface IWorkflowBackend extends AutoCloseable {
 
     public WorkflowState execute();
 
+    public String getWorkflowMessage();
+
 }
