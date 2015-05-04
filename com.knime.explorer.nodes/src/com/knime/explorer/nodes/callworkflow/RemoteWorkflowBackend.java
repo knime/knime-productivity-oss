@@ -20,10 +20,12 @@
  */
 package com.knime.explorer.nodes.callworkflow;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
 import javax.json.JsonObject;
+import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -31,7 +33,9 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.cxf.jaxrs.client.JAXRSClientFactory;
 
 import com.knime.enterprise.server.rest.api.Util;
-import com.knime.enterprise.server.rest.api.v4.Jobs;
+import com.knime.enterprise.server.rest.api.v4.jobs.Job;
+import com.knime.enterprise.server.rest.api.v4.jobs.WorkflowJob;
+import com.knime.enterprise.server.rest.api.v4.repository.Jobs;
 
 /**
  * A remote workflow representation. Workflows are kept in a cache and re-used with exclusive locks.
@@ -40,26 +44,36 @@ import com.knime.enterprise.server.rest.api.v4.Jobs;
 final class RemoteWorkflowBackend implements IWorkflowBackend, AutoCloseable {
 
     private final UUID m_uuid;
-    private final Jobs m_jobs;
+    private final Job m_jobEndpoint;
 
-    private RemoteWorkflowBackend(final UUID uuid, final Jobs m) {
+    private RemoteWorkflowBackend(final UUID uuid, final Job m) {
         m_uuid = uuid;
-        m_jobs = m;
+        m_jobEndpoint = m;
     }
 
     static RemoteWorkflowBackend newInstance(final Lookup lookup) throws Exception {
         Jobs jobs = JAXRSClientFactory.create(lookup.m_hostAndPort,
             Jobs.class, Util.getJaxRSProviders(), lookup.m_username, lookup.m_password,
             null);
-        UUID uuid = jobs.loadWorkflow(lookup.m_workflow);
-        return new RemoteWorkflowBackend(uuid, jobs);
+        Response res = jobs.createNewJobAsMason(lookup.m_workflow);
+        WorkflowJob job = res.readEntity(WorkflowJob.class);
+
+
+        Job jobEnpoint = JAXRSClientFactory.create(lookup.m_hostAndPort,
+            Job.class, Util.getJaxRSProviders(), lookup.m_username, lookup.m_password,
+            null);
+
+        return new RemoteWorkflowBackend(job.getId(), jobEnpoint);
     }
 
     /** {@inheritDoc} */
     @Override
     public Map<String, JsonObject> getInputNodes() {
         try {
-            return m_jobs.getInput(m_uuid);
+            Response res = m_jobEndpoint.getJobAsMason(m_uuid);
+            WorkflowJob job = res.readEntity(WorkflowJob.class);
+
+            return job.getInputParameters();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -69,7 +83,11 @@ final class RemoteWorkflowBackend implements IWorkflowBackend, AutoCloseable {
     @Override
     public void setInputNodes(final Map<String, JsonObject> input) {
         try {
-            m_jobs.setInput(m_uuid, input);
+            Response res = m_jobEndpoint.getJobAsMason(m_uuid);
+            WorkflowJob job = res.readEntity(WorkflowJob.class);
+            job = WorkflowJob.builder(job).setInputParameters(input).build();
+
+            m_jobEndpoint.modifyJob(m_uuid, job);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -79,7 +97,9 @@ final class RemoteWorkflowBackend implements IWorkflowBackend, AutoCloseable {
     @Override
     public Map<String, JsonObject> getOutputNodes() {
         try {
-            return m_jobs.getOutput(m_uuid);
+            Response res = m_jobEndpoint.getJobAsMason(m_uuid);
+            WorkflowJob job = res.readEntity(WorkflowJob.class);
+            return job.getOutputParameters();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -90,7 +110,8 @@ final class RemoteWorkflowBackend implements IWorkflowBackend, AutoCloseable {
     public WorkflowState execute() {
         com.knime.enterprise.utility.WorkflowState syncExec;
         try {
-            syncExec = m_jobs.syncExec(m_uuid);
+            Response res = m_jobEndpoint.executeJob(m_uuid, false, Collections.EMPTY_MAP);
+            syncExec = res.readEntity(WorkflowJob.class).getState();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -115,7 +136,7 @@ final class RemoteWorkflowBackend implements IWorkflowBackend, AutoCloseable {
     @Override
     public void close() throws Exception {
         try {
-            m_jobs.discard(m_uuid);
+            m_jobEndpoint.deleteJob(m_uuid);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

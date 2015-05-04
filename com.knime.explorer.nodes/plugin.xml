@@ -6,8 +6,6 @@
        <node category-path="/misc" 
         factory-class="com.knime.explorer.nodes.ExplorerWriterNodeFactory" 
         id="com.knime.explorer.nodes.writer.ExplorerWriterNodeFactory"/>
-    </extension>
-    <extension point="org.knime.workbench.repository.nodes">
        <node category-path="/misc" 
         factory-class="com.knime.explorer.nodes.ExplorerBrowserNodeFactory" 
         id="com.knime.explorer.nodes.writer.ExplorerBrowserNodeFactory"/>
