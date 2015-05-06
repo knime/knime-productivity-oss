@@ -34,7 +34,7 @@ import org.apache.cxf.jaxrs.client.JAXRSClientFactory;
 
 import com.knime.enterprise.server.rest.api.Util;
 import com.knime.enterprise.server.rest.api.v4.jobs.Job;
-import com.knime.enterprise.server.rest.api.v4.jobs.WorkflowJob;
+import com.knime.enterprise.server.rest.api.v4.jobs.ent.WorkflowJob;
 import com.knime.enterprise.server.rest.api.v4.repository.Jobs;
 
 /**
