@@ -23,6 +23,7 @@ package com.knime.explorer.nodes.callworkflow;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
@@ -31,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import javax.json.JsonObject;
 
 import org.knime.core.node.ExecutionMonitor;
+import org.knime.core.node.dialog.ExternalNodeOutput;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.NodeContainerState;
 import org.knime.core.node.workflow.NodeMessage;
@@ -123,8 +125,17 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
 
     /** {@inheritDoc} */
     @Override
-    public Map<String, JsonObject> getOutputNodes() {
-        return m_manager.getOutputNodes();
+    public Map<String, JsonObject> getOutputValues() {
+        Map<String, JsonObject> map = new HashMap<>();
+
+        for (Map.Entry<String, ExternalNodeOutput> e : m_manager.getExternalOutputs().entrySet()) {
+            JsonObject json = e.getValue().getJSONObject();
+            if (json != null) {
+                map.put(e.getKey(), json);
+            }
+        }
+
+        return map;
     }
 
     /** {@inheritDoc} */

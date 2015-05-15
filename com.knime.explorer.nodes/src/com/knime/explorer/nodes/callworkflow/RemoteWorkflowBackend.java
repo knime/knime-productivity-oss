@@ -95,11 +95,11 @@ final class RemoteWorkflowBackend implements IWorkflowBackend, AutoCloseable {
 
     /** {@inheritDoc} */
     @Override
-    public Map<String, JsonObject> getOutputNodes() {
+    public Map<String, JsonObject> getOutputValues() {
         try {
             Response res = m_jobEndpoint.getJobAsMason(m_uuid);
             WorkflowJob job = res.readEntity(WorkflowJob.class);
-            return job.getOutputParameters();
+            return job.getOutputValues();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

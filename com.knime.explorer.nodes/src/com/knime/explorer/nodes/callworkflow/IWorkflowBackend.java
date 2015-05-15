@@ -41,7 +41,7 @@ interface IWorkflowBackend extends AutoCloseable {
 
     public void setInputNodes(Map<String, JsonObject> input);
 
-    public Map<String, JsonObject> getOutputNodes();
+    public Map<String, JsonObject> getOutputValues();
 
     public WorkflowState execute();
 

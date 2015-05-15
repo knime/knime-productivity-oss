@@ -134,7 +134,7 @@ final class CallWorkflowNodeModel extends NodeModel {
                     consecutiveFailRowKeys.put(r.getKey(), m);
                     continue;
                 }
-                Map<String, JsonObject> outputNodes = backend.getOutputNodes();
+                Map<String, JsonObject> outputNodes = backend.getOutputValues();
                 if (container == null) {
                     container = createDataContainer(inData[0].getDataTableSpec(),
                         exec, outputNodes.keySet(), outputColIndexMap);
