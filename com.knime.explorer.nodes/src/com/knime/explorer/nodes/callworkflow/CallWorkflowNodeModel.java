@@ -53,6 +53,7 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.StringFormat;
 import org.knime.core.util.UniqueNameGenerator;
@@ -105,7 +106,7 @@ final class CallWorkflowNodeModel extends NodeModel {
                 exec.checkCanceled();
                 exec.setProgress(rowIndex++ / (double)rowCount, String.format("Row %d/%d (\"%s\")",
                     rowIndex, rowCount, r.getKey().toString()));
-                Map<String, JsonObject> input = new LinkedHashMap<>();
+                Map<String, ExternalNodeData> input = new LinkedHashMap<>();
                 for (Map.Entry<String, String> staticEntry : parameterToJsonColumnMap.entrySet()) {
                     int colIndex = inData[0].getDataTableSpec().findColumnIndex(staticEntry.getValue());
                     DataCell c = r.getCell(colIndex);
@@ -119,7 +120,8 @@ final class CallWorkflowNodeModel extends NodeModel {
                         "JSON in column \"%s\" is not  valid JSONObject - it's %s",
                         staticEntry.getValue(), jsonValue.getValueType());
                     JsonObject jsonObject = (JsonObject)jsonValue;
-                    input.put(staticEntry.getKey(), jsonObject);
+                    input.put(staticEntry.getKey(),
+                        ExternalNodeData.builder(staticEntry.getKey()).jsonObject(jsonObject).build());
                 }
                 backend.setInputNodes(input);
                 long start = System.currentTimeMillis();

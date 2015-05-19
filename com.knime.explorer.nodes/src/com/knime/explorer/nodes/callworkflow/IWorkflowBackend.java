@@ -24,6 +24,9 @@ import java.util.Map;
 
 import javax.json.JsonObject;
 
+import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.dialog.ExternalNodeData;
+
 /**
  * Interface to access a workflow. Can be either a local workflow or a remote flow (via REST calls then).
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
@@ -37,9 +40,9 @@ interface IWorkflowBackend extends AutoCloseable {
         EXECUTED,
     }
 
-    public Map<String, JsonObject> getInputNodes();
+    public Map<String, ExternalNodeData> getInputNodes();
 
-    public void setInputNodes(Map<String, JsonObject> input);
+    public void setInputNodes(Map<String, ExternalNodeData> input) throws InvalidSettingsException;
 
     public Map<String, JsonObject> getOutputValues();
 

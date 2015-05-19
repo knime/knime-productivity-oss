@@ -33,6 +33,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 
 import com.knime.explorer.nodes.callworkflow.RemoteWorkflowBackend.Lookup;
@@ -44,7 +45,7 @@ import com.knime.explorer.nodes.callworkflow.RemoteWorkflowBackend.Lookup;
 final class CallWorkflowConfiguration {
 
     private final boolean m_isRemote;
-    private Map<String, JsonObject> m_parameterToJsonConfigMap = Collections.emptyMap();
+    private Map<String, ExternalNodeData> m_parameterToJsonConfigMap = Collections.emptyMap();
     private Map<String, String> m_parameterToJsonColumnMap = Collections.emptyMap();
     private String m_workflowPath;
     private String m_remoteHostAndPort;
@@ -56,11 +57,11 @@ final class CallWorkflowConfiguration {
         m_isRemote = isRemote;
     }
     /** @return the parameterToJsonConfigMap */
-    Map<String, JsonObject> getParameterToJsonConfigMap() {
+    Map<String, ExternalNodeData> getParameterToJsonConfigMap() {
         return m_parameterToJsonConfigMap;
     }
     /** @param map the parameterToJsonConfigMap to set */
-    void setParameterToJsonConfigMap(final Map<String, JsonObject> map) {
+    void setParameterToJsonConfigMap(final Map<String, ExternalNodeData> map) {
         CheckUtils.checkArgumentNotNull(map, "must not be null");
         m_parameterToJsonConfigMap = map;
     }
@@ -117,9 +118,9 @@ final class CallWorkflowConfiguration {
         }
         settings.addString("workflow", m_workflowPath);
         NodeSettingsWO settings2 = settings.addNodeSettings("parameterToJsonConfigMap");
-        for (Map.Entry<String, JsonObject> entry : m_parameterToJsonConfigMap.entrySet()) {
+        for (Map.Entry<String, ExternalNodeData> entry : m_parameterToJsonConfigMap.entrySet()) {
             NodeSettingsWO childSettings = settings2.addNodeSettings(entry.getKey());
-            String json = entry.getValue().toString();
+            String json = entry.getValue().getJSONObject().toString();
             childSettings.addString("json", json);
         }
         NodeSettingsWO settings3 = settings.addNodeSettings("parameterToJsonColumnMap");
@@ -144,7 +145,7 @@ final class CallWorkflowConfiguration {
             NodeSettingsRO childSettings = settings2.getNodeSettings(s);
             String json = childSettings.getString("json");
             JsonObject object = readJSONObject(json);
-            m_parameterToJsonConfigMap.put(s,  object);
+            m_parameterToJsonConfigMap.put(s, ExternalNodeData.builder(s).jsonObject(object).build());
         }
         NodeSettingsRO settings3 = settings.getNodeSettings("parameterToJsonColumnMap");
         m_parameterToJsonColumnMap = new LinkedHashMap<>();
@@ -187,7 +188,7 @@ final class CallWorkflowConfiguration {
             } catch (InvalidSettingsException e) {
                 continue;
             }
-            m_parameterToJsonConfigMap.put(s,  object);
+            m_parameterToJsonConfigMap.put(s, ExternalNodeData.builder(s).jsonObject(object).build());
         }
 
         NodeSettingsRO settings3;

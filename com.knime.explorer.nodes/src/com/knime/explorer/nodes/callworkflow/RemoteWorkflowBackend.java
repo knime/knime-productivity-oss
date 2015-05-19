@@ -21,6 +21,7 @@
 package com.knime.explorer.nodes.callworkflow;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -31,6 +32,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.cxf.jaxrs.client.JAXRSClientFactory;
+import org.knime.core.node.dialog.ExternalNodeData;
 
 import com.knime.enterprise.server.rest.api.Util;
 import com.knime.enterprise.server.rest.api.v4.jobs.Job;
@@ -68,12 +70,18 @@ final class RemoteWorkflowBackend implements IWorkflowBackend, AutoCloseable {
 
     /** {@inheritDoc} */
     @Override
-    public Map<String, JsonObject> getInputNodes() {
+    public Map<String, ExternalNodeData> getInputNodes() {
         try {
             Response res = m_jobEndpoint.getJobAsMason(m_uuid);
             WorkflowJob job = res.readEntity(WorkflowJob.class);
 
-            return job.getInputParameters();
+            // TODO add support for input resources
+            Map<String, ExternalNodeData> input = new HashMap<>();
+            for (Map.Entry<String, JsonObject> e : job.getInputParameters().entrySet()) {
+                input.put(e.getKey(), ExternalNodeData.builder(e.getKey()).jsonObject(e.getValue()).build());
+            }
+
+            return input;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -81,11 +89,20 @@ final class RemoteWorkflowBackend implements IWorkflowBackend, AutoCloseable {
 
     /** {@inheritDoc} */
     @Override
-    public void setInputNodes(final Map<String, JsonObject> input) {
+    public void setInputNodes(final Map<String, ExternalNodeData> input) {
         try {
             Response res = m_jobEndpoint.getJobAsMason(m_uuid);
             WorkflowJob job = res.readEntity(WorkflowJob.class);
-            job = WorkflowJob.builder(job).setInputParameters(input).build();
+
+            // TODO add support for input resources
+            Map<String, JsonObject> inputParams = new HashMap<>();
+            for (Map.Entry<String, ExternalNodeData> e : input.entrySet()) {
+                if (e.getValue().getJSONObject() != null) {
+                    inputParams.put(e.getKey(), e.getValue().getJSONObject());
+                }
+            }
+
+            job = WorkflowJob.builder(job).setInputParameters(inputParams).build();
 
             m_jobEndpoint.modifyJob(m_uuid, job);
         } catch (Exception e) {

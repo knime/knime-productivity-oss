@@ -32,7 +32,8 @@ import java.util.concurrent.TimeUnit;
 import javax.json.JsonObject;
 
 import org.knime.core.node.ExecutionMonitor;
-import org.knime.core.node.dialog.ExternalNodeOutput;
+import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.NodeContainerState;
 import org.knime.core.node.workflow.NodeMessage;
@@ -113,13 +114,15 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
 
     /** {@inheritDoc} */
     @Override
-    public Map<String, JsonObject> getInputNodes() {
+    public Map<String, ExternalNodeData> getInputNodes() {
         return m_manager.getInputNodes();
     }
 
-    /** {@inheritDoc} */
+    /**
+     *  {@inheritDoc}
+     */
     @Override
-    public void setInputNodes(final Map<String, JsonObject> input) {
+    public void setInputNodes(final Map<String, ExternalNodeData> input) throws InvalidSettingsException {
         m_manager.setInputNodes(input);
     }
 
@@ -128,7 +131,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
     public Map<String, JsonObject> getOutputValues() {
         Map<String, JsonObject> map = new HashMap<>();
 
-        for (Map.Entry<String, ExternalNodeOutput> e : m_manager.getExternalOutputs().entrySet()) {
+        for (Map.Entry<String, ExternalNodeData> e : m_manager.getExternalOutputs().entrySet()) {
             JsonObject json = e.getValue().getJSONObject();
             if (json != null) {
                 map.put(e.getKey(), json);

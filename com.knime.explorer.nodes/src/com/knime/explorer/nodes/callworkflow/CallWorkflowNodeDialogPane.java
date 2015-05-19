@@ -60,6 +60,7 @@ import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
+import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.ColumnSelectionPanel;
 
@@ -191,7 +192,7 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
             c.setPassword(new String(m_passwordField.getPassword()));
         }
         Map<String, String> parameterToJsonColumnMap = new LinkedHashMap<>();
-        Map<String, JsonObject> parameterToJsonConfigMap = new LinkedHashMap<>();
+        Map<String, ExternalNodeData> parameterToJsonConfigMap = new LinkedHashMap<>();
         for (Map.Entry<String, MyPanel> entry : m_panelMap.entrySet()) {
             final String key = entry.getKey();
             final MyPanel p = entry.getValue();
@@ -199,7 +200,8 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
             if (jsonColumn != null) {
                 parameterToJsonColumnMap.put(key, jsonColumn);
             } else {
-                parameterToJsonConfigMap.put(key, toJSONObject(key, p.getJSONConfig()));
+                parameterToJsonConfigMap.put(key,
+                    ExternalNodeData.builder(key).jsonObject(toJSONObject(key, p.getJSONConfig())).build());
             }
         }
         c.setParameterToJsonColumnMap(parameterToJsonColumnMap);
@@ -221,10 +223,10 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
         m_workflowPathField.setText(c.getWorkflowPath());
         updatePanels();
 
-        for (Map.Entry<String, JsonObject> entry : c.getParameterToJsonConfigMap().entrySet()) {
+        for (Map.Entry<String, ExternalNodeData> entry : c.getParameterToJsonConfigMap().entrySet()) {
             MyPanel p = m_panelMap.get(entry.getKey());
             if (p != null) {
-                p.update(m_spec, entry.getValue(), null);
+                p.update(m_spec, entry.getValue().getJSONObject(), null);
             }
         }
 
@@ -244,9 +246,9 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
             m_errorLabel.setText("No workflow path provided");
         } else {
             try (IWorkflowBackend backend = newBackend()) {
-                Map<String, JsonObject> inputNodes = backend.getInputNodes();
-                for (Map.Entry<String, JsonObject> entry : inputNodes.entrySet()) {
-                    MyPanel p = new MyPanel(entry.getValue(), m_spec);
+                Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
+                for (Map.Entry<String, ExternalNodeData> entry : inputNodes.entrySet()) {
+                    MyPanel p = new MyPanel(entry.getValue().getJSONObject(), m_spec);
                     m_panelMap.put(entry.getKey(), p);
                     m_collapsablePanels.addPanel(p, false, entry.getKey());
                 }
