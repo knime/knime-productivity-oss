@@ -43,9 +43,10 @@
  * -------------------------------------------------------------------
  *
  */
-package com.knime.workbench.workflowdiff.editor;
+package com.knime.workbench.workflowdiff.editor.filters;
 
 import org.eclipse.jface.action.ControlContribution;
+import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
@@ -61,18 +62,25 @@ import org.knime.workbench.core.util.ImageRepository.SharedImages;
  *
  * @author Peter Ohl, KNIME.com AG, Zurich, Switzerland
  */
-public class NodeSettingsViewerClearFilterButton extends ControlContribution {
+public class StructDiffHideEqualNodesFilterButton extends ControlContribution {
 
-    private final NodeSettingsViewerFilterContribution m_textField;
+    private final StructureDiffFilter m_filter;
+    
+    private final Viewer[] m_viewer;
 
     /**
      * Creates the contribution item. The button that clears the filter text field.
      * @param textField to clear on click
      *
      */
-    public NodeSettingsViewerClearFilterButton(final NodeSettingsViewerFilterContribution textField) {
-        super("com.knime.workflow.diff.nodesettingsviewerclearfilterbutton");
-        m_textField = textField;
+    public StructDiffHideEqualNodesFilterButton(final StructureDiffFilter filter, Viewer...viewers) {
+        super("com.knime.workflow.diff.structdiffhideequalnodesfilterbutton");
+        m_filter = filter;
+        if (viewers == null) {
+        	m_viewer = new Viewer[0];
+        } else {
+        	m_viewer = viewers;
+        }
     }
 
     /**
@@ -80,20 +88,24 @@ public class NodeSettingsViewerClearFilterButton extends ControlContribution {
      */
     @Override
     protected Control createControl(final Composite parent) {
-        Button del = new Button(parent, SWT.PUSH);
-        del.setImage(ImageRepository.getImage(SharedImages.ButtonClear));
-        del.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
-        del.addSelectionListener(new SelectionListener() {
+        final Button btn = new Button(parent, SWT.TOGGLE);
+        btn.setImage(ImageRepository.getImage(SharedImages.ButtonHideEqualNodes));
+        btn.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
+        btn.addSelectionListener(new SelectionListener() {
             @Override
             public void widgetSelected(final SelectionEvent e) {
-                m_textField.clearSearch();
+                m_filter.setHideEqualNodes(btn.getSelection());
+                for (Viewer v : m_viewer) {
+                	v.refresh();
+                }
             }
             @Override
             public void widgetDefaultSelected(final SelectionEvent e) {
                 //huh?
             }
         });
-        return del;
+        btn.setToolTipText("Hide nodes with equal settings.");
+        return btn;
     }
 
 }

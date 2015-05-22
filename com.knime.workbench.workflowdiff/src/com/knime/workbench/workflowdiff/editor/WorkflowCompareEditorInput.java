@@ -48,6 +48,7 @@
  */
 package com.knime.workbench.workflowdiff.editor;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
@@ -61,6 +62,7 @@ import org.eclipse.compare.structuremergeviewer.DiffNode;
 import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.compare.structuremergeviewer.ICompareInput;
 import org.eclipse.compare.structuremergeviewer.IDiffContainer;
+import org.eclipse.compare.structuremergeviewer.IDiffElement;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.viewers.Viewer;
@@ -80,6 +82,7 @@ import org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore;
 
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowContainer;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowElement;
+import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
 
 /**
  *
@@ -99,31 +102,30 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
 
 
     public WorkflowCompareEditorInput(final AbstractExplorerFileStore left, final AbstractExplorerFileStore right,
-        final CompareConfiguration config) {
+        final WorkflowCompareConfiguration config) {
         super(config);
         m_left = left;
         m_right = right;
-        try {
-            if (m_left.toLocalFile() == null) {
-                throw new IllegalArgumentException("Only local workflows can be compared, " + m_left.getName()
-                    + " can't be resolved to a local file.");
-            }
-            if (m_right.toLocalFile() == null) {
-                throw new IllegalArgumentException("Only local workflows can be compared, " + m_right.getName()
-                    + " can't be resolved to a local file.");
-            }
-        } catch (CoreException e) {
-            LOGGER.error(e);
-            throw new IllegalArgumentException("Error while resolving workflow to local file: " + e.getMessage());
-        }
+//        try {
+//            if (m_left.toLocalFile() == null) {
+//                throw new IllegalArgumentException("Only local workflows can be compared, " + m_left.getName()
+//                    + " can't be resolved to a local file.");
+//            }
+//            if (m_right.toLocalFile() == null) {
+//                throw new IllegalArgumentException("Only local workflows can be compared, " + m_right.getName()
+//                    + " can't be resolved to a local file.");
+//            }
+//        } catch (CoreException e) {
+//            LOGGER.error(e);
+//            throw new IllegalArgumentException("Error while resolving workflow to local file: " + e.getMessage());
+//        }
         config.setLeftLabel(m_left.getMountIDWithFullPath());
         config.setRightLabel(m_right.getMountIDWithFullPath());
     }
 
     @Override
     public Viewer createDiffViewer(Composite parent) {
-    	// TODO Auto-generated method stub
-    	return new WorkflowStructureViewer(parent, getCompareConfiguration());
+    	return new WorkflowStructureViewer2(parent, (WorkflowCompareConfiguration) getCompareConfiguration());
     }
     
     /**
@@ -143,20 +145,27 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
         WorkflowManager right;
 
         disposeWorkflows();
-
         try {
-            left =
-                WorkflowManager.ROOT.load(m_left.resolveToLocalFile(), m,
-                    new WorkflowLoadHelper(m_left.resolveToLocalFile()), false).getWorkflowManager();
+        	File leftLocalFile = m_left.toLocalFile();
+        	if (leftLocalFile == null) {
+        		LOGGER.debug("Downloading flow for comparison: " + m_left.getMountIDWithFullPath());
+        		leftLocalFile = m_left.resolveToLocalFile(monitor);
+        	}
+			left = WorkflowManager.ROOT.load(leftLocalFile, m, new WorkflowLoadHelper(leftLocalFile), false)
+					.getWorkflowManager();
         } catch (IOException | InvalidSettingsException | CanceledExecutionException
                 | UnsupportedWorkflowVersionException | LockFailedException | CoreException e) {
             LOGGER.error(e);
             return;
         }
         try {
-            right =
-                WorkflowManager.ROOT.load(m_right.resolveToLocalFile(), m,
-                    new WorkflowLoadHelper(m_right.resolveToLocalFile()), false).getWorkflowManager();
+        	File rightLocalFile = m_right.toLocalFile();
+        	if (rightLocalFile == null) {
+        		LOGGER.debug("Downloading flow for comparison: " + m_right.getMountIDWithFullPath());
+        		rightLocalFile = m_right.resolveToLocalFile(monitor);
+        	}
+			right = WorkflowManager.ROOT.load(rightLocalFile, m, new WorkflowLoadHelper(rightLocalFile), false)
+					.getWorkflowManager();
         } catch (IOException | InvalidSettingsException | CanceledExecutionException
                 | UnsupportedWorkflowVersionException | LockFailedException | CoreException e) {
             LOGGER.error(e);
@@ -209,8 +218,19 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
                 @Override
                 protected Object visit(final Object parent, final int description, final Object ancestor,
                     final Object left, final Object right) {
+                	if (description == CHANGE) {
+                		if (super.contentsEqual(left, right)) {
+                			return new FlowDiffNode((IDiffContainer)parent, PSEUDO_CONFLICT, (ITypedElement)ancestor,
+                                    (ITypedElement)left, (ITypedElement)right);
+                		}
+                	}
                     return new FlowDiffNode((IDiffContainer)parent, description, (ITypedElement)ancestor,
                         (ITypedElement)left, (ITypedElement)right);
+                }
+                @Override
+                protected boolean contentsEqual(Object input1, Object input2) {
+                	// we want all nodes to show up in the diff structure
+                	return false;
                 }
             };
 
@@ -235,7 +255,7 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
      *
      * @author ohl
      */
-    class FlowDiffNode extends DiffNode {
+    public class FlowDiffNode extends DiffNode implements IHierMatchableItem {
 
         private boolean fDirty = false;
 
@@ -279,6 +299,25 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
             fLastId = id;
             return id;
         }
+        
+        @Override
+        public IHierMatchableItem[] getMatchChildren() {
+        	IDiffElement[] children = getChildren();
+        	IHierMatchableItem[] result = new IHierMatchableItem[children.length];
+        	for (int i = 0; i < children.length; i++) {
+        		result[i] = (IHierMatchableItem) children[i];
+        	}
+        	return result;
+        }
 
+        @Override
+        public IHierMatchableItem getMatchParent() {
+        	IDiffElement p = getParent();
+        	if (p instanceof IHierMatchableItem) {
+        		return (IHierMatchableItem) p;
+        	}
+        	return null;
+        }
+        
     }
 }

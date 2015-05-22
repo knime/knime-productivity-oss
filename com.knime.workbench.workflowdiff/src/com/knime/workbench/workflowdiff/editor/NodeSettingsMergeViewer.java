@@ -52,17 +52,25 @@ import java.util.ResourceBundle;
 
 import org.eclipse.compare.CompareConfiguration;
 import org.eclipse.compare.CompareUI;
+import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.contentmergeviewer.ContentMergeViewer;
 import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.jface.viewers.ITreeViewerListener;
 import org.eclipse.jface.viewers.TreeExpansionEvent;
 import org.eclipse.swt.widgets.Composite;
 
+import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
 import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.NodeSettingsTreeContentProvider;
 import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.SettingsItem;
+import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput.FlowDiffNode;
+import com.knime.workbench.workflowdiff.editor.filters.IFilterableTreeViewer;
+import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
+import com.knime.workbench.workflowdiff.editor.filters.NodeDiffFilter;
+import com.knime.workbench.workflowdiff.editor.filters.NodeDiffClearFilterButton;
+import com.knime.workbench.workflowdiff.editor.filters.NodeDiffFilterContribution;
 
 /**
- *
+ * Bottom view of the compare editor. Shows two settings trees.
  * @author ohl
  */
 public class NodeSettingsMergeViewer extends ContentMergeViewer {
@@ -131,10 +139,10 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
     protected void createToolItems(final ToolBarManager toolBarManager) {
         // TODO Auto-generated method stub
         super.createToolItems(toolBarManager);
-        NodeSettingsViewerFilterContribution searchTextField =
-            new NodeSettingsViewerFilterContribution(new NodeSettingsFilter(), m_left, m_right);
+        NodeDiffFilterContribution searchTextField =
+            new NodeDiffFilterContribution(new NodeDiffFilter(), m_left, m_right);
         toolBarManager.add(searchTextField);
-        toolBarManager.add(new NodeSettingsViewerClearFilterButton(searchTextField));
+        toolBarManager.add(new NodeDiffClearFilterButton(searchTextField));
     }
 
     @Override
@@ -159,10 +167,30 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
      */
     @Override
     protected void updateContent(final Object ancestor, final Object left, final Object right) {
-        m_ancestor.setInput(ancestor);
-        m_left.setInput(left);
-        m_right.setInput(right);
-
+    	WorkflowCompareConfiguration compareConfig = (WorkflowCompareConfiguration)getCompareConfiguration();
+		FlowDiffNode leftSelection = compareConfig.getLeftSelection();
+    	FlowDiffNode rightSelection = compareConfig.getRightSelection();
+        
+    	Object newLeft = null;
+    	String nameLeft = "No Node Selected.";
+    	if (left != null && (leftSelection.getLeft() instanceof FlowNode)) {
+    		// if left is null, clear the object. Accept only nodes (no meta nodes) for comparison
+    		newLeft = leftSelection.getLeft();
+    		nameLeft = ((FlowNode)newLeft).getName();
+    	}
+    	Object newRight = null;
+    	String nameRight = "No Node Selected.";
+    	if (right != null && (rightSelection.getRight() instanceof FlowNode)) {
+    		// if right is null, clear the object. Accept only nodes (no meta nodes) for comparison
+    		newRight = rightSelection.getRight();
+    		nameRight = ((FlowNode)newRight).getName();
+    	}
+    	m_ancestor.setInput(ancestor);
+    	m_left.setInput(newLeft);
+    	m_right.setInput(newRight);
+    	
+    	compareConfig.setLeftLabel(nameLeft);
+    	compareConfig.setRightLabel(nameRight);
         SettingsItem[] leftItems =
                 (SettingsItem[])((NodeSettingsTreeContentProvider)m_left.getContentProvider()).getElements(null);
         SettingsItem[] rightItems =

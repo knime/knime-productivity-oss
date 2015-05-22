@@ -1,13 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2000, 2009 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
- * 
- * Contributors:
- *     IBM Corporation - initial API and implementation
- *******************************************************************************/
 package com.knime.workbench.workflowdiff.editor;
 
 import java.util.Iterator;
@@ -27,8 +17,16 @@ import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.jface.viewers.*;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.DisposeEvent;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.*;
+
+import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowElement;
+import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
+import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowWorkflow;
+import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.NodeSettingsTableLabelProvider;
+import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.NodeSettingsTreeContentProvider;
+import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput.FlowDiffNode;
 
 /**
  * A tree viewer that works on objects implementing
@@ -43,11 +41,10 @@ import org.eclipse.swt.widgets.*;
  * @noextend This class is not intended to be subclassed by clients.
  */
 public class WorkflowStructureViewer extends TreeViewer {
-	
+
 	class DiffViewerContentProvider implements ITreeContentProvider {
-			
+
 		public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
-			// empty implementation
 		}
 	
 		public boolean isDeleted(Object element) {
@@ -78,23 +75,67 @@ public class WorkflowStructureViewer extends TreeViewer {
 		
 		public Object[] getElements(Object element) {
 			return getChildren(element);
-		}				
+		}			
 	}
 	
 	/*
 	 * Takes care of swapping left and right if fLeftIsLocal
 	 * is true.
 	 */
-	class DiffViewerLabelProvider extends LabelProvider {
+	class DiffViewerLabelProvider extends LabelProvider implements ITableLabelProvider, ITableColorProvider {
+		
+		@Override
+		public Color getBackground(Object element, int columnIndex) {
+			return null;
+		}
+
+		@Override
+		public Color getForeground(Object element, int columnIndex) {
+			// TODO Auto-generated method stub
+			return null;
+		};
+		
+		@Override
+		public Image getColumnImage(Object element, int columnIndex) {
+			if (element instanceof FlowDiffNode) {
+				FlowElement f = null;
+				if (columnIndex == 0 && ((FlowDiffNode) element).getLeft()== null) {
+					return null;
+				}
+				if (columnIndex == 1 && ((FlowDiffNode) element).getRight() == null) {
+					return null;
+				}
+			}
+			return getImage(element);
+		}
+		
+		@Override
+		public String getColumnText(Object element, int columnIndex) {
+			if (element instanceof FlowDiffNode) {
+				FlowElement f = null;
+				if (columnIndex == 0) {
+					f = (FlowElement) ((FlowDiffNode) element).getLeft();
+				}
+				if (columnIndex == 1) {
+					f = (FlowElement) ((FlowDiffNode) element).getRight();
+				}
+				if (f != null) {
+					return f.getName();
+				} else {
+					return "";
+				}
+			}
+			return getText(element);
+		}
 		
 		public String getText(Object element) {
-			
-			if (element instanceof IDiffElement)
+			if (element instanceof IDiffElement) {
 				return ((IDiffElement)element).getName();
-						
+			}
 			return Utilities.getString(fBundle, "defaultLabel"); //$NON-NLS-1$
 		}
 	
+		
 		public Image getImage(Object element) {
 			if (element instanceof IDiffElement) {
 				IDiffElement input= (IDiffElement) element;
@@ -139,24 +180,25 @@ public class WorkflowStructureViewer extends TreeViewer {
 	private Action fExpandAllAction;
 		
 	/**
-	 * Creates a new viewer for the given SWT tree control with the specified configuration.
-	 *
-	 * @param tree the tree control
-	 * @param configuration the configuration for this viewer
-	 */
-	public WorkflowStructureViewer(Tree tree, CompareConfiguration configuration) {
-		super(tree);
-		initialize(configuration == null ? new CompareConfiguration() : configuration);
-	}
-	
-	/**
 	 * Creates a new viewer under the given SWT parent and with the specified configuration.
 	 *
 	 * @param parent the SWT control under which to create the viewer
 	 * @param configuration the configuration for this viewer
 	 */
 	public WorkflowStructureViewer(Composite parent, CompareConfiguration configuration) {
-		super(new Tree(parent, SWT.MULTI));
+        super(parent, SWT.NO_FOCUS | SWT.BORDER);
+        
+        Tree tree = getTree();
+        tree.setHeaderVisible(true);
+        TreeColumn left = new TreeColumn(tree, SWT.LEFT);
+        left.setText("Left");
+        left.setWidth(200);
+        TreeColumn right = new TreeColumn(tree, SWT.LEFT);
+        right.setText("Right");
+        right.setWidth(200);
+
+//        m_filter = new NodeSettingsFilter();
+//        setFilters(new ViewerFilter[]{m_filter});
 		initialize(configuration == null ? new CompareConfiguration() : configuration);
 	}
 	

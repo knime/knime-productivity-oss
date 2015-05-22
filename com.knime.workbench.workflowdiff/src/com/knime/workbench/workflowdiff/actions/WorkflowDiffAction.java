@@ -61,6 +61,7 @@ import org.knime.workbench.explorer.view.ContentDelegator;
 import org.knime.workbench.explorer.view.ExplorerView;
 import org.knime.workbench.explorer.view.actions.ExplorerAction;
 
+import com.knime.workbench.workflowdiff.editor.WorkflowCompareConfiguration;
 import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput;
 
 /**
@@ -109,7 +110,7 @@ public class WorkflowDiffAction implements IObjectActionDelegate {
             return;
         }
 
-        CompareConfiguration conf = new CompareConfiguration();
+        WorkflowCompareConfiguration conf = new WorkflowCompareConfiguration();
         conf.setRightEditable(false);
         conf.setLeftEditable(false);
         WorkflowCompareEditorInput input = new WorkflowCompareEditorInput(first, second, conf);

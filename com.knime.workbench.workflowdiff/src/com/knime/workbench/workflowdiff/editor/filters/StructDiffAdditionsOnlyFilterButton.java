@@ -1,6 +1,5 @@
 /*
  * ------------------------------------------------------------------------
- *
  *  Copyright by KNIME GmbH, Konstanz, Germany
  *  Website: http://www.knime.org; Email: contact@knime.org
  *
@@ -41,33 +40,46 @@
  *  propagated with or for interoperation with KNIME.  The owner of a Node
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
- * ---------------------------------------------------------------------
+ * -------------------------------------------------------------------
  *
- * History
- *   03.11.2014 (ohl): created
  */
-package com.knime.workbench.workflowdiff.editor;
+package com.knime.workbench.workflowdiff.editor.filters;
 
-import java.util.Locale;
-
+import org.eclipse.jface.action.ControlContribution;
 import org.eclipse.jface.viewers.Viewer;
-import org.eclipse.jface.viewers.ViewerFilter;
-
-import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.SettingsItem;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.knime.workbench.core.util.ImageRepository;
+import org.knime.workbench.core.util.ImageRepository.SharedImages;
 
 /**
+ * Toolbar contribution with a filter for the view.
  *
- * @author ohl
+ * @author Peter Ohl, KNIME.com AG, Zurich, Switzerland
  */
-public class NodeSettingsFilter extends ViewerFilter {
+public class StructDiffAdditionsOnlyFilterButton extends ControlContribution {
 
-    private String m_match;
+    private final StructureDiffFilter m_filter;
+    
+    private final Viewer[] m_viewer;
 
-    public void setFilterString(final String s) {
-        if (s.isEmpty()) {
-            m_match = null;
+    /**
+     * Creates the contribution item. The button that clears the filter text field.
+     * @param textField to clear on click
+     *
+     */
+    public StructDiffAdditionsOnlyFilterButton(final StructureDiffFilter filter, Viewer...viewers) {
+        super("com.knime.workflow.diff.structdiffadditionsonlyfilterbutton");
+        m_filter = filter;
+        if (viewers == null) {
+        	m_viewer = new Viewer[0];
         } else {
-            m_match = s.toLowerCase(Locale.US);
+        	m_viewer = viewers;
         }
     }
 
@@ -75,62 +87,25 @@ public class NodeSettingsFilter extends ViewerFilter {
      * {@inheritDoc}
      */
     @Override
-    public boolean select(final Viewer viewer, final Object parentElement, final Object element) {
-        if (element == null) {
-            return false;
-        } else if (m_match == null) {
-            return true;
-        } else {
-            if (element instanceof SettingsItem) {
-                return matchFullHierarchy((SettingsItem)element);
-            } else {
-                return element.toString().toLowerCase(Locale.US).contains(m_match);
+    protected Control createControl(final Composite parent) {
+        final Button btn = new Button(parent, SWT.TOGGLE);
+        btn.setImage(ImageRepository.getImage(SharedImages.ButtonShowAdditionalNodesOnly));
+        btn.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
+        btn.addSelectionListener(new SelectionListener() {
+            @Override
+            public void widgetSelected(final SelectionEvent e) {
+                m_filter.setShowAdditionsOnly(btn.getSelection());
+                for (Viewer v : m_viewer) {
+                	v.refresh();
+                }
             }
-        }
-
+            @Override
+            public void widgetDefaultSelected(final SelectionEvent e) {
+                //huh?
+            }
+        });
+        btn.setToolTipText("Show added or removed nodes only");
+        return btn;
     }
 
-    private boolean matchFullHierarchy(final SettingsItem item) {
-        if (match(item)) {
-            return true;
-        }
-        if (matchDown(item)) {
-            return true;
-        }
-        if (matchUp(item)) {
-            return true;
-        }
-        return false;
-    }
-
-    private boolean matchDown(final SettingsItem item) {
-        for (SettingsItem child : item.getChildren()) {
-            if (match(child)) {
-                return true;
-            }
-            if (matchDown(child)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean matchUp(final SettingsItem item) {
-        SettingsItem p = item.getParent();
-        while (p != null) {
-            if (match(p)) {
-                return true;
-            }
-            p = p.getParent();
-        }
-        return false;
-    }
-    private boolean match(final SettingsItem item) {
-        for (int i = 0; i < 3; i++) {
-            if (item.getText(i) != null && item.getText(i).toLowerCase(Locale.US).contains(m_match)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

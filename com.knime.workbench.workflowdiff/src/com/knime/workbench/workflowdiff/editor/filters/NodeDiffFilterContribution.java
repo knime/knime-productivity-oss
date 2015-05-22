@@ -43,7 +43,7 @@
  * -------------------------------------------------------------------
  *
  */
-package com.knime.workbench.workflowdiff.editor;
+package com.knime.workbench.workflowdiff.editor.filters;
 
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.action.ControlContribution;
@@ -53,40 +53,42 @@ import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Text;
+
 
 /**
  * Toolbar contribution with a filter for the view.
  *
  * @author Peter Ohl, KNIME.com AG, Zurich, Switzerland
  */
-public class NodeSettingsViewerFilterContribution extends ControlContribution implements KeyListener {
+public class NodeDiffFilterContribution extends ControlContribution implements KeyListener {
 
     private static final Color FILTERED = new Color(Display.getDefault(), 198, 198, 255);
 
-    private final NodeSettingsTreeViewer[] m_viewer;
+    private final IFilterableTreeViewer[] m_viewer;
 
     private Text m_text;
 
-    private final NodeSettingsFilter m_filter;
+    private final NodeDiffFilter m_filter;
 
     private static final boolean IS_OS_WINDOWS = Platform.OS_WIN32.equals(Platform.getOS());
 
     /**
      * Creates the contribution item. The filter is set in the viewer by this class. This can be used in toolbars etc.
      *
-     * @param viewer The viewer.
+     * @param viewer The viewer. 
      * @param filter The filter to use.
      */
-    public NodeSettingsViewerFilterContribution(final NodeSettingsFilter filter,
-        final NodeSettingsTreeViewer... viewer) {
+    public NodeDiffFilterContribution(final NodeDiffFilter filter,
+        final IFilterableTreeViewer... viewer) {
         super("com.knime.workflow.diff.nodesettingsviewerfiltercontribution");
         m_viewer = viewer;
         m_filter = filter;
-        for (NodeSettingsTreeViewer v : m_viewer) {
+        for (IFilterableTreeViewer v : m_viewer) {
             v.addFilter(m_filter);
         }
     }
@@ -129,7 +131,7 @@ public class NodeSettingsViewerFilterContribution extends ControlContribution im
         //                update = true;
         //            }
         m_filter.setFilterString(str);
-        for (NodeSettingsTreeViewer v : m_viewer) {
+        for (IFilterableTreeViewer v : m_viewer) {
             v.setFilterIcon(str != null && !str.isEmpty());
             v.refresh();
         }
