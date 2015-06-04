@@ -59,13 +59,14 @@ import org.knime.core.node.util.StringFormat;
 import org.knime.core.util.UniqueNameGenerator;
 
 import com.knime.explorer.nodes.callworkflow.IWorkflowBackend.WorkflowState;
+import com.knime.licenses.LicenseFeatures;
+import com.knime.licenses.LicenseStore;
 
 /**
  * Model to node.
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class CallWorkflowNodeModel extends NodeModel {
-
     private CallWorkflowConfiguration m_configuration;
     private final boolean m_isRemote;
 
@@ -209,6 +210,13 @@ final class CallWorkflowNodeModel extends NodeModel {
     /** {@inheritDoc} */
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
+        if (!m_isRemote) {
+            String licenseMessage = LicenseStore.getDefaultStore().checkLicense(LicenseFeatures.WorkflowLinking);
+            if (licenseMessage != null) {
+                throw new InvalidSettingsException(licenseMessage);
+            }
+        }
+
         m_configuration = new CallWorkflowConfiguration(m_isRemote).loadInModel(settings);
     }
 
