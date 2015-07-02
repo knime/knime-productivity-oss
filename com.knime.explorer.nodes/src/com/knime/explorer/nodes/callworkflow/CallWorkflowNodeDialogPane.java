@@ -52,7 +52,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rtextarea.RTextScrollPane;
-import org.knime.base.util.ui.VerticalCollapsablePanels;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.json.JSONValue;
 import org.knime.core.node.InvalidSettingsException;
@@ -64,6 +63,7 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.ColumnSelectionPanel;
+import org.knime.core.node.util.VerticalCollapsablePanels;
 
 import com.knime.explorer.nodes.callworkflow.RemoteWorkflowBackend.Lookup;
 
@@ -108,7 +108,7 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
 
         m_errorLabel = new JLabel();
         m_errorLabel.setForeground(Color.RED.darker());
-        m_collapsablePanels = new VerticalCollapsablePanels(true, 0);
+        m_collapsablePanels = new VerticalCollapsablePanels();
         m_panelMap = new LinkedHashMap<>();
         gbc.insets = new Insets(5, 5, 5, 5);
 
