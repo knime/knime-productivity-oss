@@ -57,6 +57,7 @@ import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.json.JSONValue;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
@@ -253,6 +254,7 @@ final class CallWorkflowNodeDialogPane extends NodeDialogPane {
                     m_collapsablePanels.addPanel(p, false, entry.getKey());
                 }
             } catch (Exception e) {
+                NodeLogger.getLogger(getClass()).debug(e.getMessage(), e);
                 m_errorLabel.setText("<html><body>" + e.getMessage() + "</body></html>");
                 return;
             }
