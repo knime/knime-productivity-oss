@@ -173,15 +173,15 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
         
     	Object newLeft = null;
     	String nameLeft = "No Node Selected.";
-    	if (left != null && (leftSelection.getLeft() instanceof FlowNode)) {
-    		// if left is null, clear the object. Accept only nodes (no meta nodes) for comparison
+    	if ((left != null || right != null) && (leftSelection.getLeft() instanceof FlowNode)) {
+    		// if both are null: clear the object. Accept only nodes (no meta nodes) for comparison
     		newLeft = leftSelection.getLeft();
     		nameLeft = ((FlowNode)newLeft).getName();
     	}
     	Object newRight = null;
     	String nameRight = "No Node Selected.";
-    	if (right != null && (rightSelection.getRight() instanceof FlowNode)) {
-    		// if right is null, clear the object. Accept only nodes (no meta nodes) for comparison
+    	if ((left != null || right != null) && (rightSelection.getRight() instanceof FlowNode)) {
+    		// if both are null: clear the object. Accept only nodes (no meta nodes) for comparison
     		newRight = rightSelection.getRight();
     		nameRight = ((FlowNode)newRight).getName();
     	}
