@@ -9,7 +9,7 @@
             objectClass="org.knime.workbench.explorer.view.ContentObject">
          <action
                class="com.knime.workbench.workflowdiff.actions.WorkflowDiffAction"
-               enablesFor="2"
+               enablesFor="+"
                icon="icons/diff.png"
                id="com.knime.workbench.workflowdiff.actions.WorkflowDiffAction"
                label="Compare">
