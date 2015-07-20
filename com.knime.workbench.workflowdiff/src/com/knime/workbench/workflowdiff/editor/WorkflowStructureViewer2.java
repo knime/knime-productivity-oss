@@ -7,15 +7,21 @@ import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.compare.structuremergeviewer.IDiffContainer;
 import org.eclipse.compare.structuremergeviewer.IDiffElement;
 import org.eclipse.jface.action.ToolBarManager;
+import org.eclipse.jface.viewers.ColumnViewerEditor;
+import org.eclipse.jface.viewers.IContentProvider;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ITableColorProvider;
 import org.eclipse.jface.viewers.ITableFontProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.jface.viewers.StructuredSelection;
+import org.eclipse.jface.viewers.StyledCellLabelProvider;
 import org.eclipse.jface.viewers.TreeViewer;
+import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.deferred.SetModel;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ControlEditor;
+import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.TreeCursor;
 import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
@@ -42,6 +48,7 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.swt.widgets.TreeItem;
+import org.knime.core.node.util.ViewUtils;
 import org.knime.workbench.core.util.ImageRepository;
 import org.knime.workbench.core.util.ImageRepository.SharedImages;
 
@@ -64,10 +71,23 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 	/**
 	 * Displays both parts - left and right
 	 */
-	class WorkflowStructViewerLabelProvider extends LabelProvider implements
-			ITableLabelProvider, ITableColorProvider, ITableFontProvider {
+	class WorkflowStructViewerLabelProvider extends StyledCellLabelProvider {
 
 		@Override
+		public void update(ViewerCell cell) {
+			Object element = cell.getElement();
+			int colIdx = cell.getColumnIndex();
+			String txt = getColumnText(element, colIdx);
+			cell.setText(txt);
+			cell.setImage(getColumnImage(element, colIdx));
+			StyleRange cellStyledRange =
+					new StyleRange(0, txt.length(), getForeground(element, colIdx), getBackground(element, colIdx));
+			cellStyledRange.font = getFont(element, colIdx);
+			StyleRange[] range = { cellStyledRange };
+			cell.setStyleRanges(range);
+			super.update(cell);
+		}
+
 		public Color getBackground(Object element, int columnIndex) {
 			if (element instanceof FlowDiffNode) {
 				if (columnIndex == 0 && m_leftNode == element) {
@@ -84,28 +104,23 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 			return NodeSettingsTreeViewer.DEFAULT;
 		}
 
-		@Override
 		public Color getForeground(Object element, int columnIndex) {
 			// TODO Auto-generated method stub
 			return null;
 		};
 
-		@Override
 		public Image getColumnImage(Object element, int columnIndex) {
 			if (element instanceof FlowDiffNode) {
-				if (columnIndex == 0
-						&& ((FlowDiffNode) element).getLeft() == null) {
+				if (columnIndex == 0 && ((FlowDiffNode) element).getLeft() == null) {
 					return null;
 				}
-				if (columnIndex == 1
-						&& ((FlowDiffNode) element).getRight() == null) {
+				if (columnIndex == 1 && ((FlowDiffNode) element).getRight() == null) {
 					return null;
 				}
 			}
 			return getImage(element);
 		}
 
-		@Override
 		public String getColumnText(Object element, int columnIndex) {
 			if (element instanceof FlowDiffNode) {
 				FlowElement f = null;
@@ -138,7 +153,6 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 			return null;
 		}
 
-		@Override
 		public Font getFont(Object element, int columnIndex) {
 			if (columnIndex == 0 && m_leftNode == element) {
 				return SELECTED_FONT;
@@ -149,37 +163,35 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 			return DEFAULT_FONT;
 		}
 	}
-	
+
 	private final WorkflowStructViewerLabelProvider m_labelProv;
 
 	private final WorkflowCompareConfiguration m_config;
-	
+
 	/** variables for visual feedback of selection. */
 	public static final Color SELECTED_BG = new Color(Display.getDefault(), 203, 232, 246);
-	
+
 	private Font SELECTED_FONT;
-	
+
 	private Font DEFAULT_FONT;
 
 	private FlowDiffNode m_leftNode;
-	
+
 	private FlowDiffNode m_rightNode;
-	
+
 	/**
-	 * Creates a new viewer under the given SWT parent and with the specified
-	 * configuration.
+	 * Creates a new viewer under the given SWT parent and with the specified configuration.
 	 * 
 	 * @param parent
 	 *            the SWT control under which to create the viewer
 	 * @param configuration
 	 *            the configuration for this viewer
 	 */
-	public WorkflowStructureViewer2(Composite parent,
-			WorkflowCompareConfiguration configuration) {
+	public WorkflowStructureViewer2(Composite parent, WorkflowCompareConfiguration configuration) {
 		super(new Tree(parent, SWT.MULTI | SWT.FULL_SELECTION | SWT.HIDE_SELECTION), configuration);
 
 		m_config = configuration;
-		
+
 		// make it a multi column tree
 		Tree tree = getTree();
 		tree.setHeaderVisible(true);
@@ -204,7 +216,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		SELECTED_FONT = new Font(tree.getDisplay(), fontData);
 	}
 
-	protected void handleMouseUp(final MouseEvent e) {		
+	protected void handleMouseUp(final MouseEvent e) {
 		doSelectCell(e.x, e.y);
 	}
 
@@ -232,50 +244,50 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 					break;
 				}
 			}
-		} 
+		}
 		if (colIdx < 0 || colIdx > 1) {
 			return;
 		}
 		if (colIdx == 0 && diff.getLeft() != null) {
 			m_config.setLeftSelection(diff);
 			m_leftNode = diff;
-		} 
+		}
 		if (colIdx == 1 && diff.getRight() != null) {
 			m_config.setRightSelection(diff);
 			m_rightNode = diff;
 		}
+		refresh();
 	}
 
-    protected void createToolItems(final ToolBarManager toolBarManager) {
-        super.createToolItems(toolBarManager);
-        StructureDiffFilter filter = new StructureDiffFilter();
-		NodeDiffFilterContribution searchTextField =
-            new NodeDiffFilterContribution(filter, this);
-        toolBarManager.add(searchTextField);
-        toolBarManager.add(new NodeDiffClearFilterButton(searchTextField));
-        toolBarManager.add(new StructDiffAdditionsOnlyFilterButton(filter, this));
-        toolBarManager.add(new StructDiffHideEqualNodesFilterButton(filter, this));
-    }
-    
-    @Override
-    public void setFilterIcon(boolean showIt) {
+	protected void createToolItems(final ToolBarManager toolBarManager) {
+		super.createToolItems(toolBarManager);
+		StructureDiffFilter filter = new StructureDiffFilter();
+		NodeDiffFilterContribution searchTextField = new NodeDiffFilterContribution(filter, this);
+		toolBarManager.add(searchTextField);
+		toolBarManager.add(new NodeDiffClearFilterButton(searchTextField));
+		toolBarManager.add(new StructDiffAdditionsOnlyFilterButton(filter, this));
+		toolBarManager.add(new StructDiffHideEqualNodesFilterButton(filter, this));
+	}
+
+	@Override
+	public void setFilterIcon(boolean showIt) {
 		Image searchImg = showIt ? ImageRepository.getImage(SharedImages.FunnelIcon) : null;
 		for (TreeColumn col : getTree().getColumns()) {
 			col.setImage(searchImg);
 		}
-	
-    }
-    
-    @Override
-    public String getMatchLabel(IHierMatchableItem item, int col) {
-    	if (item == getInput()) { // top level is the flow name.  
-    		return null;
-    	}
-    	return m_labelProv.getColumnText(item, col);
-    }
-    
-    @Override
-    public int getMatchNumOfColumns() {
-    	return 2;
-    }
+
+	}
+
+	@Override
+	public String getMatchLabel(IHierMatchableItem item, int col) {
+		if (item == getInput()) { // top level is the flow name.
+			return null;
+		}
+		return m_labelProv.getColumnText(item, col);
+	}
+
+	@Override
+	public int getMatchNumOfColumns() {
+		return 2;
+	}
 }
