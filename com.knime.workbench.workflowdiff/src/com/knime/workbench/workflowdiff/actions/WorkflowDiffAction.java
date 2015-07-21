@@ -46,21 +46,24 @@ package com.knime.workbench.workflowdiff.actions;
 
 import java.util.Iterator;
 
-import org.eclipse.compare.CompareConfiguration;
 import org.eclipse.compare.CompareUI;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.StructuredSelection;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
-import org.knime.core.node.NodeLogger;
 import org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore;
 import org.knime.workbench.explorer.view.ContentDelegator;
-import org.knime.workbench.explorer.view.ExplorerView;
-import org.knime.workbench.explorer.view.actions.ExplorerAction;
 
+import com.knime.licenses.LicenseChecker;
+import com.knime.licenses.LicenseException;
+import com.knime.licenses.LicenseFeatures;
+import com.knime.licenses.LicenseUtil;
 import com.knime.workbench.workflowdiff.editor.WorkflowCompareConfiguration;
 import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput;
 
@@ -73,6 +76,8 @@ public class WorkflowDiffAction implements IObjectActionDelegate {
     /** ID of the global rename action in the explorer menu. */
     public static final String FLOWDIFF_ACTION_ID = "com.knime.workbench.workflowdiff.actions.WorkflowDiffAction";
 
+    private static final LicenseChecker LICENSE_CHECKER = new LicenseUtil(LicenseFeatures.WorkflowDiff);
+    
     private IStructuredSelection m_selection = StructuredSelection.EMPTY;
     
     private IStructuredSelection getSelection() {
@@ -94,6 +99,10 @@ public class WorkflowDiffAction implements IObjectActionDelegate {
     }
 
     public void run() {
+    	if (!checkLicense()) {
+    		return;
+    	}
+    	
         IStructuredSelection selection = getSelection();
         if (selection.size() != 2 && selection.size() != 1) {
         	Assert.isTrue(false);
@@ -138,5 +147,19 @@ public class WorkflowDiffAction implements IObjectActionDelegate {
 
 	@Override
 	public void setActivePart(IAction action, IWorkbenchPart targetPart) {
+	}
+	
+	
+	private boolean checkLicense() {
+		try {
+			LICENSE_CHECKER.checkLicense();
+			return true;
+		} catch (LicenseException ex) {
+			MessageBox box = new MessageBox(Display.getCurrent().getActiveShell(), SWT.ICON_WARNING | SWT.OK);
+			box.setMessage("Workflow diff not available: " + ex.getMessage());
+			box.setText("Workflow diff not available");
+			box.open();
+			return false;
+		}
 	}
 }
