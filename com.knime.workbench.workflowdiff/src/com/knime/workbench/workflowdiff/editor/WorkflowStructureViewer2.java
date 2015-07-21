@@ -1,13 +1,17 @@
 package com.knime.workbench.workflowdiff.editor;
 
+import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.DiffTreeViewer;
 import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.compare.structuremergeviewer.IDiffElement;
 import org.eclipse.jface.action.ToolBarManager;
+import org.eclipse.jface.viewers.ColumnViewer;
 import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
+import org.eclipse.jface.viewers.IBaseLabelProvider;
 import org.eclipse.jface.viewers.StyledCellLabelProvider;
 import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.ViewerRow;
+import org.eclipse.jface.window.ToolTip;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.events.MouseAdapter;
@@ -27,6 +31,9 @@ import org.knime.workbench.core.util.ImageRepository;
 import org.knime.workbench.core.util.ImageRepository.SharedImages;
 
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowElement;
+import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowMetaNode;
+import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
+import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowSubNode;
 import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput.FlowDiffNode;
 import com.knime.workbench.workflowdiff.editor.filters.IFilterableTreeViewer;
 import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
@@ -79,10 +86,34 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 
 		}
 
+		private int m_lastToolTipTextLocation = -1;
+		public void setLastToolTipTextColumn(final int colIdx) {
+			m_lastToolTipTextLocation = colIdx;
+		}
+		
 		@Override
 		public String getToolTipText(Object element) {
 			if (element instanceof FlowDiffNode) {
-				return ((FlowDiffNode) element).getName();
+				FlowElement e = null;
+				if (m_lastToolTipTextLocation == 0) {
+					e = (FlowElement) ((FlowDiffNode) element).getLeft();
+				} else if (m_lastToolTipTextLocation == 1) {
+					e = (FlowElement) ((FlowDiffNode) element).getRight();
+				} else {
+					return ((FlowDiffNode) element).getName();
+				}
+				String annoText = "";
+				if (e instanceof FlowNode) {
+					annoText = ((FlowNode) e).getNode().getNodeAnnotation().getText();
+				} else if (e instanceof FlowMetaNode) {
+					annoText = ((FlowMetaNode) e).getWorkflowManager().getNodeAnnotation().getText();
+				} else if (e instanceof FlowSubNode) {
+					annoText = ((FlowSubNode) e).getWorkflowManager().getNodeAnnotation().getText();
+				} 
+				if (annoText.trim().isEmpty()) {
+					annoText = ((FlowDiffNode) element).getName();
+				}
+				return annoText;
 			}
 			return super.getToolTipText(element);
 		}
@@ -168,6 +199,29 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		}
 	}
 
+	class ToolTipHelper extends ColumnViewerToolTipSupport {
+		private final WorkflowStructureViewer2 m_viewer;
+		public ToolTipHelper(final WorkflowStructureViewer2 viewer) {
+			super(viewer, ToolTip.NO_RECREATE, false);
+			m_viewer = viewer;
+		}
+		@Override
+		protected boolean shouldCreateToolTip(Event event) {
+			/* a bit of an evil hack: as we want to display different tooltips in different columns, we need to let the 
+			 * label provider know in which column the cursor is in. The super class doesn't provide that info - so we
+			 * set it in the provider before the super calls it to get the tool tip text. Ouch. 
+			 */
+			IBaseLabelProvider lProv = m_viewer.getLabelProvider();
+			if (lProv instanceof WorkflowStructViewerLabelProvider) {
+				ViewerCell cell = m_viewer.getCell(new Point(event.x, event.y));
+				if (cell != null) {
+					((WorkflowStructViewerLabelProvider) lProv).setLastToolTipTextColumn(cell.getColumnIndex());
+				}
+			}
+			return super.shouldCreateToolTip(event);
+		}
+	}
+	
 	private final WorkflowStructViewerLabelProvider m_labelProv;
 
 	private final WorkflowCompareConfiguration m_config;
@@ -217,7 +271,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		FontData fontData = DEFAULT_FONT.getFontData()[0];
 		fontData.setStyle(SWT.BOLD);
 		SELECTED_FONT = new Font(tree.getDisplay(), fontData);
-		ColumnViewerToolTipSupport.enableFor(this);
+		new ToolTipHelper(this);
 		setLabelProvider(m_labelProv);
 	}
 
