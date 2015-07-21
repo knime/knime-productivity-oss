@@ -1,59 +1,32 @@
 package com.knime.workbench.workflowdiff.editor;
 
-import org.eclipse.compare.CompareConfiguration;
-import org.eclipse.compare.INavigatable;
 import org.eclipse.compare.structuremergeviewer.DiffTreeViewer;
 import org.eclipse.compare.structuremergeviewer.Differencer;
-import org.eclipse.compare.structuremergeviewer.IDiffContainer;
 import org.eclipse.compare.structuremergeviewer.IDiffElement;
 import org.eclipse.jface.action.ToolBarManager;
-import org.eclipse.jface.viewers.ColumnViewerEditor;
-import org.eclipse.jface.viewers.IContentProvider;
-import org.eclipse.jface.viewers.ISelection;
-import org.eclipse.jface.viewers.ITableColorProvider;
-import org.eclipse.jface.viewers.ITableFontProvider;
-import org.eclipse.jface.viewers.ITableLabelProvider;
-import org.eclipse.jface.viewers.LabelProvider;
-import org.eclipse.jface.viewers.StructuredSelection;
+import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
 import org.eclipse.jface.viewers.StyledCellLabelProvider;
-import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.ViewerCell;
-import org.eclipse.jface.viewers.deferred.SetModel;
+import org.eclipse.jface.viewers.ViewerRow;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.ControlEditor;
 import org.eclipse.swt.custom.StyleRange;
-import org.eclipse.swt.custom.TreeCursor;
-import org.eclipse.swt.events.KeyAdapter;
-import org.eclipse.swt.events.KeyEvent;
-import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.MouseListener;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
-import org.eclipse.swt.widgets.Listener;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
-import org.eclipse.swt.widgets.TreeItem;
-import org.knime.core.node.util.ViewUtils;
 import org.knime.workbench.core.util.ImageRepository;
 import org.knime.workbench.core.util.ImageRepository.SharedImages;
 
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowElement;
-import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
 import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput.FlowDiffNode;
 import com.knime.workbench.workflowdiff.editor.filters.IFilterableTreeViewer;
 import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
@@ -73,6 +46,8 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 	 */
 	class WorkflowStructViewerLabelProvider extends StyledCellLabelProvider {
 
+		private final Image m_selOverlayImg = ImageRepository.getImage(SharedImages.Ok);
+		
 		@Override
 		public void update(ViewerCell cell) {
 			Object element = cell.getElement();
@@ -87,7 +62,36 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 			cell.setStyleRanges(range);
 			super.update(cell);
 		}
+		
+		@Override
+		protected void paint(Event event, Object element) {
+			super.paint(event, element);
+			// overlay icon if node is selected
+			int idx = event.index;
+			if (idx == 0 && m_leftNode != null && element == m_leftNode) {
+				Rectangle b = event.getBounds();
+				event.gc.drawImage(m_selOverlayImg, b.x, b.y);					
+			}
+			if (idx == 1 && m_rightNode != null && element == m_rightNode) {
+				Rectangle b = event.getBounds();
+				event.gc.drawImage(m_selOverlayImg, b.x, b.y);					
+			}
 
+		}
+
+		@Override
+		public String getToolTipText(Object element) {
+			if (element instanceof FlowDiffNode) {
+				return ((FlowDiffNode) element).getName();
+			}
+			return super.getToolTipText(element);
+		}
+		
+		@Override
+		public int getToolTipDisplayDelayTime(Object object) {
+			return 50;
+		}
+		
 		public Color getBackground(Object element, int columnIndex) {
 			if (element instanceof FlowDiffNode) {
 				if (columnIndex == 0 && m_leftNode == element) {
@@ -105,7 +109,6 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		}
 
 		public Color getForeground(Object element, int columnIndex) {
-			// TODO Auto-generated method stub
 			return null;
 		};
 
@@ -148,7 +151,8 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 
 		public Image getImage(Object element) {
 			if (element instanceof IDiffElement) {
-				return ((IDiffElement) element).getImage();
+				Image img =  ((IDiffElement) element).getImage();
+				return img;
 			}
 			return null;
 		}
@@ -201,9 +205,8 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		TreeColumn right = new TreeColumn(tree, SWT.LEFT);
 		right.setText(configuration.getRightLabel(null));
 		right.setWidth(200);
-		// overwrite label provider for two column view
+		// overwrite label provider for two column view and our fancy selection
 		m_labelProv = new WorkflowStructViewerLabelProvider();
-		setLabelProvider(m_labelProv);
 		tree.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseUp(MouseEvent e) {
@@ -214,6 +217,8 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		FontData fontData = DEFAULT_FONT.getFontData()[0];
 		fontData.setStyle(SWT.BOLD);
 		SELECTED_FONT = new Font(tree.getDisplay(), fontData);
+		ColumnViewerToolTipSupport.enableFor(this);
+		setLabelProvider(m_labelProv);
 	}
 
 	protected void handleMouseUp(final MouseEvent e) {
@@ -221,30 +226,12 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 	}
 
 	protected void doSelectCell(final int xCoord, final int yCoord) {
-		Point pt = new Point(xCoord, yCoord);
-		Tree tree = getTree();
-		TreeItem item = tree.getItem(pt);
-		if (item == null) {
+		ViewerCell cell = getCell(new Point(xCoord, yCoord));
+		if (cell == null) {
 			return;
 		}
-		if (!(item.getData() instanceof FlowDiffNode)) {
-			return;
-		}
-		FlowDiffNode diff = (FlowDiffNode) item.getData();
-		int lineWidth = tree.getLinesVisible() ? tree.getGridLineWidth() : 0;
-		int columnCount = tree.getColumnCount();
-		int colIdx = -1;
-		if (columnCount > 0) {
-			for (int i = 0; i < columnCount; i++) {
-				Rectangle rect = item.getBounds(i);
-				rect.width += lineWidth;
-				rect.height += lineWidth;
-				if (rect.contains(pt)) {
-					colIdx = i;
-					break;
-				}
-			}
-		}
+		int colIdx = cell.getColumnIndex();
+		FlowDiffNode diff = (FlowDiffNode) cell.getItem().getData();
 		if (colIdx < 0 || colIdx > 1) {
 			return;
 		}
