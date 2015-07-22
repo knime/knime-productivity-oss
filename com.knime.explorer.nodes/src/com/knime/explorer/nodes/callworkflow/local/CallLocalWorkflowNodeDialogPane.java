@@ -27,16 +27,30 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import javax.json.JsonException;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.data.DataTableSpec;
@@ -49,6 +63,8 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.VerticalCollapsablePanels;
+import org.knime.core.node.workflow.WorkflowPersistor;
+import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.json.util.JSONUtil;
 
 import com.knime.explorer.nodes.callworkflow.IWorkflowBackend;
@@ -56,12 +72,16 @@ import com.knime.explorer.nodes.callworkflow.JSONInputPanel;
 
 /**
  * Dialog to node.
+ *
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
-    private final JTextField m_workflowPathField;
+    private final JComboBox<String> m_workflowPath;
+
     private final JLabel m_errorLabel;
+
     private final VerticalCollapsablePanels m_collapsablePanels;
+
     private final Map<String, JSONInputPanel> m_panelMap;
 
     private DataTableSpec m_spec;
@@ -70,21 +90,25 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         final JPanel p = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
-        m_workflowPathField = new JTextField(20);
-        m_workflowPathField.addKeyListener(new KeyAdapter() {
+        m_workflowPath = new JComboBox<>();
+        m_workflowPath.setEditable(true);
+        m_workflowPath.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(final ItemEvent e) {
+                clearInputPanel(p);
+            }
+        });
+
+        m_workflowPath.getEditor().getEditorComponent().addKeyListener(new KeyAdapter() {
             /**
              * {@inheritDoc}
              */
             @Override
             public void keyTyped(final KeyEvent e) {
-                m_collapsablePanels.removeAll();
-                m_panelMap.clear();
-                m_errorLabel.setText(" ");
-                m_collapsablePanels.revalidate();
-                p.revalidate();
-                CallLocalWorkflowNodeDialogPane.this.getPanel().repaint();
+                clearInputPanel(p);
             }
         });
+        fillWorkflowList();
 
         m_errorLabel = new JLabel();
         m_errorLabel.setForeground(Color.RED.darker());
@@ -102,7 +126,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         p.add(new JLabel("Workflow Path: "), gbc);
         gbc.gridx += 1;
         gbc.weightx = 1.0;
-        p.add(m_workflowPathField, gbc);
+        p.add(m_workflowPath, gbc);
 
         JButton b = new JButton("Load input format");
         b.addActionListener(new ActionListener() {
@@ -115,10 +139,6 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         gbc.weightx = 0;
         p.add(b, gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy += 1;
-        p.add(new JLabel("(can use \"knime://knime.workflow/..\"): "), gbc);
-
         gbc.gridwidth = 3;
         gbc.gridx = 0;
         gbc.gridy += 1;
@@ -128,17 +148,47 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         gbc.weighty = 1.0;
         p.add(m_collapsablePanels, gbc);
 
-        p.setMinimumSize(new Dimension(600, 300));
-        p.setPreferredSize(new Dimension(600, 300));
+        p.setMinimumSize(new Dimension(650, 300));
+        p.setPreferredSize(new Dimension(650, 300));
         addTab("Workflow", p);
+    }
+
+    private void fillWorkflowList() {
+        SwingWorkerWithContext<List<String>, Void> worker = new SwingWorkerWithContext<List<String>, Void>() {
+            @Override
+            protected List<String> doInBackgroundWithContext() throws Exception {
+                return listWorkflows();
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            protected void doneWithContext() {
+                try {
+                    m_workflowPath.removeAllItems();
+                    for (String s : get()) {
+                        m_workflowPath.addItem(s);
+                    }
+                    m_workflowPath.setSelectedItem(m_settings.getWorkflowPath());
+                } catch (ExecutionException ex) {
+                    JOptionPane.showMessageDialog(getPanel(),
+                        "Could not list workflows: " + ex.getCause().getMessage(), "Error occurred",
+                        JOptionPane.ERROR_MESSAGE);
+                } catch (InterruptedException ex) {
+                    // do nothing
+                }
+            }
+
+        };
+        worker.execute();
     }
 
     /** {@inheritDoc} */
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        CheckUtils.checkSetting(StringUtils.isBlank(m_errorLabel.getText()) , "No valid workflow selected");
-        CallLocalWorkflowConfiguration c = new CallLocalWorkflowConfiguration();
-        c.setWorkflowPath(m_workflowPathField.getText());
+        CheckUtils.checkSetting(StringUtils.isBlank(m_errorLabel.getText()), "No valid workflow selected");
+        m_settings.setWorkflowPath((String) m_workflowPath.getSelectedItem());
         Map<String, String> parameterToJsonColumnMap = new LinkedHashMap<>();
         Map<String, ExternalNodeData> parameterToJsonConfigMap = new LinkedHashMap<>();
         for (Map.Entry<String, JSONInputPanel> entry : m_panelMap.entrySet()) {
@@ -156,30 +206,29 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                 }
             }
         }
-        c.setParameterToJsonColumnMap(parameterToJsonColumnMap);
-        c.setParameterToJsonConfigMap(parameterToJsonConfigMap);
-        c.save(settings);
+        m_settings.setParameterToJsonColumnMap(parameterToJsonColumnMap);
+        m_settings.setParameterToJsonConfigMap(parameterToJsonConfigMap);
+        m_settings.save(settings);
     }
 
     /** {@inheritDoc} */
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final DataTableSpec[] specs)
-            throws NotConfigurableException {
-        CallLocalWorkflowConfiguration c = new CallLocalWorkflowConfiguration();
-        c.loadInDialog(settings);
+        throws NotConfigurableException {
+        m_settings.loadInDialog(settings);
         m_spec = specs[0];
 
-        m_workflowPathField.setText(c.getWorkflowPath());
+        m_workflowPath.setSelectedItem(m_settings.getWorkflowPath());
         updatePanels();
 
-        for (Map.Entry<String, ExternalNodeData> entry : c.getParameterToJsonConfigMap().entrySet()) {
+        for (Map.Entry<String, ExternalNodeData> entry : m_settings.getParameterToJsonConfigMap().entrySet()) {
             JSONInputPanel p = m_panelMap.get(entry.getKey());
             if (p != null) {
                 p.update(m_spec, entry.getValue().getJSONObject(), null);
             }
         }
 
-        for (Map.Entry<String, String> entry : c.getParameterToJsonColumnMap().entrySet()) {
+        for (Map.Entry<String, String> entry : m_settings.getParameterToJsonColumnMap().entrySet()) {
             JSONInputPanel p = m_panelMap.get(entry.getKey());
             if (p != null) {
                 p.update(specs[0], null, entry.getValue());
@@ -191,7 +240,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         m_collapsablePanels.removeAll();
         m_panelMap.clear();
         m_errorLabel.setText(" ");
-        if (m_workflowPathField.getText().isEmpty()) {
+        if (StringUtils.isEmpty((CharSequence)m_workflowPath.getSelectedItem())) {
             m_errorLabel.setText("No workflow path provided");
         } else {
             try (IWorkflowBackend backend = newBackend()) {
@@ -211,7 +260,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     }
 
     private IWorkflowBackend newBackend() throws Exception {
-        final String workflowPath = m_workflowPathField.getText();
+        final String workflowPath = (String)m_workflowPath.getSelectedItem();
         return LocalWorkflowBackend.newInstance(workflowPath, getNodeContext().getWorkflowManager().getContext());
     }
 
@@ -219,5 +268,66 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     @Override
     public void onClose() {
         m_spec = null;
+    }
+
+
+    private static final Comparator<String> WORKFLOW_PATH_COMPARATOR = new Comparator<String>() {
+        @Override
+        public int compare(final String o1, final String o2) {
+            int depth1 = StringUtils.countMatches(o1, "/");
+            int depth2 = StringUtils.countMatches(o2, "/");
+
+            if (depth1 < depth2) {
+                return -1;
+            } else if (depth1 > depth2) {
+                return 1;
+            } else {
+                return o1.compareTo(o2);
+            }
+        }
+    };
+
+    private final CallLocalWorkflowConfiguration m_settings = new CallLocalWorkflowConfiguration();
+
+    private void clearInputPanel(final JPanel p) {
+        m_collapsablePanels.removeAll();
+        m_panelMap.clear();
+        m_errorLabel.setText(" ");
+        m_collapsablePanels.revalidate();
+        p.revalidate();
+        getPanel().repaint();
+    }
+
+    List<String> listWorkflows() throws IOException {
+        final Path root = getNodeContext().getWorkflowManager().getContext().getMountpointRoot().toPath();
+
+        final List<String> workflows = new ArrayList<>();
+        Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
+                throws IOException {
+                if (dir.getFileName().toString().equals(".metadata")) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+
+                Path workflowFile = dir.resolve(WorkflowPersistor.WORKFLOW_FILE);
+                Path templateFile = dir.resolve(WorkflowPersistor.TEMPLATE_FILE);
+
+                if (Files.exists(workflowFile)) {
+                    if (!Files.exists(templateFile)) {
+                        workflows.add("/" + root.relativize(dir).toString());
+                    }
+                    return FileVisitResult.SKIP_SUBTREE;
+                } else {
+                    return super.preVisitDirectory(dir, attrs);
+                }
+            }
+        });
+
+        Collections.sort(workflows, WORKFLOW_PATH_COMPARATOR);
+        return workflows;
     }
 }

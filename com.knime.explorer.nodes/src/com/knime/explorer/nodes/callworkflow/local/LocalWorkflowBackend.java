@@ -61,36 +61,33 @@ import com.knime.explorer.nodes.callworkflow.IWorkflowBackend;
  */
 final class LocalWorkflowBackend implements IWorkflowBackend {
     private static final LoadingCache<URI, LocalWorkflowBackend> CACHE = CacheBuilder.newBuilder()
-            .expireAfterAccess(1L, TimeUnit.MINUTES)
-            .maximumSize(5)
-            .removalListener(
-                new RemovalListener<URI, LocalWorkflowBackend>() {
-                    @Override
-                    public void onRemoval(final RemovalNotification<URI, LocalWorkflowBackend> notification) {
-                        LocalWorkflowBackend value = notification.getValue();
-                        if (value.m_isInUse) {
-                            value.setDiscardAfterUse();
-                        } else {
-                            value.discard();
-                        }
-                    }
-                })
-            .build(new CacheLoader<URI, LocalWorkflowBackend>() {
-                @Override
-                public LocalWorkflowBackend load(final URI uri) throws Exception {
-                    File file = new File(uri);
-                    WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(uri);
-                    if (m == null) {
-                        WorkflowLoadResult l = WorkflowManager.loadProject(
-                            file, new ExecutionMonitor(), new WorkflowLoadHelper(file));
-                        m = l.getWorkflowManager();
-                        ProjectWorkflowMap.putWorkflow(uri, m);
-                    }
-                    final LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(uri, m);
-                    ProjectWorkflowMap.registerClientTo(uri, localWorkflowBackend);
-                    return localWorkflowBackend;
+        .expireAfterAccess(1L, TimeUnit.MINUTES).maximumSize(5)
+        .removalListener(new RemovalListener<URI, LocalWorkflowBackend>() {
+            @Override
+            public void onRemoval(final RemovalNotification<URI, LocalWorkflowBackend> notification) {
+                LocalWorkflowBackend value = notification.getValue();
+                if (value.m_isInUse) {
+                    value.setDiscardAfterUse();
+                } else {
+                    value.discard();
                 }
-            });
+            }
+        }).build(new CacheLoader<URI, LocalWorkflowBackend>() {
+            @Override
+            public LocalWorkflowBackend load(final URI uri) throws Exception {
+                File file = new File(uri);
+                WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(uri);
+                if (m == null) {
+                    WorkflowLoadResult l =
+                        WorkflowManager.loadProject(file, new ExecutionMonitor(), new WorkflowLoadHelper(file));
+                    m = l.getWorkflowManager();
+                    ProjectWorkflowMap.putWorkflow(uri, m);
+                }
+                final LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(uri, m);
+                ProjectWorkflowMap.registerClientTo(uri, localWorkflowBackend);
+                return localWorkflowBackend;
+            }
+        });
 
     static LocalWorkflowBackend newInstance(final String path, final WorkflowContext wfContext) throws Exception {
         CACHE.cleanUp();
@@ -117,8 +114,11 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
     }
 
     private final URI m_uri;
+
     private final WorkflowManager m_manager;
+
     private boolean m_isInUse;
+
     private boolean m_discardAfterUse;
 
     private LocalWorkflowBackend(final URI uri, final WorkflowManager m) {
@@ -133,7 +133,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
     }
 
     /**
-     *  {@inheritDoc}
+     * {@inheritDoc}
      */
     @Override
     public void setInputNodes(final Map<String, ExternalNodeData> input) throws InvalidSettingsException {
@@ -231,5 +231,4 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
         ProjectWorkflowMap.unregisterClientFrom(m_uri, this);
         ProjectWorkflowMap.remove(m_uri);
     }
-
 }

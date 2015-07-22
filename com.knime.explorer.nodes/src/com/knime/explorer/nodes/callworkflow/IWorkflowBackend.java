@@ -35,9 +35,7 @@ import org.knime.core.node.dialog.ExternalNodeData;
 public interface IWorkflowBackend extends AutoCloseable {
     /** Wraps the workflow state - either translates to node container state (local) or the REST version. */
     public enum WorkflowState {
-        IDLE,
-        RUNNING,
-        EXECUTED,
+        IDLE, RUNNING, EXECUTED,
     }
 
     /**
@@ -48,17 +46,33 @@ public interface IWorkflowBackend extends AutoCloseable {
     Map<String, ExternalNodeData> getInputNodes();
 
     /**
-     * Sets the input nodes for the workflow. The map should have the same structure as the one returned by {@link #getInputNodes()}
-     * but with potent
+     * Sets the input nodes for the workflow. The map should have the same structure as the one returned by
+     * {@link #getInputNodes()} but with potent
      *
      * @param input
      * @throws InvalidSettingsException
      */
     void setInputNodes(Map<String, ExternalNodeData> input) throws InvalidSettingsException;
 
+    /**
+     * Returns a map with the output values of the called workflow. That map keys are the unique output IDs.
+     *
+     * @return a map between IDs and values
+     */
     Map<String, JsonObject> getOutputValues();
 
+    /**
+     * Executed the workflow and returns the state after execution.
+     *
+     * @return the current workflow state
+     * @throws Exception if an error occurs during execution
+     */
     WorkflowState execute() throws Exception;
 
+    /**
+     * Returns the messages that occurred during execution.
+     *
+     * @return the messages or an empty string if there are no messages
+     */
     String getWorkflowMessage();
 }
