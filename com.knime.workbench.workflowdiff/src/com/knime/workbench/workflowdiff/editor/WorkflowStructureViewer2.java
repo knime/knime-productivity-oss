@@ -358,29 +358,44 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 			i.dispose();
 		}
 
-		boolean enableExpand = false;
+		boolean enable = false;
+		boolean collapse = false;
+		final Object sel;
 		Item[] selection = getSelection(getTree());
 		if (selection.length == 1) {
 			Item i = selection[0];
-			Object d = i.getData();
-			if (d instanceof FlowDiffNode) {
-				if (((FlowDiffNode) d).getLeft() instanceof FlowContainer
-						|| ((FlowDiffNode) d).getRight() instanceof FlowContainer) {
-					enableExpand = true;
+			sel = i.getData();
+			if (sel instanceof FlowDiffNode) {
+				if (((FlowDiffNode) sel).getLeft() instanceof FlowContainer
+						|| ((FlowDiffNode) sel).getRight() instanceof FlowContainer) {
+					enable = true;
 				}
-
 			}
+			if (getExpandedState(sel)) {
+				collapse = true;
+			}
+		} else {
+			sel = null;
 		}
 		MenuItem item = new MenuItem(menu, SWT.PUSH);
-		item.setText("Expand");
-		item.setImage(ImageRepository.getImage(SharedImages.Expand));
-		item.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				expandSelection();
-			}
-		});
-		item.setEnabled(enableExpand);
+		item.setText(collapse ? "Collapse " : "Expand");
+		item.setImage(ImageRepository.getImage(collapse ? SharedImages.CollapseAll : SharedImages.Expand));
+		if (collapse) {
+			item.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					collapseToLevel(sel, ALL_LEVELS);
+				}
+			});
+		} else {
+			item.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					expandToLevel(sel, 1);
+				}
+			});
+		}
+		item.setEnabled(enable);
 
 		item = new MenuItem(menu, SWT.PUSH);
 		item.setText("Compare Highlighted");
