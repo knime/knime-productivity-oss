@@ -32,20 +32,10 @@ public class WorkflowCompareConfiguration extends CompareConfiguration {
 
 	public void setRightSelection(FlowDiffNode rightSelection) {
 		m_rightSelection = rightSelection;
-		if (m_leftSelection == null) {
-			// the first selection also sets the second one. So if only one click occurs the nodes in that one row are
-			// compared then.
-			m_leftSelection = rightSelection;
-		}
 	}
 
 	public void setLeftSelection(FlowDiffNode leftSelection) {
 		m_leftSelection = leftSelection;
-		if (m_rightSelection == null) {
-			// the first selection also sets the second one. So if only one click occurs the nodes in that one row are
-			// compared then.
-			m_rightSelection = leftSelection;
-		}
 	}
 
 }

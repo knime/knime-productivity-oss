@@ -1,21 +1,36 @@
 package com.knime.workbench.workflowdiff.editor;
 
+import org.eclipse.compare.CompareConfiguration;
 import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.DiffTreeViewer;
 import org.eclipse.compare.structuremergeviewer.Differencer;
+import org.eclipse.compare.structuremergeviewer.IDiffContainer;
 import org.eclipse.compare.structuremergeviewer.IDiffElement;
+import org.eclipse.gef.ContextMenuProvider;
+import org.eclipse.jface.action.IMenuManager;
+import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.action.ToolBarManager;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ColumnViewer;
 import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
 import org.eclipse.jface.viewers.IBaseLabelProvider;
+import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.StyledCellLabelProvider;
+import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.ViewerRow;
 import org.eclipse.jface.window.ToolTip;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
+import org.eclipse.swt.events.MenuAdapter;
+import org.eclipse.swt.events.MenuDetectEvent;
+import org.eclipse.swt.events.MenuDetectListener;
+import org.eclipse.swt.events.MenuEvent;
+import org.eclipse.swt.events.MenuListener;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
@@ -25,11 +40,18 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Item;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
+import org.eclipse.swt.widgets.TreeItem;
+import org.eclipse.ui.PlatformUI;
 import org.knime.workbench.core.util.ImageRepository;
 import org.knime.workbench.core.util.ImageRepository.SharedImages;
 
+import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowContainer;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowElement;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowMetaNode;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
@@ -45,16 +67,22 @@ import com.knime.workbench.workflowdiff.editor.filters.StructureDiffFilter;
 
 /**
  * Viewer for the top area in the differ editor. Displaying the nodes of the two flows in a two-column tree.
+ * 
+ * Because this view allows diffing of elements in two different rows, things are a bit non-standard.
  */
 public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFilterableTreeViewer {
 
 	/**
-	 * Displays both parts - left and right
+	 * Displays both parts - left and right, creates the overlay/highlighting for selected elements and creates the
+	 * tooltip text.
 	 */
 	class WorkflowStructViewerLabelProvider extends StyledCellLabelProvider {
 
 		private final Image m_selOverlayImg = ImageRepository.getImage(SharedImages.Ok);
-		
+
+		/**
+		 * Without this update implementation things don't refresh properly.
+		 */
 		@Override
 		public void update(ViewerCell cell) {
 			Object element = cell.getElement();
@@ -62,14 +90,14 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 			String txt = getColumnText(element, colIdx);
 			cell.setText(txt);
 			cell.setImage(getColumnImage(element, colIdx));
-			StyleRange cellStyledRange =
-					new StyleRange(0, txt.length(), getForeground(element, colIdx), getBackground(element, colIdx));
+			StyleRange cellStyledRange = new StyleRange(0, txt.length(), getForeground(element, colIdx), getBackground(
+					element, colIdx));
 			cellStyledRange.font = getFont(element, colIdx);
 			StyleRange[] range = { cellStyledRange };
 			cell.setStyleRanges(range);
 			super.update(cell);
 		}
-		
+
 		@Override
 		protected void paint(Event event, Object element) {
 			super.paint(event, element);
@@ -77,20 +105,21 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 			int idx = event.index;
 			if (idx == 0 && m_leftNode != null && element == m_leftNode) {
 				Rectangle b = event.getBounds();
-				event.gc.drawImage(m_selOverlayImg, b.x, b.y);					
+				event.gc.drawImage(m_selOverlayImg, b.x, b.y);
 			}
 			if (idx == 1 && m_rightNode != null && element == m_rightNode) {
 				Rectangle b = event.getBounds();
-				event.gc.drawImage(m_selOverlayImg, b.x, b.y);					
+				event.gc.drawImage(m_selOverlayImg, b.x, b.y);
 			}
 
 		}
 
 		private int m_lastToolTipTextLocation = -1;
+
 		public void setLastToolTipTextColumn(final int colIdx) {
 			m_lastToolTipTextLocation = colIdx;
 		}
-		
+
 		@Override
 		public String getToolTipText(Object element) {
 			if (element instanceof FlowDiffNode) {
@@ -99,8 +128,6 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 					e = (FlowElement) ((FlowDiffNode) element).getLeft();
 				} else if (m_lastToolTipTextLocation == 1) {
 					e = (FlowElement) ((FlowDiffNode) element).getRight();
-				} else {
-					return ((FlowDiffNode) element).getName();
 				}
 				String annoText = "";
 				if (e instanceof FlowNode) {
@@ -109,7 +136,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 					annoText = ((FlowMetaNode) e).getWorkflowManager().getNodeAnnotation().getText();
 				} else if (e instanceof FlowSubNode) {
 					annoText = ((FlowSubNode) e).getWorkflowManager().getNodeAnnotation().getText();
-				} 
+				}
 				if (annoText.trim().isEmpty()) {
 					annoText = ((FlowDiffNode) element).getName();
 				}
@@ -117,12 +144,12 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 			}
 			return super.getToolTipText(element);
 		}
-		
+
 		@Override
 		public int getToolTipDisplayDelayTime(Object object) {
 			return 50;
 		}
-		
+
 		public Color getBackground(Object element, int columnIndex) {
 			if (element instanceof FlowDiffNode) {
 				if (columnIndex == 0 && m_leftNode == element) {
@@ -182,7 +209,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 
 		public Image getImage(Object element) {
 			if (element instanceof IDiffElement) {
-				Image img =  ((IDiffElement) element).getImage();
+				Image img = ((IDiffElement) element).getImage();
 				return img;
 			}
 			return null;
@@ -201,15 +228,18 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 
 	class ToolTipHelper extends ColumnViewerToolTipSupport {
 		private final WorkflowStructureViewer2 m_viewer;
+
 		public ToolTipHelper(final WorkflowStructureViewer2 viewer) {
 			super(viewer, ToolTip.NO_RECREATE, false);
 			m_viewer = viewer;
 		}
+
 		@Override
 		protected boolean shouldCreateToolTip(Event event) {
-			/* a bit of an evil hack: as we want to display different tooltips in different columns, we need to let the 
+			/*
+			 * a bit of an evil hack: as we want to display different tooltips in different columns, we need to let the
 			 * label provider know in which column the cursor is in. The super class doesn't provide that info - so we
-			 * set it in the provider before the super calls it to get the tool tip text. Ouch. 
+			 * set it in the provider before the super calls it to get the tool tip text. Ouch.
 			 */
 			IBaseLabelProvider lProv = m_viewer.getLabelProvider();
 			if (lProv instanceof WorkflowStructViewerLabelProvider) {
@@ -221,7 +251,45 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 			return super.shouldCreateToolTip(event);
 		}
 	}
-	
+
+	class WorkflowStructViewerContentProvider implements ITreeContentProvider {
+
+		public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
+			// nothing to do
+		}
+
+		public boolean isDeleted(Object element) {
+			// can't delete things
+			return false;
+		}
+
+		public void dispose() {
+			// nothing here
+		}
+
+		public Object getParent(Object element) {
+			if (element instanceof IDiffElement)
+				return ((IDiffElement) element).getParent();
+			return null;
+		}
+
+		public final boolean hasChildren(Object element) {
+			if (element instanceof IDiffContainer)
+				return ((IDiffContainer) element).hasChildren();
+			return false;
+		}
+
+		public final Object[] getChildren(Object element) {
+			if (element instanceof IDiffContainer)
+				return ((IDiffContainer) element).getChildren();
+			return new Object[0];
+		}
+
+		public Object[] getElements(Object element) {
+			return getChildren(element);
+		}
+	}
+
 	private final WorkflowStructViewerLabelProvider m_labelProv;
 
 	private final WorkflowCompareConfiguration m_config;
@@ -273,14 +341,64 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		SELECTED_FONT = new Font(tree.getDisplay(), fontData);
 		new ToolTipHelper(this);
 		setLabelProvider(m_labelProv);
+
+		final Menu menu = new Menu(tree);
+		tree.setMenu(menu);
+		tree.addMenuDetectListener(new MenuDetectListener() {
+			@Override
+			public void menuDetected(MenuDetectEvent e) {
+				createContextMenu(e, menu);
+			}
+		});
+	}
+
+	protected void createContextMenu(MenuDetectEvent e, final Menu menu) {
+		// clear the menu first
+		for (MenuItem i : menu.getItems()) {
+			i.dispose();
+		}
+
+		boolean enableExpand = false;
+		Item[] selection = getSelection(getTree());
+		if (selection.length == 1) {
+			Item i = selection[0];
+			Object d = i.getData();
+			if (d instanceof FlowDiffNode) {
+				if (((FlowDiffNode) d).getLeft() instanceof FlowContainer
+						|| ((FlowDiffNode) d).getRight() instanceof FlowContainer) {
+					enableExpand = true;
+				}
+
+			}
+		}
+		MenuItem item = new MenuItem(menu, SWT.PUSH);
+		item.setText("Expand");
+		item.setImage(ImageRepository.getImage(SharedImages.Expand));
+		item.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				expandSelection();
+			}
+		});
+		item.setEnabled(enableExpand);
+
+		item = new MenuItem(menu, SWT.PUSH);
+		item.setText("Compare Highlighted");
+		item.setImage(ImageRepository.getImage(SharedImages.WorkflowDiffIcon));
+		item.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				handleOpen(null);
+			}
+		});
+		item.setEnabled(m_config.getLeftSelection() != null && m_config.getRightSelection() != null);
 	}
 
 	protected void handleMouseUp(final MouseEvent e) {
-		doSelectCell(e.x, e.y);
-	}
-
-	protected void doSelectCell(final int xCoord, final int yCoord) {
-		ViewerCell cell = getCell(new Point(xCoord, yCoord));
+		if (e.button != 1) {
+			return;
+		}
+		ViewerCell cell = getCell(new Point(e.x, e.y));
 		if (cell == null) {
 			return;
 		}
@@ -289,25 +407,61 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		if (colIdx < 0 || colIdx > 1) {
 			return;
 		}
-		if (colIdx == 0 && diff.getLeft() != null) {
-			m_config.setLeftSelection(diff);
-			m_leftNode = diff;
-		}
-		if (colIdx == 1 && diff.getRight() != null) {
-			m_config.setRightSelection(diff);
-			m_rightNode = diff;
+		if (diff.getLeft() instanceof FlowContainer || diff.getRight() instanceof FlowContainer) {
+			// expand/collapse meta nodes on click
+			if (getExpandedState(diff)) {
+				collapseToLevel(diff, 1);
+			} else {
+				expandToLevel(diff, 1);					
+			}
+		} else {
+			if (colIdx == 0 && diff.getLeft() != null) {
+				m_config.setLeftSelection(diff);
+				m_leftNode = diff;
+				if (m_rightNode == null && diff.getRight() instanceof FlowNode) {
+					// first selection selects both
+					m_config.setRightSelection(diff);
+					m_rightNode = diff;
+				}
+			}
+			if (colIdx == 1 && diff.getRight() != null) {
+				m_config.setRightSelection(diff);
+				m_rightNode = diff;
+				if (m_leftNode == null && diff.getLeft() instanceof FlowNode) {
+					m_config.setLeftSelection(diff);
+					m_leftNode = diff;
+				}
+			}
 		}
 		refresh();
 	}
 
 	protected void createToolItems(final ToolBarManager toolBarManager) {
 		super.createToolItems(toolBarManager);
+		toolBarManager.add(new DiffSelectionButton(this));
+		toolBarManager.add(new Separator());
 		StructureDiffFilter filter = new StructureDiffFilter();
+		toolBarManager.add(new StructDiffAdditionsOnlyFilterButton(filter, this));
+		toolBarManager.add(new StructDiffHideEqualNodesFilterButton(filter, this));
+		toolBarManager.add(new Separator());
 		NodeDiffFilterContribution searchTextField = new NodeDiffFilterContribution(filter, this);
 		toolBarManager.add(searchTextField);
 		toolBarManager.add(new NodeDiffClearFilterButton(searchTextField));
-		toolBarManager.add(new StructDiffAdditionsOnlyFilterButton(filter, this));
-		toolBarManager.add(new StructDiffHideEqualNodesFilterButton(filter, this));
+	}
+
+	public WorkflowCompareConfiguration getCompareConfiguration() {
+		return m_config;
+	}
+
+	@Override
+	public void handleOpen(SelectionEvent event) {
+		if (m_config.getLeftSelection() == null || m_config.getRightSelection() == null) {
+			MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
+					"No Nodes Selected", "Please select two nodes you wish to compare.");
+			return;
+		} else {
+			super.handleOpen(event);
+		}
 	}
 
 	@Override
