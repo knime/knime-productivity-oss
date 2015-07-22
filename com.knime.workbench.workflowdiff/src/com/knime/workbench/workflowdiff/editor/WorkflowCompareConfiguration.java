@@ -5,8 +5,6 @@ package com.knime.workbench.workflowdiff.editor;
 
 import org.eclipse.compare.CompareConfiguration;
 
-import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput.FlowDiffNode;
-
 /**
  * Used to store the nodes that should be compared. The workflow diff supports the diff of two totally different (not
  * matching) nodes in the workflows (i.e. nodes on different rows in the tree of nodes in the top view in the editor).

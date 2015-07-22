@@ -56,7 +56,6 @@ import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowElement;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowMetaNode;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowSubNode;
-import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput.FlowDiffNode;
 import com.knime.workbench.workflowdiff.editor.filters.IFilterableTreeViewer;
 import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
 import com.knime.workbench.workflowdiff.editor.filters.NodeDiffClearFilterButton;
@@ -159,7 +158,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 					return SELECTED_BG;
 				}
 				int kind = ((FlowDiffNode) element).getKind();
-				if (kind == Differencer.CHANGE || kind == Differencer.ADDITION || kind == Differencer.DELETION) {
+				if (kind == Differencer.CHANGE) {
 					return NodeSettingsTreeViewer.CONTAINSDIFF;
 				}
 			}
@@ -268,8 +267,9 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		}
 
 		public Object getParent(Object element) {
-			if (element instanceof IDiffElement)
+			if (element instanceof IDiffElement) {
 				return ((IDiffElement) element).getParent();
+			}
 			return null;
 		}
 
@@ -341,7 +341,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		SELECTED_FONT = new Font(tree.getDisplay(), fontData);
 		new ToolTipHelper(this);
 		setLabelProvider(m_labelProv);
-
+		setContentProvider(new WorkflowStructViewerContentProvider());
 		final Menu menu = new Menu(tree);
 		tree.setMenu(menu);
 		tree.addMenuDetectListener(new MenuDetectListener() {

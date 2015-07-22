@@ -58,11 +58,9 @@ import org.eclipse.compare.CompareViewerPane;
 import org.eclipse.compare.CompareViewerSwitchingPane;
 import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.Splitter;
-import org.eclipse.compare.structuremergeviewer.DiffNode;
 import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.compare.structuremergeviewer.ICompareInput;
 import org.eclipse.compare.structuremergeviewer.IDiffContainer;
-import org.eclipse.compare.structuremergeviewer.IDiffElement;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.viewers.Viewer;
@@ -82,7 +80,6 @@ import org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore;
 
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowContainer;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowElement;
-import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
 
 /**
  *
@@ -204,120 +201,30 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
      * {@inheritDoc}
      */
     @Override
-    protected Object prepareInput(final IProgressMonitor monitor) throws InvocationTargetException,
-        InterruptedException {
+	protected Object prepareInput(final IProgressMonitor monitor) throws InvocationTargetException,
+			InterruptedException {
 
-        try {
+		try {
 
-            monitor.beginTask("Loading and comparing workflows (" + m_left.getName() + " and " + m_right.getName()
-                + ")", IProgressMonitor.UNKNOWN);
+			monitor.beginTask("Loading and comparing workflows (" + m_left.getName() + " and " + m_right.getName()
+					+ ")", IProgressMonitor.UNKNOWN);
 
-            setTitle("Compare of " + m_left.getMountIDWithFullPath() + " and " + m_right.getMountIDWithFullPath());
+			setTitle("Compare of " + m_left.getMountIDWithFullPath() + " and " + m_right.getMountIDWithFullPath());
 
-            Differencer d = new Differencer() {
-                @Override
-                protected Object visit(final Object parent, final int description, final Object ancestor,
-                    final Object left, final Object right) {
-                	if (description == CHANGE) {
-                		if (super.contentsEqual(left, right)) {
-                			return new FlowDiffNode((IDiffContainer)parent, PSEUDO_CONFLICT, (ITypedElement)ancestor,
-                                    (ITypedElement)left, (ITypedElement)right);
-                		}
-                	}
-                    return new FlowDiffNode((IDiffContainer)parent, description, (ITypedElement)ancestor,
-                        (ITypedElement)left, (ITypedElement)right);
-                }
-                @Override
-                protected boolean contentsEqual(Object input1, Object input2) {
-                	// we want all nodes to show up in the diff structure
-                	return false;
-                }
-            };
+			createCompareElements(monitor);
+			if (monitor.isCanceled()) {
+				return null;
+			}
+			if (m_leftTree == null || m_rightTree == null) {
+				LOGGER.warn("Unable to perform compare: Internal structures not initialized (user canceled??)");
+				return null;
+			}
+			Differencer d = new WorkflowStructDifferencer();
+			Object root = d.findDifferences(false, monitor, null, null, m_leftTree, m_rightTree);
+			return root;
 
-            createCompareElements(monitor);
-            if (monitor.isCanceled()) {
-                return null;
-            }
-            if (m_leftTree == null || m_rightTree == null) {
-                LOGGER.warn("Unable to perform compare: Internal structures not initialized (user canceled??)");
-                return null;
-            }
-            Object root = d.findDifferences(false, monitor, null, null, m_leftTree, m_rightTree);
-            return root;
-
-        } finally {
-            monitor.done();
-        }
-    }
-
-    /**
-     * Using our own class to be able to distinguish from others and to instantiate our own viewer.
-     *
-     * @author ohl
-     */
-    public class FlowDiffNode extends DiffNode implements IHierMatchableItem {
-
-        private boolean fDirty = false;
-
-        private ITypedElement fLastId;
-
-        private String fLastName;
-
-        public FlowDiffNode(final IDiffContainer parent, final int description, final ITypedElement ancestor,
-            final ITypedElement left, final ITypedElement right) {
-            super(parent, description, ancestor, left, right);
-        }
-
-        //        public void fireChange() {
-        //            super.fireChange();
-        //            setDirty(true);
-        //            fDirty= true;
-        //            if (fDiffViewer != null)
-        //                fDiffViewer.refresh(this);
-        //        }
-        void clearDirty() {
-            fDirty = false;
-        }
-
-        @Override
-        public String getName() {
-            if (fLastName == null) {
-                fLastName = super.getName();
-            }
-            if (fDirty) {
-                return '<' + fLastName + '>';
-            }
-            return fLastName;
-        }
-
-        @Override
-        public ITypedElement getId() {
-            ITypedElement id = super.getId();
-            if (id == null) {
-                return fLastId;
-            }
-            fLastId = id;
-            return id;
-        }
-        
-        @Override
-        public IHierMatchableItem[] getMatchChildren() {
-        	IDiffElement[] children = getChildren();
-        	IHierMatchableItem[] result = new IHierMatchableItem[children.length];
-        	for (int i = 0; i < children.length; i++) {
-        		result[i] = (IHierMatchableItem) children[i];
-        	}
-        	return result;
-        }
-
-        @Override
-        public IHierMatchableItem getMatchParent() {
-        	IDiffElement p = getParent();
-        	if (p instanceof IHierMatchableItem) {
-        		return (IHierMatchableItem) p;
-        	}
-        	return null;
-        }
-        
+		} finally {
+			monitor.done();
+		}
     }
 }

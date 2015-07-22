@@ -52,6 +52,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -66,10 +67,13 @@ import org.eclipse.swt.graphics.Image;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeSettings;
+import org.knime.core.node.workflow.NativeNodeContainer;
 import org.knime.core.node.workflow.NodeContainer;
 import org.knime.core.node.workflow.NodeID;
 import org.knime.core.node.workflow.SubNodeContainer;
 import org.knime.core.node.workflow.WorkflowManager;
+import org.knime.core.node.workflow.virtual.subnode.VirtualSubNodeInputNodeModel;
+import org.knime.core.node.workflow.virtual.subnode.VirtualSubNodeOutputNodeModel;
 import org.knime.workbench.core.util.ImageRepository;
 import org.knime.workbench.core.util.ImageRepository.SharedImages;
 
@@ -148,19 +152,22 @@ public class FlowStructureCreator implements IStructureCreator {
         @Override
         public Object[] getChildren() {
             Collection<NodeContainer> nodes = m_wfm.getNodeContainers();
-            Object[] children = new Object[nodes.size()];
-            int i = 0;
+            ArrayList<Object> children = new ArrayList<Object>();
             for (NodeContainer n : nodes) {
                 if (n instanceof WorkflowManager) {
-                    children[i] = new FlowMetaNode((WorkflowManager)n);
+                	children.add(new FlowMetaNode((WorkflowManager)n));
                 } else if (n instanceof SubNodeContainer) {
-                    children[i] = new FlowSubNode((SubNodeContainer)n);
+                	children.add(new FlowSubNode((SubNodeContainer)n));
                 } else {
-                    children[i] = new FlowNode(n);
+                	// if it is not a subnode's input or output node, add it
+                	if (!(n instanceof NativeNodeContainer 
+                			&& (((NativeNodeContainer) n).isModelCompatibleTo(VirtualSubNodeOutputNodeModel.class) 
+                				|| ((NativeNodeContainer) n).isModelCompatibleTo(VirtualSubNodeInputNodeModel.class)))) {
+                		children.add(new FlowNode(n));
+                	}
                 }
-                i++;
             }
-            return children;
+            return children.toArray(new Object[children.size()]);
         }
 
         public WorkflowManager getWorkflowManager() {

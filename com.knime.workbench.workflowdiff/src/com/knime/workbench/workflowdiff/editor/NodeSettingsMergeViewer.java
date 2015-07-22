@@ -62,7 +62,6 @@ import org.eclipse.swt.widgets.Composite;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
 import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.NodeSettingsTreeContentProvider;
 import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.SettingsItem;
-import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput.FlowDiffNode;
 import com.knime.workbench.workflowdiff.editor.filters.IFilterableTreeViewer;
 import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
 import com.knime.workbench.workflowdiff.editor.filters.NodeDiffFilter;
