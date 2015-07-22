@@ -7,7 +7,22 @@
     </shortDescription>
     
     <fullDescription>
-        <intro>Calls other local workflows</intro>
+        <intro>This node can be used to call other workflows in in your local workspace. Input data can be passed to
+        JSON Input nodes in the other workflow and results can likewise be read back as JSON value from JSON Output nodes.
+        The input can either be a static JSON object provided via the dialog (which itself can be overridden by a flow
+        variable) or from a JSON column in the input table. The node will call the other workflow with every row
+        of the input table and append the results of the call to it.<br />
+        Note that the workflow you are calling must not be opened in an editor in your workbench. 
+        </intro>
+        
+        <option name="Workflow path">The path to the workflow you want to call. The path can either be absolute to the
+        local workspace if it starts with a slash or relative to the current workflow if it does not start with slash.
+        You may also use an URL with the knime-protocol pointing to a local resource.
+        </option>
+        <option name="Inputs">After you have loaded the input format you will see an input block for every input node in
+        the called workflow. You can select if you want to use a static value or the value of a column for the respective
+        input field.
+        </option>
     </fullDescription>
     <ports>
         <inPort index="0" name="Input">Any input, possibly with JSON column.</inPort>

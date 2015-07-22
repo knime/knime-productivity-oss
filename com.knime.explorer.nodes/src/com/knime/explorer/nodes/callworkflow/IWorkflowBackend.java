@@ -29,10 +29,10 @@ import org.knime.core.node.dialog.ExternalNodeData;
 
 /**
  * Interface to access a workflow. Can be either a local workflow or a remote flow (via REST calls then).
+ *
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 public interface IWorkflowBackend extends AutoCloseable {
-
     /** Wraps the workflow state - either translates to node container state (local) or the REST version. */
     public enum WorkflowState {
         IDLE,
@@ -40,14 +40,25 @@ public interface IWorkflowBackend extends AutoCloseable {
         EXECUTED,
     }
 
-    public Map<String, ExternalNodeData> getInputNodes();
+    /**
+     * Returns a map of the input nodes in the external workflow. The map keys are the unique input IDs.
+     *
+     * @return a map of input nodes
+     */
+    Map<String, ExternalNodeData> getInputNodes();
 
-    public void setInputNodes(Map<String, ExternalNodeData> input) throws InvalidSettingsException;
+    /**
+     * Sets the input nodes for the workflow. The map should have the same structure as the one returned by {@link #getInputNodes()}
+     * but with potent
+     *
+     * @param input
+     * @throws InvalidSettingsException
+     */
+    void setInputNodes(Map<String, ExternalNodeData> input) throws InvalidSettingsException;
 
-    public Map<String, JsonObject> getOutputValues();
+    Map<String, JsonObject> getOutputValues();
 
-    public WorkflowState execute() throws Exception;
+    WorkflowState execute() throws Exception;
 
-    public String getWorkflowMessage();
-
+    String getWorkflowMessage();
 }

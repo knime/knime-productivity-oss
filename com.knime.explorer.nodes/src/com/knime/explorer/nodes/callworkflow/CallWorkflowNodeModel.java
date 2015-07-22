@@ -59,11 +59,15 @@ import org.knime.core.util.UniqueNameGenerator;
 import com.knime.explorer.nodes.callworkflow.IWorkflowBackend.WorkflowState;
 
 /**
+ * Abstract class for nodes that call other workflows.
  *
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  * @author Thorsten Meinl, KNIME.com, Zurich, Switzerland
  */
 public abstract class CallWorkflowNodeModel extends NodeModel {
+    /**
+     * Creates a new node model.
+     */
     protected CallWorkflowNodeModel() {
         super(1, 1);
     }
@@ -76,8 +80,8 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         for (String jsonCol : getConfiguration().getParameterToJsonColumnMap().values()) {
             DataColumnSpec col = inSpecs[0].getColumnSpec(jsonCol);
             CheckUtils.checkSetting(col != null, "Column \"%s\" does not exist in input", jsonCol);
-            CheckUtils.checkSetting(col.getType().isCompatible(JSONValue.class),
-                "Column \"%s\" not json compatible", jsonCol);
+            CheckUtils.checkSetting(col.getType().isCompatible(JSONValue.class), "Column \"%s\" does not contain JSON",
+                jsonCol);
         }
 
         return null;
@@ -85,23 +89,26 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
 
     /** {@inheritDoc} */
     @Override
-    protected BufferedDataTable[] execute(final BufferedDataTable[] inData,
-        final ExecutionContext exec) throws Exception {
+    protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec)
+        throws Exception {
         BufferedDataContainer container = null;
         Map<String, Integer> outputColIndexMap = new HashMap<>();
         // the rows that fail - collected in chunks and written/flushed when we see a good case.
         Map<RowKey, String> consecutiveFailRowKeys = new LinkedHashMap<RowKey, String>();
+
         try (IWorkflowBackend backend = newBackend(getConfiguration().getWorkflowPath())) {
             Map<String, String> parameterToJsonColumnMap = getConfiguration().getParameterToJsonColumnMap();
             // set static input once
             // dynamic input (columns variable) is set in a loop further down below.
             backend.setInputNodes(getConfiguration().getParameterToJsonConfigMap());
+
             final int rowCount = inData[0].getRowCount();
             int rowIndex = 0;
             for (DataRow r : inData[0]) {
                 exec.checkCanceled();
-                exec.setProgress(rowIndex++ / (double)rowCount, String.format("Row %d/%d (\"%s\")",
-                    rowIndex, rowCount, r.getKey().toString()));
+                exec.setProgress(rowIndex++ / (double)rowCount,
+                    String.format("Row %d/%d (\"%s\")", rowIndex, rowCount, r.getKey().toString()));
+
                 Map<String, ExternalNodeData> input = new LinkedHashMap<>();
                 for (Map.Entry<String, String> staticEntry : parameterToJsonColumnMap.entrySet()) {
                     int colIndex = inData[0].getDataTableSpec().findColumnIndex(staticEntry.getValue());
@@ -113,50 +120,54 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
                     JSONValue v = (JSONValue)c;
                     JsonValue jsonValue = v.getJsonValue();
                     CheckUtils.checkSetting(jsonValue instanceof JsonObject,
-                        "JSON in column \"%s\" is not  valid JSONObject - it's %s",
-                        staticEntry.getValue(), jsonValue.getValueType());
+                        "JSON in column \"%s\" is not  valid JSONObject - it's %s", staticEntry.getValue(),
+                        jsonValue.getValueType());
                     JsonObject jsonObject = (JsonObject)jsonValue;
                     input.put(staticEntry.getKey(),
                         ExternalNodeData.builder(staticEntry.getKey()).jsonObject(jsonObject).build());
                 }
                 backend.setInputNodes(input);
+
                 long start = System.currentTimeMillis();
                 WorkflowState execute = backend.execute();
                 long delay = System.currentTimeMillis() - start;
+
                 if (!execute.equals(WorkflowState.EXECUTED)) {
-                    String m = "Fail. Workflow not executed.";
+                    String m = "Failure, workflow was not executed.";
                     String workflowMessage = backend.getWorkflowMessage();
                     if (StringUtils.isNotBlank(workflowMessage)) {
                         m = m + "\n" + workflowMessage;
                     }
                     consecutiveFailRowKeys.put(r.getKey(), m);
-                    continue;
-                }
-                Map<String, JsonObject> outputNodes = backend.getOutputValues();
-                if (container == null) {
-                    container = createDataContainer(inData[0].getDataTableSpec(),
-                        exec, outputNodes.keySet(), outputColIndexMap);
-                }
-                flushFailRows(container, consecutiveFailRowKeys, outputColIndexMap);
-                DataCell[] cells = new DataCell[outputColIndexMap.size() + 1];
-                Arrays.fill(cells, DataType.getMissingCell());
-                cells[cells.length - 1] = new StringCell("Completed. " + StringFormat.formatElapsedTime(delay));
-                for (Map.Entry<String, Integer> outputColIndexEntry : outputColIndexMap.entrySet()) {
-                    JsonObject o = outputNodes.get(outputColIndexEntry.getKey());
-                    if (o != null) {
-                        cells[outputColIndexEntry.getValue()] = JSONCellFactory.create(o);
+                } else {
+                    Map<String, JsonObject> outputNodes = backend.getOutputValues();
+                    if (container == null) {
+                        container =
+                            createDataContainer(inData[0].getDataTableSpec(), exec, outputNodes.keySet(), outputColIndexMap);
                     }
+                    flushFailRows(container, consecutiveFailRowKeys, outputColIndexMap);
+                    DataCell[] cells = new DataCell[outputColIndexMap.size() + 1];
+                    Arrays.fill(cells, DataType.getMissingCell());
+                    cells[cells.length - 1] = new StringCell("Completed in " + StringFormat.formatElapsedTime(delay));
+                    for (Map.Entry<String, Integer> outputColIndexEntry : outputColIndexMap.entrySet()) {
+                        JsonObject o = outputNodes.get(outputColIndexEntry.getKey());
+                        if (o != null) {
+                            cells[outputColIndexEntry.getValue()] = JSONCellFactory.create(o);
+                        }
+                    }
+                    container.addRowToTable(new DefaultRow(r.getKey(), cells));
                 }
-                container.addRowToTable(new DefaultRow(r.getKey(), cells));
             }
         }
+
         if (container == null) {
-            container = createDataContainer(inData[0].getDataTableSpec(), exec,
-                Collections.<String>emptyList(), outputColIndexMap);
+            container =
+                createDataContainer(inData[0].getDataTableSpec(), exec, Collections.<String> emptyList(),
+                    outputColIndexMap);
         }
         flushFailRows(container, consecutiveFailRowKeys, outputColIndexMap);
         container.close();
-        return new BufferedDataTable[] {exec.createJoinedTable(inData[0], container.getTable(), exec)};
+        return new BufferedDataTable[]{exec.createJoinedTable(inData[0], container.getTable(), exec)};
     }
 
     private static BufferedDataContainer createDataContainer(final DataTableSpec inSpec, final ExecutionContext exec,
@@ -167,12 +178,12 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             columns.add(nameGen.newColumn(s, JSONCellFactory.TYPE));
             emptyOutputColIndexMap.put(s, emptyOutputColIndexMap.size());
         }
-        columns.add(nameGen.newColumn("status", StringCell.TYPE));
+        columns.add(nameGen.newColumn("Status", StringCell.TYPE));
         return exec.createDataContainer(new DataTableSpec(columns.toArray(new DataColumnSpec[0])));
     }
 
-    private static void flushFailRows(final BufferedDataContainer container, final Map<RowKey, String> consecutiveFailRowKeys,
-        final Map<String, Integer> outputColIndexMap) {
+    private static void flushFailRows(final BufferedDataContainer container,
+        final Map<RowKey, String> consecutiveFailRowKeys, final Map<String, Integer> outputColIndexMap) {
         for (Map.Entry<RowKey, String> failRow : consecutiveFailRowKeys.entrySet()) {
             DataCell[] cells = new DataCell[outputColIndexMap.size() + 1];
             Arrays.fill(cells, DataType.getMissingCell());
@@ -194,6 +205,13 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         CanceledExecutionException {
     }
 
+    /**
+     * This method creates a new backend for calling an external workflow.
+     *
+     * @param workflowPath the path to the workflow
+     * @return a new backend
+     * @throws Exception if an error occurs while creating the backend
+     */
     protected abstract IWorkflowBackend newBackend(String workflowPath) throws Exception;
 
     /**
