@@ -18,7 +18,7 @@
  * History
  *   Created on Feb 17, 2015 by wiswedel
  */
-package com.knime.explorer.nodes.callworkflow;
+package com.knime.explorer.nodes.callworkflow.local;
 
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeFactory;
@@ -28,18 +28,11 @@ import org.knime.core.node.NodeView;
  * Factory to node.
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
-abstract class CallWorkflowNodeFactory extends NodeFactory<CallWorkflowNodeModel> {
-
-    private final boolean m_isRemote;
-
-    CallWorkflowNodeFactory(final boolean isRemote) {
-        m_isRemote = isRemote;
-    }
-
+public class CallLocalWorkflowNodeFactory extends NodeFactory<CallLocalWorkflowNodeModel> {
     /** {@inheritDoc} */
     @Override
-    public CallWorkflowNodeModel createNodeModel() {
-        return new CallWorkflowNodeModel(m_isRemote);
+    public CallLocalWorkflowNodeModel createNodeModel() {
+        return new CallLocalWorkflowNodeModel();
     }
 
     /** {@inheritDoc} */
@@ -50,7 +43,7 @@ abstract class CallWorkflowNodeFactory extends NodeFactory<CallWorkflowNodeModel
 
     /** {@inheritDoc} */
     @Override
-    public NodeView<CallWorkflowNodeModel> createNodeView(final int viewIndex, final CallWorkflowNodeModel nodeModel) {
+    public NodeView<CallLocalWorkflowNodeModel> createNodeView(final int viewIndex, final CallLocalWorkflowNodeModel nodeModel) {
         return null;
     }
 
@@ -63,7 +56,6 @@ abstract class CallWorkflowNodeFactory extends NodeFactory<CallWorkflowNodeModel
     /** {@inheritDoc} */
     @Override
     protected NodeDialogPane createNodeDialogPane() {
-        return new CallWorkflowNodeDialogPane(m_isRemote);
+        return new CallLocalWorkflowNodeDialogPane();
     }
-
 }

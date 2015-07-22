@@ -10,15 +10,9 @@
         factory-class="com.knime.explorer.nodes.ExplorerBrowserNodeFactory" 
         id="com.knime.explorer.nodes.writer.ExplorerBrowserNodeFactory"/>
        <node
-             category-path="/knime-server"
+             category-path="/misc"
              expert-flag="false"
-             factory-class="com.knime.explorer.nodes.callworkflow.CallRemoteWorkflowNodeFactory"
-             id="com.knime.explorer.nodes.callworkflow.CallRemoteWorkflowNodeFactory">
-       </node>
-       <node
-             category-path="/knime-server"
-             expert-flag="false"
-             factory-class="com.knime.explorer.nodes.callworkflow.CallLocalWorkflowNodeFactory"
+             factory-class="com.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory"
              id="com.knime.explorer.nodes.callworkflow.CallLocalWorkflowNodeFactory">
        </node>
     </extension>

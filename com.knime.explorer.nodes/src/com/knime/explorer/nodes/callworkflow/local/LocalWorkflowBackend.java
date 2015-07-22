@@ -18,11 +18,12 @@
  * History
  *   Created on Feb 17, 2015 by wiswedel
  */
-package com.knime.explorer.nodes.callworkflow;
+package com.knime.explorer.nodes.callworkflow.local;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.NodeContainerState;
 import org.knime.core.node.workflow.NodeMessage;
+import org.knime.core.node.workflow.WorkflowContext;
 import org.knime.core.node.workflow.WorkflowLoadHelper;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.node.workflow.WorkflowPersistor.WorkflowLoadResult;
@@ -50,13 +52,14 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.knime.explorer.nodes.callworkflow.IWorkflowBackend;
 
 /**
  * A local workflow representation. Workflows are kept in a cache and re-used with exclusive locks.
+ *
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class LocalWorkflowBackend implements IWorkflowBackend {
-
     private static final LoadingCache<URI, LocalWorkflowBackend> CACHE = CacheBuilder.newBuilder()
             .expireAfterAccess(1L, TimeUnit.MINUTES)
             .maximumSize(5)
@@ -89,15 +92,26 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
                 }
             });
 
-    static LocalWorkflowBackend get(final String path) throws Exception {
+    static LocalWorkflowBackend newInstance(final String path, final WorkflowContext wfContext) throws Exception {
         CACHE.cleanUp();
-        URI uri = new URI(path);
-        File file = ResolverUtil.resolveURItoLocalFile(uri);
-        if (file == null || !file.isDirectory()) {
-            throw new IOException("No such directory: " + uri);
+        File workflowDir;
+        try {
+            URI uri = new URI(path);
+            workflowDir = ResolverUtil.resolveURItoLocalFile(uri).getCanonicalFile();
+        } catch (URISyntaxException | IOException ex) {
+            // no URI, try mountpoint relative path instead
+            if (path.startsWith("/")) { // absolute path
+                workflowDir = new File(wfContext.getMountpointRoot(), path).getCanonicalFile();
+            } else {
+                workflowDir = new File(wfContext.getCurrentLocation(), path).getCanonicalFile();
+            }
+
         }
-        file = file.getCanonicalFile();
-        final LocalWorkflowBackend localWorkflowBackend = CACHE.get(file.toURI());
+        if (!workflowDir.isDirectory()) {
+            throw new IOException("No such workflow: " + workflowDir);
+        }
+
+        final LocalWorkflowBackend localWorkflowBackend = CACHE.get(workflowDir.toURI());
         localWorkflowBackend.setInUse();
         return localWorkflowBackend;
     }

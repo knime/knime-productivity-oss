@@ -16,7 +16,7 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Created on Feb 16, 2015 by wiswedel
+ *   Created on 21.07.2015 by thor
  */
 package com.knime.explorer.nodes.callworkflow;
 
@@ -51,40 +51,35 @@ import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeModel;
-import org.knime.core.node.NodeSettingsRO;
-import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.StringFormat;
 import org.knime.core.util.UniqueNameGenerator;
 
 import com.knime.explorer.nodes.callworkflow.IWorkflowBackend.WorkflowState;
-import com.knime.licenses.LicenseFeatures;
-import com.knime.licenses.LicenseStore;
 
 /**
- * Model to node.
+ *
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
+ * @author Thorsten Meinl, KNIME.com, Zurich, Switzerland
  */
-final class CallWorkflowNodeModel extends NodeModel {
-    private CallWorkflowConfiguration m_configuration;
-    private final boolean m_isRemote;
-
-    CallWorkflowNodeModel(final boolean isRemote) {
+public abstract class CallWorkflowNodeModel extends NodeModel {
+    protected CallWorkflowNodeModel() {
         super(1, 1);
-        m_isRemote = isRemote;
     }
 
     /** {@inheritDoc} */
     @Override
     protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
-        CheckUtils.checkSetting(m_configuration != null, "No configuration set");
-        for (String jsonCol : m_configuration.getParameterToJsonColumnMap().values()) {
+        CheckUtils.checkSetting(getConfiguration() != null, "No configuration set");
+
+        for (String jsonCol : getConfiguration().getParameterToJsonColumnMap().values()) {
             DataColumnSpec col = inSpecs[0].getColumnSpec(jsonCol);
             CheckUtils.checkSetting(col != null, "Column \"%s\" does not exist in input", jsonCol);
             CheckUtils.checkSetting(col.getType().isCompatible(JSONValue.class),
                 "Column \"%s\" not json compatible", jsonCol);
         }
+
         return null;
     }
 
@@ -96,11 +91,11 @@ final class CallWorkflowNodeModel extends NodeModel {
         Map<String, Integer> outputColIndexMap = new HashMap<>();
         // the rows that fail - collected in chunks and written/flushed when we see a good case.
         Map<RowKey, String> consecutiveFailRowKeys = new LinkedHashMap<RowKey, String>();
-        try (IWorkflowBackend backend = m_configuration.newBackend()) {
-            Map<String, String> parameterToJsonColumnMap = m_configuration.getParameterToJsonColumnMap();
+        try (IWorkflowBackend backend = newBackend(getConfiguration().getWorkflowPath())) {
+            Map<String, String> parameterToJsonColumnMap = getConfiguration().getParameterToJsonColumnMap();
             // set static input once
             // dynamic input (columns variable) is set in a loop further down below.
-            backend.setInputNodes(m_configuration.getParameterToJsonConfigMap());
+            backend.setInputNodes(getConfiguration().getParameterToJsonConfigMap());
             final int rowCount = inData[0].getRowCount();
             int rowIndex = 0;
             for (DataRow r : inData[0]) {
@@ -189,39 +184,6 @@ final class CallWorkflowNodeModel extends NodeModel {
 
     /** {@inheritDoc} */
     @Override
-    protected void reset() {
-
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void saveSettingsTo(final NodeSettingsWO settings) {
-        if (m_configuration != null) {
-            m_configuration.save(settings);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        new CallWorkflowConfiguration(m_isRemote).loadInModel(settings);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        if (!m_isRemote) {
-            String licenseMessage = LicenseStore.getDefaultStore().checkLicense(LicenseFeatures.WorkflowLinking);
-            if (licenseMessage != null) {
-                throw new InvalidSettingsException(licenseMessage);
-            }
-        }
-
-        m_configuration = new CallWorkflowConfiguration(m_isRemote).loadInModel(settings);
-    }
-
-    /** {@inheritDoc} */
-    @Override
     protected void loadInternals(final File nodeInternDir, final ExecutionMonitor exec) throws IOException,
         CanceledExecutionException {
     }
@@ -232,4 +194,12 @@ final class CallWorkflowNodeModel extends NodeModel {
         CanceledExecutionException {
     }
 
+    protected abstract IWorkflowBackend newBackend(String workflowPath) throws Exception;
+
+    /**
+     * Returns the current configuration.
+     *
+     * @return a configuration, may be <code>null</code> if none has been loaded yet
+     */
+    protected abstract CallWorkflowConfiguration getConfiguration();
 }

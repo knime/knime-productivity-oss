@@ -31,7 +31,7 @@ import org.knime.core.node.dialog.ExternalNodeData;
  * Interface to access a workflow. Can be either a local workflow or a remote flow (via REST calls then).
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
-interface IWorkflowBackend extends AutoCloseable {
+public interface IWorkflowBackend extends AutoCloseable {
 
     /** Wraps the workflow state - either translates to node container state (local) or the REST version. */
     public enum WorkflowState {
@@ -46,7 +46,7 @@ interface IWorkflowBackend extends AutoCloseable {
 
     public Map<String, JsonObject> getOutputValues();
 
-    public WorkflowState execute();
+    public WorkflowState execute() throws Exception;
 
     public String getWorkflowMessage();
 

@@ -16,18 +16,16 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Created on Feb 19, 2015 by wiswedel
+ *   Created on 21.07.2015 by thor
  */
-package com.knime.explorer.nodes.callworkflow;
+package com.knime.explorer.nodes.callworkflow.local;
+
+import com.knime.explorer.nodes.callworkflow.CallWorkflowConfiguration;
 
 /**
  *
- * @author wiswedel
+ * @author Thorsten Meinl, KNIME.com, Zurich, Switzerland
  */
-public final class CallRemoteWorkflowNodeFactory extends CallWorkflowNodeFactory {
-
-    public CallRemoteWorkflowNodeFactory() {
-        super(true);
-    }
-
+public class CallLocalWorkflowConfiguration extends CallWorkflowConfiguration {
+    // Nothing to add yet
 }
