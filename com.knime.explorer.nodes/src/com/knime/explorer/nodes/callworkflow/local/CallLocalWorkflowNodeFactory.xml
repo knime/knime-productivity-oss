@@ -12,7 +12,9 @@
         The input can either be a static JSON object provided via the dialog (which itself can be overridden by a flow
         variable) or from a JSON column in the input table. The node will call the other workflow with every row
         of the input table and append the results of the call to it.<br />
-        Note that the workflow you are calling must not be opened in an editor in your workbench. 
+        Note that the workflow you are calling must not be opened in an editor in your workbench and that the workflow
+        can not be executed in parallel. This means that multiple Call Local Workflow nodes using the same called workflow
+        will execute sequentially.
         </intro>
         
         <option name="Workflow path">The path to the workflow you want to call. The path can either be absolute to the

@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import javax.json.JsonObject;
 import javax.json.JsonValue;
@@ -50,6 +51,7 @@ import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.KNIMEConstants;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
@@ -94,7 +96,18 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
     @Override
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec)
         throws Exception {
-        BufferedDataContainer container = null;
+        // If there are too many Call Local Workflow nodes pointing to the same called workflow then all threads may
+        // be in use and the called workflow cannot be executed. Therefore the calling node runs invisible.
+        return KNIMEConstants.GLOBAL_THREAD_POOL.runInvisible(new Callable<BufferedDataTable[]>() {
+            @Override
+            public BufferedDataTable[] call() throws Exception {
+                return executeInternal(inData, exec);
+            }
+        });
+    }
+
+    private BufferedDataTable[] executeInternal(final BufferedDataTable[] inData, final ExecutionContext exec)
+        throws InvalidSettingsException, CanceledExecutionException, Exception {
         Map<String, Integer> outputColIndexMap = new HashMap<>();
 
         try (IWorkflowBackend backend = newBackend(getConfiguration().getWorkflowPath())) {
@@ -105,7 +118,7 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
 
             // create container based on the output nodes
             Map<String, JsonObject> outputNodes = backend.getOutputValues();
-            container =
+            BufferedDataContainer container =
                 createDataContainer(inData[0].getDataTableSpec(), exec, outputNodes.keySet(), outputColIndexMap);
 
             final int rowCount = inData[0].getRowCount();
@@ -126,10 +139,9 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
                         "Row contains missing values, workflow not called", outputColIndexMap.size()));
                 }
             }
+            container.close();
+            return new BufferedDataTable[]{exec.createJoinedTable(inData[0], container.getTable(), exec)};
         }
-
-        container.close();
-        return new BufferedDataTable[]{exec.createJoinedTable(inData[0], container.getTable(), exec)};
     }
 
     private DataRow executeWorkflow(final Map<String, Integer> outputColIndexMap,
