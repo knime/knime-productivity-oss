@@ -86,6 +86,8 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
     private DataTableSpec m_spec;
 
+    private final CallLocalWorkflowConfiguration m_settings = new CallLocalWorkflowConfiguration();
+
     CallLocalWorkflowNodeDialogPane() {
         final JPanel p = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -286,8 +288,6 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
             }
         }
     };
-
-    private final CallLocalWorkflowConfiguration m_settings = new CallLocalWorkflowConfiguration();
 
     private void clearInputPanel(final JPanel p) {
         m_collapsablePanels.removeAll();
