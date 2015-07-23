@@ -1,32 +1,23 @@
 package com.knime.workbench.workflowdiff.editor;
 
-import org.eclipse.compare.CompareConfiguration;
-import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.DiffTreeViewer;
 import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.compare.structuremergeviewer.IDiffContainer;
 import org.eclipse.compare.structuremergeviewer.IDiffElement;
-import org.eclipse.gef.ContextMenuProvider;
-import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.viewers.ColumnViewer;
 import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
 import org.eclipse.jface.viewers.IBaseLabelProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.StyledCellLabelProvider;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerCell;
-import org.eclipse.jface.viewers.ViewerRow;
 import org.eclipse.jface.window.ToolTip;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
-import org.eclipse.swt.events.MenuAdapter;
 import org.eclipse.swt.events.MenuDetectEvent;
 import org.eclipse.swt.events.MenuDetectListener;
-import org.eclipse.swt.events.MenuEvent;
-import org.eclipse.swt.events.MenuListener;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -43,10 +34,8 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Item;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
-import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.PlatformUI;
 import org.knime.workbench.core.util.ImageRepository;
 import org.knime.workbench.core.util.ImageRepository.SharedImages;
@@ -251,45 +240,6 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		}
 	}
 
-	class WorkflowStructViewerContentProvider implements ITreeContentProvider {
-
-		public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
-			// nothing to do
-		}
-
-		public boolean isDeleted(Object element) {
-			// can't delete things
-			return false;
-		}
-
-		public void dispose() {
-			// nothing here
-		}
-
-		public Object getParent(Object element) {
-			if (element instanceof IDiffElement) {
-				return ((IDiffElement) element).getParent();
-			}
-			return null;
-		}
-
-		public final boolean hasChildren(Object element) {
-			if (element instanceof IDiffContainer)
-				return ((IDiffContainer) element).hasChildren();
-			return false;
-		}
-
-		public final Object[] getChildren(Object element) {
-			if (element instanceof IDiffContainer)
-				return ((IDiffContainer) element).getChildren();
-			return new Object[0];
-		}
-
-		public Object[] getElements(Object element) {
-			return getChildren(element);
-		}
-	}
-
 	private final WorkflowStructViewerLabelProvider m_labelProv;
 
 	private final WorkflowCompareConfiguration m_config;
@@ -341,7 +291,6 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		SELECTED_FONT = new Font(tree.getDisplay(), fontData);
 		new ToolTipHelper(this);
 		setLabelProvider(m_labelProv);
-		setContentProvider(new WorkflowStructViewerContentProvider());
 		final Menu menu = new Menu(tree);
 		tree.setMenu(menu);
 		tree.addMenuDetectListener(new MenuDetectListener() {
