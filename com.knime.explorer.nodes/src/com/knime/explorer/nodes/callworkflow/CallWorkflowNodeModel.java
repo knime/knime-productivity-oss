@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,6 +38,7 @@ import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataType;
+import org.knime.core.data.MissingCell;
 import org.knime.core.data.RowKey;
 import org.knime.core.data.def.DefaultRow;
 import org.knime.core.data.def.StringCell;
@@ -96,8 +96,6 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         throws Exception {
         BufferedDataContainer container = null;
         Map<String, Integer> outputColIndexMap = new HashMap<>();
-        // the rows that fail - collected in chunks and written/flushed when we see a good case.
-        Map<RowKey, String> consecutiveFailRowKeys = new LinkedHashMap<RowKey, String>();
 
         try (IWorkflowBackend backend = newBackend(getConfiguration().getWorkflowPath())) {
             Map<String, String> parameterToJsonColumnMap = getConfiguration().getParameterToJsonColumnMap();
@@ -105,72 +103,87 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             // dynamic input (columns variable) is set in a loop further down below.
             backend.setInputNodes(getConfiguration().getParameterToJsonConfigMap());
 
+            // create container based on the output nodes
+            Map<String, JsonObject> outputNodes = backend.getOutputValues();
+            container =
+                createDataContainer(inData[0].getDataTableSpec(), exec, outputNodes.keySet(), outputColIndexMap);
+
             final int rowCount = inData[0].getRowCount();
             int rowIndex = 0;
-            for (DataRow r : inData[0]) {
+            for (DataRow row : inData[0]) {
                 exec.checkCanceled();
                 exec.setProgress(rowIndex++ / (double)rowCount,
-                    String.format("Row %d/%d (\"%s\")", rowIndex, rowCount, r.getKey().toString()));
+                    String.format("Row %d/%d (\"%s\")", rowIndex, rowCount, row.getKey().toString()));
 
                 Map<String, ExternalNodeData> input = new LinkedHashMap<>();
-                for (Map.Entry<String, String> staticEntry : parameterToJsonColumnMap.entrySet()) {
-                    int colIndex = inData[0].getDataTableSpec().findColumnIndex(staticEntry.getValue());
-                    DataCell c = r.getCell(colIndex);
-                    if (c.isMissing()) {
-                        consecutiveFailRowKeys.put(r.getKey(), "Fail. Missing input column " + staticEntry.getValue());
-                        continue;
-                    }
-                    JSONValue v = (JSONValue)c;
-                    JsonValue jsonValue = v.getJsonValue();
-                    CheckUtils.checkSetting(jsonValue instanceof JsonObject,
-                        "JSON in column \"%s\" is not  valid JSONObject - it's %s", staticEntry.getValue(),
-                        jsonValue.getValueType());
-                    JsonObject jsonObject = (JsonObject)jsonValue;
-                    input.put(staticEntry.getKey(),
-                        ExternalNodeData.builder(staticEntry.getKey()).jsonObject(jsonObject).build());
-                }
-                backend.setInputNodes(input);
-
-                long start = System.currentTimeMillis();
-                WorkflowState execute = backend.execute();
-                long delay = System.currentTimeMillis() - start;
-
-                if (!execute.equals(WorkflowState.EXECUTED)) {
-                    String m = "Failure, workflow was not executed.";
-                    String workflowMessage = backend.getWorkflowMessage();
-                    if (StringUtils.isNotBlank(workflowMessage)) {
-                        m = m + "\n" + workflowMessage;
-                    }
-                    consecutiveFailRowKeys.put(r.getKey(), m);
+                boolean ok = fillInputMap(inData[0].getDataTableSpec(), parameterToJsonColumnMap, row, input);
+                if (ok) {
+                    backend.setInputNodes(input);
+                    DataRow newRow = executeWorkflow(outputColIndexMap, backend, row);
+                    container.addRowToTable(newRow);
                 } else {
-                    Map<String, JsonObject> outputNodes = backend.getOutputValues();
-                    if (container == null) {
-                        container =
-                            createDataContainer(inData[0].getDataTableSpec(), exec, outputNodes.keySet(), outputColIndexMap);
-                    }
-                    flushFailRows(container, consecutiveFailRowKeys, outputColIndexMap);
-                    DataCell[] cells = new DataCell[outputColIndexMap.size() + 1];
-                    Arrays.fill(cells, DataType.getMissingCell());
-                    cells[cells.length - 1] = new StringCell("Completed in " + StringFormat.formatElapsedTime(delay));
-                    for (Map.Entry<String, Integer> outputColIndexEntry : outputColIndexMap.entrySet()) {
-                        JsonObject o = outputNodes.get(outputColIndexEntry.getKey());
-                        if (o != null) {
-                            cells[outputColIndexEntry.getValue()] = JSONCellFactory.create(o);
-                        }
-                    }
-                    container.addRowToTable(new DefaultRow(r.getKey(), cells));
+                    container.addRowToTable(createFailureRow(row.getKey(),
+                        "Row contains missing values, workflow not called", outputColIndexMap.size()));
                 }
             }
         }
 
-        if (container == null) {
-            container =
-                createDataContainer(inData[0].getDataTableSpec(), exec, Collections.<String> emptyList(),
-                    outputColIndexMap);
-        }
-        flushFailRows(container, consecutiveFailRowKeys, outputColIndexMap);
         container.close();
         return new BufferedDataTable[]{exec.createJoinedTable(inData[0], container.getTable(), exec)};
+    }
+
+    private DataRow executeWorkflow(final Map<String, Integer> outputColIndexMap,
+        final IWorkflowBackend backend, final DataRow inputRow)
+        throws InvalidSettingsException, Exception {
+
+        long start = System.currentTimeMillis();
+        WorkflowState state = backend.execute();
+        long delay = System.currentTimeMillis() - start;
+
+        if (!state.equals(WorkflowState.EXECUTED)) {
+            String m = "Failure, workflow was not executed.";
+            String workflowMessage = backend.getWorkflowMessage();
+            if (StringUtils.isNotBlank(workflowMessage)) {
+                m = m + "\n" + workflowMessage;
+            }
+            return createFailureRow(inputRow.getKey(), m, outputColIndexMap.size());
+        } else {
+            DataCell[] cells = new DataCell[outputColIndexMap.size() + 1];
+            Arrays.fill(cells, DataType.getMissingCell());
+            cells[cells.length - 1] = new StringCell("Completed in " + StringFormat.formatElapsedTime(delay));
+
+            Map<String, JsonObject> outputNodes = backend.getOutputValues();
+            for (Map.Entry<String, Integer> outputColIndexEntry : outputColIndexMap.entrySet()) {
+                JsonObject o = outputNodes.get(outputColIndexEntry.getKey());
+                if (o != null) {
+                    cells[outputColIndexEntry.getValue()] = JSONCellFactory.create(o);
+                } else {
+                    cells[outputColIndexEntry.getValue()] = new MissingCell("No JSON data returned");
+                }
+            }
+            return new DefaultRow(inputRow.getKey(), cells);
+        }
+    }
+
+    private boolean fillInputMap(final DataTableSpec inputSpec, final Map<String, String> parameterToJsonColumnMap,
+        final DataRow r, final Map<String, ExternalNodeData> input) throws InvalidSettingsException {
+        for (Map.Entry<String, String> staticEntry : parameterToJsonColumnMap.entrySet()) {
+            int colIndex = inputSpec.findColumnIndex(staticEntry.getValue());
+            DataCell c = r.getCell(colIndex);
+            if (c.isMissing()) {
+                return false;
+            } else {
+                JSONValue v = (JSONValue)c;
+                JsonValue jsonValue = v.getJsonValue();
+                CheckUtils.checkSetting(jsonValue instanceof JsonObject,
+                    "JSON in column \"%s\" is not  valid JSONObject - it's %s", staticEntry.getValue(),
+                    jsonValue.getValueType());
+                JsonObject jsonObject = (JsonObject)jsonValue;
+                input.put(staticEntry.getKey(), ExternalNodeData.builder(staticEntry.getKey()).jsonObject(jsonObject)
+                    .build());
+            }
+        }
+        return true;
     }
 
     private static BufferedDataContainer createDataContainer(final DataTableSpec inSpec, final ExecutionContext exec,
@@ -185,15 +198,11 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         return exec.createDataContainer(new DataTableSpec(columns.toArray(new DataColumnSpec[0])));
     }
 
-    private static void flushFailRows(final BufferedDataContainer container,
-        final Map<RowKey, String> consecutiveFailRowKeys, final Map<String, Integer> outputColIndexMap) {
-        for (Map.Entry<RowKey, String> failRow : consecutiveFailRowKeys.entrySet()) {
-            DataCell[] cells = new DataCell[outputColIndexMap.size() + 1];
-            Arrays.fill(cells, DataType.getMissingCell());
-            cells[cells.length - 1] = new StringCell(failRow.getValue());
-            container.addRowToTable(new DefaultRow(failRow.getKey(), cells));
-        }
-        consecutiveFailRowKeys.clear();
+    private static DataRow createFailureRow(final RowKey rowKey, final String message, final int numColumns) {
+        DataCell[] cells = new DataCell[numColumns + 1];
+        Arrays.fill(cells, DataType.getMissingCell());
+        cells[cells.length - 1] = new StringCell(message);
+        return new DefaultRow(rowKey, cells);
     }
 
     /** {@inheritDoc} */

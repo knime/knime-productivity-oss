@@ -29,13 +29,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.json.JsonObject;
 
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
-import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.NodeContainerState;
 import org.knime.core.node.workflow.NodeMessage;
 import org.knime.core.node.workflow.WorkflowContext;
@@ -66,7 +66,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
             @Override
             public void onRemoval(final RemovalNotification<URI, LocalWorkflowBackend> notification) {
                 LocalWorkflowBackend value = notification.getValue();
-                if (value.m_isInUse) {
+                if (value.isInUse()) {
                     value.setDiscardAfterUse();
                 } else {
                     value.discard();
@@ -109,7 +109,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
         }
 
         final LocalWorkflowBackend localWorkflowBackend = CACHE.get(workflowDir.toURI());
-        localWorkflowBackend.setInUse();
+        localWorkflowBackend.lock();
         return localWorkflowBackend;
     }
 
@@ -117,7 +117,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
 
     private final WorkflowManager m_manager;
 
-    private boolean m_isInUse;
+    private final ReentrantLock m_inUse = new ReentrantLock();
 
     private boolean m_discardAfterUse;
 
@@ -199,32 +199,35 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
         return m_manager.getParent().printNodeSummary(m_manager.getID(), 0);
     }
 
-    void setInUse() throws IllegalStateException {
-        CheckUtils.checkState(!m_isInUse, "Workflow instance %s already in use", m_manager.getNameWithID());
-        m_isInUse = true;
+    void lock() throws InterruptedException {
+        m_inUse.lockInterruptibly();
     }
 
-    /**
-     */
+    boolean isInUse() {
+        return m_inUse.isLocked();
+    }
+
     void setDiscardAfterUse() {
-        CheckUtils.checkState(m_isInUse, "Should not set discard flag for non-used instances");
         m_discardAfterUse = true;
     }
 
     /** {@inheritDoc} */
     @Override
     public void close() throws Exception {
-        m_isInUse = false;
-        m_manager.getParent().cancelExecution(m_manager);
-        if (m_discardAfterUse) {
-            discard();
-        }
-        KNIMETimer.getInstance().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                CACHE.cleanUp();
+        try {
+            m_manager.getParent().cancelExecution(m_manager);
+            if (m_discardAfterUse) {
+                discard();
             }
-        }, TimeUnit.SECONDS.toMillis(65L));
+            KNIMETimer.getInstance().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    CACHE.cleanUp();
+                }
+            }, TimeUnit.SECONDS.toMillis(65L));
+        } finally {
+            m_inUse.unlock();
+        }
     }
 
     void discard() {
