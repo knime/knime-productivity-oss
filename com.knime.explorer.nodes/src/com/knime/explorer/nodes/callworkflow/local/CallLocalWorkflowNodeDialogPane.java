@@ -61,7 +61,6 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
-import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.VerticalCollapsablePanels;
 import org.knime.core.node.workflow.WorkflowPersistor;
 import org.knime.core.util.SwingWorkerWithContext;
@@ -189,7 +188,6 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     /** {@inheritDoc} */
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        CheckUtils.checkSetting(StringUtils.isBlank(m_errorLabel.getText()), "No valid workflow selected");
         m_settings.setWorkflowPath((String) m_workflowPath.getSelectedItem());
         Map<String, String> parameterToJsonColumnMap = new LinkedHashMap<>();
         Map<String, ExternalNodeData> parameterToJsonConfigMap = new LinkedHashMap<>();
@@ -255,7 +253,6 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
             } catch (Exception e) {
                 NodeLogger.getLogger(getClass()).debug(e.getMessage(), e);
                 m_errorLabel.setText("<html><body>" + e.getMessage() + "</body></html>");
-                return;
             }
         }
         getPanel().revalidate();

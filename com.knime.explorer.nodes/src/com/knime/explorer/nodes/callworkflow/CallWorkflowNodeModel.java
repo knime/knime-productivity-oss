@@ -75,7 +75,10 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
     /** {@inheritDoc} */
     @Override
     protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
-        CheckUtils.checkSetting(getConfiguration() != null, "No configuration set");
+        CallWorkflowConfiguration config = getConfiguration();
+
+        CheckUtils.checkSetting(config != null, "No configuration set");
+        CheckUtils.checkSetting(StringUtils.isNotEmpty(config.getWorkflowPath()), "No workflow path provided");
 
         for (String jsonCol : getConfiguration().getParameterToJsonColumnMap().values()) {
             DataColumnSpec col = inSpecs[0].getColumnSpec(jsonCol);

@@ -27,7 +27,6 @@ import java.util.Map;
 import javax.json.JsonException;
 import javax.json.JsonObject;
 
-import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
@@ -66,7 +65,6 @@ public abstract class CallWorkflowConfiguration {
 
     /** @param map the parameterToJsonColumnMap to set */
     public CallWorkflowConfiguration setParameterToJsonColumnMap(final Map<String, String> map) {
-        CheckUtils.checkArgumentNotNull(map, "must not be null");
         m_parameterToJsonColumnMap = map;
         return this;
     }
@@ -78,7 +76,6 @@ public abstract class CallWorkflowConfiguration {
 
     /** @param workflowPath the workflowPath to set */
     public CallWorkflowConfiguration setWorkflowPath(final String workflowPath) throws InvalidSettingsException {
-        CheckUtils.checkSetting(StringUtils.isNotBlank(workflowPath), "must not be null or empty");
         m_workflowPath = workflowPath;
         return this;
     }
