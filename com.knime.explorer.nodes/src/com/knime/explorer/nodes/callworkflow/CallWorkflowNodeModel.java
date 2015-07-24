@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-import javax.json.JsonObject;
 import javax.json.JsonValue;
 
 import org.apache.commons.lang3.StringUtils;
@@ -117,7 +116,7 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             backend.setInputNodes(getConfiguration().getParameterToJsonConfigMap());
 
             // create container based on the output nodes
-            Map<String, JsonObject> outputNodes = backend.getOutputValues();
+            Map<String, JsonValue> outputNodes = backend.getOutputValues();
             BufferedDataContainer container =
                 createDataContainer(inData[0].getDataTableSpec(), exec, outputNodes.keySet(), outputColIndexMap);
 
@@ -131,8 +130,7 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
                 Map<String, ExternalNodeData> input = new LinkedHashMap<>();
                 boolean ok = fillInputMap(inData[0].getDataTableSpec(), parameterToJsonColumnMap, row, input);
                 if (ok) {
-                    backend.setInputNodes(input);
-                    DataRow newRow = executeWorkflow(outputColIndexMap, backend, row);
+                    DataRow newRow = executeWorkflow(outputColIndexMap, backend, row, input);
                     container.addRowToTable(newRow);
                 } else {
                     container.addRowToTable(createFailureRow(row.getKey(),
@@ -145,11 +143,11 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
     }
 
     private DataRow executeWorkflow(final Map<String, Integer> outputColIndexMap,
-        final IWorkflowBackend backend, final DataRow inputRow)
+        final IWorkflowBackend backend, final DataRow inputRow, final Map<String, ExternalNodeData> input)
         throws InvalidSettingsException, Exception {
 
         long start = System.currentTimeMillis();
-        WorkflowState state = backend.execute();
+        WorkflowState state = backend.execute(input);
         long delay = System.currentTimeMillis() - start;
 
         if (!state.equals(WorkflowState.EXECUTED)) {
@@ -164,9 +162,9 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             Arrays.fill(cells, DataType.getMissingCell());
             cells[cells.length - 1] = new StringCell("Completed in " + StringFormat.formatElapsedTime(delay));
 
-            Map<String, JsonObject> outputNodes = backend.getOutputValues();
+            Map<String, JsonValue> outputNodes = backend.getOutputValues();
             for (Map.Entry<String, Integer> outputColIndexEntry : outputColIndexMap.entrySet()) {
-                JsonObject o = outputNodes.get(outputColIndexEntry.getKey());
+                JsonValue o = outputNodes.get(outputColIndexEntry.getKey());
                 if (o != null) {
                     cells[outputColIndexEntry.getValue()] = JSONCellFactory.create(o);
                 } else {
@@ -186,13 +184,8 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
                 return false;
             } else {
                 JSONValue v = (JSONValue)c;
-                JsonValue jsonValue = v.getJsonValue();
-                CheckUtils.checkSetting(jsonValue instanceof JsonObject,
-                    "JSON in column \"%s\" is not  valid JSONObject - it's %s", staticEntry.getValue(),
-                    jsonValue.getValueType());
-                JsonObject jsonObject = (JsonObject)jsonValue;
-                input.put(staticEntry.getKey(), ExternalNodeData.builder(staticEntry.getKey()).jsonObject(jsonObject)
-                    .build());
+                input.put(staticEntry.getKey(),
+                    ExternalNodeData.builder(staticEntry.getKey()).jsonValue(v.getJsonValue()).build());
             }
         }
         return true;

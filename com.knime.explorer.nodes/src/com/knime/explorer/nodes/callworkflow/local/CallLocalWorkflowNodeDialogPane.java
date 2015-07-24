@@ -45,14 +45,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import javax.json.JsonException;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
@@ -91,6 +90,8 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         final JPanel p = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
+        m_errorLabel = new JLabel();
+        m_errorLabel.setForeground(Color.RED.darker());
         m_workflowPath = new JComboBox<>();
         m_workflowPath.setEditable(true);
         m_workflowPath.addItemListener(new ItemListener() {
@@ -111,8 +112,6 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         });
         fillWorkflowList();
 
-        m_errorLabel = new JLabel();
-        m_errorLabel.setForeground(Color.RED.darker());
         m_collapsablePanels = new VerticalCollapsablePanels();
         m_panelMap = new LinkedHashMap<>();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -155,6 +154,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     }
 
     private void fillWorkflowList() {
+        m_errorLabel.setText("");
         SwingWorkerWithContext<List<String>, Void> worker = new SwingWorkerWithContext<List<String>, Void>() {
             @Override
             protected List<String> doInBackgroundWithContext() throws Exception {
@@ -173,9 +173,10 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                     }
                     m_workflowPath.setSelectedItem(m_settings.getWorkflowPath());
                 } catch (ExecutionException ex) {
-                    JOptionPane.showMessageDialog(getPanel(),
-                        "Could not list workflows: " + ex.getCause().getMessage(), "Error occurred",
-                        JOptionPane.ERROR_MESSAGE);
+                    Throwable cause = (ex.getCause() != null) ? ExceptionUtils.getRootCause(ex) : ex;
+                    String message = "Could not list workflows: " + cause.getMessage();
+                    m_errorLabel.setText(message);
+                    NodeLogger.getLogger(CallLocalWorkflowNodeDialogPane.class).error(message, cause);
                 } catch (InterruptedException ex) {
                     // do nothing
                 }
@@ -200,8 +201,8 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
             } else {
                 try {
                     parameterToJsonConfigMap.put(key,
-                        ExternalNodeData.builder(key).jsonObject(JSONUtil.parseJSONValue(p.getJSONConfig())).build());
-                } catch (JsonException ex) {
+                        ExternalNodeData.builder(key).jsonValue(JSONUtil.parseJSONValue(p.getJSONConfig())).build());
+                } catch (IOException ex) {
                     throw new InvalidSettingsException("No valid JSON for key " + key + ": " + ex.getMessage(), ex);
                 }
             }
@@ -224,7 +225,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         for (Map.Entry<String, ExternalNodeData> entry : m_settings.getParameterToJsonConfigMap().entrySet()) {
             JSONInputPanel p = m_panelMap.get(entry.getKey());
             if (p != null) {
-                p.update(m_spec, entry.getValue().getJSONObject(), null);
+                p.update(m_spec, entry.getValue().getJSONValue(), null);
             }
         }
 
@@ -246,13 +247,13 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
             try (IWorkflowBackend backend = newBackend()) {
                 Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
                 for (Map.Entry<String, ExternalNodeData> entry : inputNodes.entrySet()) {
-                    JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONObject(), m_spec);
+                    JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
                     m_panelMap.put(entry.getKey(), p);
                     m_collapsablePanels.addPanel(p, false, entry.getKey());
                 }
             } catch (Exception e) {
                 NodeLogger.getLogger(getClass()).debug(e.getMessage(), e);
-                m_errorLabel.setText("<html><body>" + e.getMessage() + "</body></html>");
+                m_errorLabel.setText(e.getMessage());
             }
         }
         getPanel().revalidate();

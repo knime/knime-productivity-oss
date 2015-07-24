@@ -22,7 +22,7 @@ package com.knime.explorer.nodes.callworkflow;
 
 import java.util.Map;
 
-import javax.json.JsonObject;
+import javax.json.JsonValue;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
@@ -47,9 +47,9 @@ public interface IWorkflowBackend extends AutoCloseable {
 
     /**
      * Sets the input nodes for the workflow. The map should have the same structure as the one returned by
-     * {@link #getInputNodes()} but with potent
+     * {@link #getInputNodes()} but with potententially updated values.
      *
-     * @param input
+     * @param input a map with the updated input data
      * @throws InvalidSettingsException
      */
     void setInputNodes(Map<String, ExternalNodeData> input) throws InvalidSettingsException;
@@ -59,15 +59,17 @@ public interface IWorkflowBackend extends AutoCloseable {
      *
      * @return a map between IDs and values
      */
-    Map<String, JsonObject> getOutputValues();
+    Map<String, JsonValue> getOutputValues();
 
     /**
-     * Executed the workflow and returns the state after execution.
+     * Executes the workflow and returns the state after execution. The map doesn't need to contain all input values
+     * but only the ones that have changed
      *
+     * @param input a map with the updated input data
      * @return the current workflow state
      * @throws Exception if an error occurs during execution
      */
-    WorkflowState execute() throws Exception;
+    WorkflowState execute(final Map<String, ExternalNodeData> input) throws Exception;
 
     /**
      * Returns the messages that occurred during execution.

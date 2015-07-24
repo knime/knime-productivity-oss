@@ -26,7 +26,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import javax.json.JsonObject;
+import javax.json.JsonValue;
 import javax.swing.ButtonGroup;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -48,7 +48,7 @@ public final class JSONInputPanel extends JPanel {
     private final ColumnSelectionPanel m_jsonColumnSelector;
     private final JPanel m_hostPanel;
 
-    public JSONInputPanel(final JsonObject currentJSONValueOrNull, final DataTableSpec spec) {
+    public JSONInputPanel(final JsonValue currentJSONValueOrNull, final DataTableSpec spec) {
         m_hostPanel = new JPanel(new GridBagLayout());
 
         m_textEditArea = new RSyntaxTextArea(currentJSONValueOrNull == null
@@ -81,7 +81,7 @@ public final class JSONInputPanel extends JPanel {
         createLayout();
     }
 
-    public void update(final DataTableSpec spec, final JsonObject jsonOrNull, final String jsonColumnOrNull) {
+    public void update(final DataTableSpec spec, final JsonValue jsonOrNull, final String jsonColumnOrNull) {
         try {
             m_jsonColumnSelector.update(spec, jsonColumnOrNull, false, true);
         } catch (NotConfigurableException e) {

@@ -31,7 +31,7 @@ import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.json.JsonObject;
+import javax.json.JsonValue;
 
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
@@ -132,21 +132,13 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
         return m_manager.getInputNodes();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setInputNodes(final Map<String, ExternalNodeData> input) throws InvalidSettingsException {
-        m_manager.setInputNodes(input);
-    }
-
     /** {@inheritDoc} */
     @Override
-    public Map<String, JsonObject> getOutputValues() {
-        Map<String, JsonObject> map = new HashMap<>();
+    public Map<String, JsonValue> getOutputValues() {
+        Map<String, JsonValue> map = new HashMap<>();
 
         for (Map.Entry<String, ExternalNodeData> e : m_manager.getExternalOutputs().entrySet()) {
-            JsonObject json = e.getValue().getJSONObject();
+            JsonValue json = e.getValue().getJSONValue();
             if (json != null) {
                 map.put(e.getKey(), json);
             }
@@ -157,7 +149,8 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
 
     /** {@inheritDoc} */
     @Override
-    public WorkflowState execute() {
+    public WorkflowState execute(final Map<String, ExternalNodeData> input) throws Exception {
+        setInputNodes(input);
         m_manager.executeAllAndWaitUntilDone();
         NodeContainerState state = m_manager.getNodeContainerState();
         if (state.isExecuted()) {
@@ -233,5 +226,13 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
     void discard() {
         ProjectWorkflowMap.unregisterClientFrom(m_uri, this);
         ProjectWorkflowMap.remove(m_uri);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setInputNodes(final Map<String, ExternalNodeData> input) throws InvalidSettingsException {
+        m_manager.setInputNodes(input);
     }
 }

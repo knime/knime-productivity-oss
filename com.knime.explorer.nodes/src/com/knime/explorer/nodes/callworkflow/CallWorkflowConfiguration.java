@@ -20,12 +20,12 @@
  */
 package com.knime.explorer.nodes.callworkflow;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.json.JsonException;
-import javax.json.JsonObject;
+import javax.json.JsonValue;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
@@ -85,7 +85,7 @@ public abstract class CallWorkflowConfiguration {
         NodeSettingsWO settings2 = settings.addNodeSettings("parameterToJsonConfigMap");
         for (Map.Entry<String, ExternalNodeData> entry : m_parameterToJsonConfigMap.entrySet()) {
             NodeSettingsWO childSettings = settings2.addNodeSettings(entry.getKey());
-            String json = entry.getValue().getJSONObject().toString();
+            String json = entry.getValue().getJSONValue().toString();
             childSettings.addString("json", json);
         }
         NodeSettingsWO settings3 = settings.addNodeSettings("parameterToJsonColumnMap");
@@ -104,9 +104,9 @@ public abstract class CallWorkflowConfiguration {
             NodeSettingsRO childSettings = settings2.getNodeSettings(s);
             String json = childSettings.getString("json");
             try {
-                JsonObject object = JSONUtil.parseJSONValue(json);
-                m_parameterToJsonConfigMap.put(s, ExternalNodeData.builder(s).jsonObject(object).build());
-            } catch (JsonException ex) {
+                JsonValue object = JSONUtil.parseJSONValue(json);
+                m_parameterToJsonConfigMap.put(s, ExternalNodeData.builder(s).jsonValue(object).build());
+            } catch (IOException ex) {
                 throw new InvalidSettingsException("Invalid JSON string: " + ex.getMessage());
             }
         }
@@ -139,13 +139,13 @@ public abstract class CallWorkflowConfiguration {
                 continue;
             }
             String json = childSettings.getString("json", "{}");
-            JsonObject object;
+            JsonValue value;
             try {
-                object = JSONUtil.parseJSONValue(json);
-            } catch (JsonException e) {
+                value = JSONUtil.parseJSONValue(json);
+            } catch (IOException e) {
                 continue;
             }
-            m_parameterToJsonConfigMap.put(s, ExternalNodeData.builder(s).jsonObject(object).build());
+            m_parameterToJsonConfigMap.put(s, ExternalNodeData.builder(s).jsonValue(value).build());
         }
 
         NodeSettingsRO settings3;
