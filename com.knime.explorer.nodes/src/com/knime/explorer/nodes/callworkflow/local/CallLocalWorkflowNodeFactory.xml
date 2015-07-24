@@ -8,8 +8,9 @@
     
     <fullDescription>
         <intro>This node can be used to call other workflows in in your local workspace. Input data can be passed to
-        JSON Input nodes in the other workflow and results can likewise be read back as JSON value from JSON Output nodes.
-        The input can either be a static JSON object provided via the dialog (which itself can be overridden by a flow
+        Quickform Input nodes (only the new input nodes) in the other workflow and results can likewise be read back as
+        a JSON value from JSON Output nodes.
+        The input can either be a static JSON values provided via the dialog (which itself can be overridden by a flow
         variable) or from a JSON column in the input table. The node will call the other workflow with every row
         of the input table and append the results of the call to it.<br />
         Note that the workflow you are calling must not be opened in an editor in your workbench and that the workflow
