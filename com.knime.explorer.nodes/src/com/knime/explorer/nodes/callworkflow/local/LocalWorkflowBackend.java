@@ -25,9 +25,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimerTask;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -89,8 +92,13 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
             }
         });
 
-    static LocalWorkflowBackend newInstance(final String path, final WorkflowContext wfContext) throws Exception {
+    private static final Map<WorkflowManager, Set<URI>> CALLER_MAP = new WeakHashMap<>();
+
+    static LocalWorkflowBackend newInstance(final String path, final WorkflowManager callingWorkflow) throws Exception {
         CACHE.cleanUp();
+
+        WorkflowContext wfContext = callingWorkflow.getContext();
+
         File workflowDir;
         try {
             URI uri = new URI(path);
@@ -108,9 +116,33 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
             throw new IOException("No such workflow: " + workflowDir);
         }
 
-        final LocalWorkflowBackend localWorkflowBackend = CACHE.get(workflowDir.toURI());
+        URI workflowUri = workflowDir.toURI();
+        final LocalWorkflowBackend localWorkflowBackend = CACHE.get(workflowUri);
         localWorkflowBackend.lock();
+
+        synchronized (CALLER_MAP) {
+            Set<URI> workflowsUsedBy = CALLER_MAP.get(callingWorkflow);
+            if (workflowsUsedBy == null) {
+                workflowsUsedBy = new HashSet<>();
+                CALLER_MAP.put(callingWorkflow, workflowsUsedBy);
+            }
+            workflowsUsedBy.add(workflowUri);
+        }
+
         return localWorkflowBackend;
+    }
+
+    static void cleanCalledWorkflows(final WorkflowManager callingWorkflow) {
+        synchronized (CALLER_MAP) {
+            Set<URI> workflowsUsedBy = CALLER_MAP.get(callingWorkflow);
+            if (workflowsUsedBy != null) {
+                for (URI workflowUri : workflowsUsedBy) {
+                    CACHE.invalidate(workflowUri);
+                }
+                CACHE.cleanUp();
+                CALLER_MAP.remove(callingWorkflow);
+            }
+        }
     }
 
     private final URI m_uri;

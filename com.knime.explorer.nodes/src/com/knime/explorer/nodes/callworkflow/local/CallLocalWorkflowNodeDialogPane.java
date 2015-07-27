@@ -261,7 +261,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
     private IWorkflowBackend newBackend() throws Exception {
         final String workflowPath = (String)m_workflowPath.getSelectedItem();
-        return LocalWorkflowBackend.newInstance(workflowPath, getNodeContext().getWorkflowManager().getContext());
+        return LocalWorkflowBackend.newInstance(workflowPath, getNodeContext().getWorkflowManager());
     }
 
     /** {@inheritDoc} */

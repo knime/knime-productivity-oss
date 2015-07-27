@@ -55,8 +55,7 @@ final class CallLocalWorkflowNodeModel extends CallWorkflowNodeModel {
      */
     @Override
     protected IWorkflowBackend newBackend(final String workflowPath) throws Exception {
-        return LocalWorkflowBackend.newInstance(workflowPath, NodeContext.getContext().getWorkflowManager()
-            .getContext());
+        return LocalWorkflowBackend.newInstance(workflowPath, NodeContext.getContext().getWorkflowManager());
     }
 
     /**
@@ -89,5 +88,13 @@ final class CallLocalWorkflowNodeModel extends CallWorkflowNodeModel {
     @Override
     protected void reset() {
         // nothing to do
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onDispose() {
+        LocalWorkflowBackend.cleanCalledWorkflows(NodeContext.getContext().getWorkflowManager());
     }
 }
