@@ -26,8 +26,11 @@ by the copyright owner.
 In case of any questions, please contact KNIME.com at contact@knime.com
    </license>
 
-   <requires>
-      <import plugin="com.knime.licenses" version="5" match="greaterOrEqual"/>
-   </requires>
+   <plugin
+         id="com.knime.workbench.workflowdiff"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
 
 </feature>
