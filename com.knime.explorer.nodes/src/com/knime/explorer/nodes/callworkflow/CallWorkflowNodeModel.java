@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -116,9 +117,10 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             backend.setInputNodes(getConfiguration().getParameterToJsonConfigMap());
 
             // create container based on the output nodes
-            Map<String, JsonValue> outputNodes = backend.getOutputValues();
+            List<String> outputNodeKeys = new ArrayList<>(backend.getOutputValues().keySet());
+            Collections.sort(outputNodeKeys);
             BufferedDataContainer container =
-                createDataContainer(inData[0].getDataTableSpec(), exec, outputNodes.keySet(), outputColIndexMap);
+                createDataContainer(inData[0].getDataTableSpec(), exec, outputNodeKeys, outputColIndexMap);
 
             final int rowCount = inData[0].getRowCount();
             int rowIndex = 0;
