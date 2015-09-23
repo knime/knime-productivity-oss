@@ -66,7 +66,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 	 */
 	class WorkflowStructViewerLabelProvider extends StyledCellLabelProvider {
 
-		private final Image m_selOverlayImg = ImageRepository.getImage(SharedImages.Ok);
+		private final Image m_selOverlayImg = ImageRepository.getIconImage(SharedImages.Ok);
 
 		/**
 		 * Without this update implementation things don't refresh properly.
@@ -328,7 +328,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		}
 		MenuItem item = new MenuItem(menu, SWT.PUSH);
 		item.setText(collapse ? "Collapse " : "Expand");
-		item.setImage(ImageRepository.getImage(collapse ? SharedImages.CollapseAll : SharedImages.Expand));
+		item.setImage(ImageRepository.getIconImage(collapse ? SharedImages.CollapseAll : SharedImages.Expand));
 		if (collapse) {
 			item.addSelectionListener(new SelectionAdapter() {
 				@Override
@@ -348,7 +348,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 
 		item = new MenuItem(menu, SWT.PUSH);
 		item.setText("Compare Highlighted");
-		item.setImage(ImageRepository.getImage(SharedImages.WorkflowDiffIcon));
+		item.setImage(ImageRepository.getIconImage(SharedImages.WorkflowDiffIcon));
 		item.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -430,7 +430,7 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 
 	@Override
 	public void setFilterIcon(boolean showIt) {
-		Image searchImg = showIt ? ImageRepository.getImage(SharedImages.FunnelIcon) : null;
+		Image searchImg = showIt ? ImageRepository.getIconImage(SharedImages.FunnelIcon) : null;
 		for (TreeColumn col : getTree().getColumns()) {
 			col.setImage(searchImg);
 		}

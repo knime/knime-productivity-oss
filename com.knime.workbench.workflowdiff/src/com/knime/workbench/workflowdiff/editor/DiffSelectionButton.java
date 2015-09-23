@@ -77,7 +77,7 @@ public class DiffSelectionButton extends ControlContribution {
 	@Override
 	protected Control createControl(final Composite parent) {
 		final Button btn = new Button(parent, SWT.PUSH);
-		btn.setImage(ImageRepository.getImage(SharedImages.WorkflowDiffIcon));
+		btn.setImage(ImageRepository.getIconImage(SharedImages.WorkflowDiffIcon));
 		btn.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
 		btn.addSelectionListener(new SelectionListener() {
 			@Override

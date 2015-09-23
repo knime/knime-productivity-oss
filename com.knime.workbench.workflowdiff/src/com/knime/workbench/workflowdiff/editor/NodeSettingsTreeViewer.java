@@ -129,7 +129,7 @@ public class NodeSettingsTreeViewer extends TreeViewer implements IFilterableTre
 	 *            or hideIt
 	 */
 	public void setFilterIcon(final boolean showIt) {
-		Image searchImg = showIt ? ImageRepository.getImage(SharedImages.FunnelIcon) : null;
+		Image searchImg = showIt ? ImageRepository.getIconImage(SharedImages.FunnelIcon) : null;
 		for (TreeColumn col : getTree().getColumns()) {
 			col.setImage(searchImg);
 		}

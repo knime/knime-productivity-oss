@@ -110,15 +110,15 @@ public class FlowStructureCreator implements IStructureCreator {
         @Override
         public Image getImage() {
             if (getType() == ELEMENT_TYPE_NODE) {
-                return ImageRepository.getImage(SharedImages.NodeIconDetailed);
+                return ImageRepository.getIconImage(SharedImages.NodeIconDetailed);
             } else if (getType() == ELEMENT_TYPE_METANODE) {
-                return ImageRepository.getImage(SharedImages.MetaNodeDetailed);
+                return ImageRepository.getIconImage(SharedImages.MetaNodeDetailed);
             } else if (getType() == ELEMENT_TYPE_SUBNODE) {
-                return ImageRepository.getImage(SharedImages.SubNodeDetailed);
+                return ImageRepository.getIconImage(SharedImages.SubNodeDetailed);
             } else if (getType() == ELEMENT_TYPE_FLOW) {
-                return ImageRepository.getImage(SharedImages.Workflow);
+                return ImageRepository.getIconImage(SharedImages.Workflow);
             }
-            return ImageRepository.getImage(SharedImages.Workflow);
+            return ImageRepository.getIconImage(SharedImages.Workflow);
         }
 
         /*

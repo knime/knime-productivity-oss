@@ -89,7 +89,7 @@ public class StructDiffAdditionsOnlyFilterButton extends ControlContribution {
     @Override
     protected Control createControl(final Composite parent) {
         final Button btn = new Button(parent, SWT.TOGGLE);
-        btn.setImage(ImageRepository.getImage(SharedImages.ButtonShowAdditionalNodesOnly));
+        btn.setImage(ImageRepository.getIconImage(SharedImages.ButtonShowAdditionalNodesOnly));
         btn.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
         btn.addSelectionListener(new SelectionListener() {
             @Override

@@ -81,7 +81,7 @@ public class NodeDiffClearFilterButton extends ControlContribution {
     @Override
     protected Control createControl(final Composite parent) {
         Button del = new Button(parent, SWT.PUSH);
-        del.setImage(ImageRepository.getImage(SharedImages.ButtonClear));
+        del.setImage(ImageRepository.getIconImage(SharedImages.ButtonClear));
         del.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
         del.addSelectionListener(new SelectionListener() {
             @Override

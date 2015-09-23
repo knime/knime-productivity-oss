@@ -89,7 +89,7 @@ public class StructDiffHideEqualNodesFilterButton extends ControlContribution {
     @Override
     protected Control createControl(final Composite parent) {
         final Button btn = new Button(parent, SWT.TOGGLE);
-        btn.setImage(ImageRepository.getImage(SharedImages.ButtonHideEqualNodes));
+        btn.setImage(ImageRepository.getIconImage(SharedImages.ButtonHideEqualNodes));
         btn.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
         btn.addSelectionListener(new SelectionListener() {
             @Override
