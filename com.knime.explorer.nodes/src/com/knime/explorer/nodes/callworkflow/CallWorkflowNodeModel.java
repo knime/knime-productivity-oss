@@ -122,8 +122,8 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             BufferedDataContainer container =
                 createDataContainer(inData[0].getDataTableSpec(), exec, outputNodeKeys, outputColIndexMap);
 
-            final int rowCount = inData[0].getRowCount();
-            int rowIndex = 0;
+            final long rowCount = inData[0].size();
+            long rowIndex = 0;
             for (DataRow row : inData[0]) {
                 exec.checkCanceled();
                 exec.setProgress(rowIndex++ / (double)rowCount,
