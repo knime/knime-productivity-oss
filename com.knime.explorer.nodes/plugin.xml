@@ -3,17 +3,19 @@
 
 <plugin>
     <extension point="org.knime.workbench.repository.nodes">
-       <node category-path="/misc" 
-        factory-class="com.knime.explorer.nodes.ExplorerWriterNodeFactory" 
-        id="com.knime.explorer.nodes.writer.ExplorerWriterNodeFactory"/>
-       <node category-path="/misc" 
-        factory-class="com.knime.explorer.nodes.ExplorerBrowserNodeFactory" 
-        id="com.knime.explorer.nodes.writer.ExplorerBrowserNodeFactory"/>
        <node
-             category-path="/misc"
-             factory-class="com.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory"
-             id="com.knime.explorer.nodes.callworkflow.CallLocalWorkflowNodeFactory">
-       </node>
+            category-path="/flowcontrol/automation"
+            factory-class="com.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory"
+            id="com.knime.explorer.nodes.callworkflow.CallLocalWorkflowNodeFactory" />
+       <node 
+            after="_last_"
+            category-path="/io/read" 
+            factory-class="com.knime.explorer.nodes.ExplorerBrowserNodeFactory" 
+            id="com.knime.explorer.nodes.writer.ExplorerBrowserNodeFactory"/>
+       <node 
+            category-path="/io/write" 
+            factory-class="com.knime.explorer.nodes.ExplorerWriterNodeFactory" 
+            id="com.knime.explorer.nodes.writer.ExplorerWriterNodeFactory"/>
     </extension>
 
 </plugin>
