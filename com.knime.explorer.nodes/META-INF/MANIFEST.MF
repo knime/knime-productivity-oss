@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: KNIME Nodes for the KNIME Explorer
 Bundle-SymbolicName: com.knime.explorer.nodes;singleton:=true
-Bundle-Version: 3.6.100.qualifier
+Bundle-Version: 3.7.0.qualifier
 Bundle-ClassPath: explorer-nodes.jar
 Bundle-Vendor: KNIME.com, Zurich, Switzerland
 Export-Package: com.knime.explorer.nodes.callworkflow
