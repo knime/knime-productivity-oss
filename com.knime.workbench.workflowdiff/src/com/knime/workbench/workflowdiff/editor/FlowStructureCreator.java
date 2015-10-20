@@ -52,6 +52,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -96,10 +97,13 @@ public class FlowStructureCreator implements IStructureCreator {
         private final String m_name;
 
         private final NodeID m_id;
+        
+        private final URL m_icon;
 
-        FlowElement(final String name, final NodeID id) {
+        FlowElement(final String name, final NodeID id, final URL icon) {
             m_name = name;
             m_id = id;
+            m_icon=icon;
         }
 
         @Override
@@ -110,7 +114,7 @@ public class FlowStructureCreator implements IStructureCreator {
         @Override
         public Image getImage() {
             if (getType() == ELEMENT_TYPE_NODE) {
-                return ImageRepository.getIconImage(SharedImages.NodeIconDetailed);
+                return ImageRepository.getIconImage(m_icon);
             } else if (getType() == ELEMENT_TYPE_METANODE) {
                 return ImageRepository.getIconImage(SharedImages.MetaNodeDetailed);
             } else if (getType() == ELEMENT_TYPE_SUBNODE) {
@@ -145,7 +149,7 @@ public class FlowStructureCreator implements IStructureCreator {
         private final WorkflowManager m_wfm;
 
         FlowContainer(final WorkflowManager wfm) {
-            super(wfm.getName(), wfm.getID());
+            super(wfm.getName(), wfm.getID(), null);
             m_wfm = wfm;
         }
 
@@ -271,7 +275,7 @@ public class FlowStructureCreator implements IStructureCreator {
         private final NodeContainer m_node;
 
         FlowNode(final NodeContainer node) {
-            super(node.getName(), node.getID());
+            super(node.getName(), node.getID(), node.getIcon());
             m_node = node;
             NodeSettings settings = new NodeSettings("tmp");
             try {
