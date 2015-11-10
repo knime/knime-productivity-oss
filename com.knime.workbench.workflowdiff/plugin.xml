@@ -10,11 +10,39 @@
          <action
                class="com.knime.workbench.workflowdiff.actions.WorkflowDiffAction"
                enablesFor="+"
-               icon="icons/diff.png"
+               icon="../org.knime.workbench.core/icons/diff.png"
                id="com.knime.workbench.workflowdiff.actions.WorkflowDiffAction"
                label="Compare">
          </action>
       </objectContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            class="com.knime.workbench.workflowdiff.handlers.SnapshotViewContextMenuHandler"
+            commandId="com.knime.workbench.workflowdiff.SnapCompareCommand">
+      </handler>
+   </extension>
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="popup:com.knime.explorer.server.views.snapshots">
+         <command
+               commandId="com.knime.workbench.workflowdiff.SnapCompareCommand"
+               label="Compare"
+               style="push">
+         </command>
+      </menuContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            id="com.knime.workbench.workflowdiff.SnapCompareCommand"
+            name="serverCompare">
+      </command>
+   </extension>
+   <extension
+         point="org.eclipse.ui.views">
    </extension>
 
 </plugin>
