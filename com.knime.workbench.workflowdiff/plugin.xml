@@ -22,6 +22,18 @@
             class="com.knime.workbench.workflowdiff.handlers.SnapshotViewContextMenuHandler"
             commandId="com.knime.workbench.workflowdiff.SnapCompareCommand">
       </handler>
+      <handler
+            class="com.knime.workbench.workflowdiff.nodesettingsview.NodeCompareHandler"
+            commandId="com.knime.workbench.workflowdiff.compareNodeSettings">
+			<enabledWhen>
+				<with variable="selection">
+					<count value="2"/>
+					<iterate ifEmpty="false">
+						<instanceof value="org.knime.workbench.editor2.editparts.NodeContainerEditPart"/>
+					</iterate>
+				</with>
+			</enabledWhen>
+      </handler>
    </extension>
    <extension
          point="org.eclipse.ui.menus">
@@ -33,6 +45,15 @@
                style="push">
          </command>
       </menuContribution>
+      <menuContribution
+            allPopups="false"
+            locationURI="popup:org.knime.workbench.editor.WorkflowEditor">
+         <command
+               commandId="com.knime.workbench.workflowdiff.compareNodeSettings"
+               label="Compare Nodes"
+               style="push">
+         </command>
+      </menuContribution>
    </extension>
    <extension
          point="org.eclipse.ui.commands">
@@ -40,9 +61,19 @@
             id="com.knime.workbench.workflowdiff.SnapCompareCommand"
             name="serverCompare">
       </command>
+      <command
+            id="com.knime.workbench.workflowdiff.compareNodeSettings"
+            name="Compare Node Settings">
+      </command>
    </extension>
    <extension
          point="org.eclipse.ui.views">
+      <view
+            category="org.knime.workbench.ui.category"
+            class="com.knime.workbench.workflowdiff.nodesettingsview.NodeSettingsViewer"
+            id="com.knime.workbench.workflowdiff.nodeSettingsView"
+            name="Node Settings"
+            restorable="true">
+      </view>
    </extension>
-
 </plugin>
