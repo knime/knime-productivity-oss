@@ -18,10 +18,24 @@
    </extension>
    <extension
          point="org.eclipse.ui.handlers">
-      <handler
-            class="com.knime.workbench.workflowdiff.handlers.SnapshotViewContextMenuHandler"
-            commandId="com.knime.workbench.workflowdiff.SnapCompareCommand">
-      </handler>
+		<handler
+				class="com.knime.workbench.workflowdiff.handlers.SnapshotViewContextMenuHandler"
+				commandId="com.knime.workbench.workflowdiff.SnapCompareCommand">
+			<enabledWhen>
+				<with variable="selection">
+					<or>
+						<count value="1"/>
+						<count value="2"/>
+					</or>
+					<iterate ifEmpty="false">
+						<or>
+							<instanceof value="org.knime.workbench.explorer.view.IFileStoreProvider"/>
+							<instanceof value="org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore"/>
+						</or>
+					</iterate>
+				</with>
+			</enabledWhen>
+		</handler>
       <handler
             class="com.knime.workbench.workflowdiff.nodecompareview.NodeCompareHandler"
             commandId="com.knime.workbench.workflowdiff.compareNodeSettings">
