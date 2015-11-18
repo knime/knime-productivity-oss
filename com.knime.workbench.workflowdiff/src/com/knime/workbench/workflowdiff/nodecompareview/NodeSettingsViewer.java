@@ -1,4 +1,4 @@
-package com.knime.workbench.workflowdiff.nodesettingsview;
+package com.knime.workbench.workflowdiff.nodecompareview;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;

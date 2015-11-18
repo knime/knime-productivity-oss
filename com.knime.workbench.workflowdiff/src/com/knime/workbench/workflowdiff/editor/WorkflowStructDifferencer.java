@@ -1,24 +1,25 @@
 package com.knime.workbench.workflowdiff.editor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.compare.structuremergeviewer.IDiffContainer;
+import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.knime.core.node.workflow.WorkflowManager;
 
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowContainer;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowWorkflow;
-
-import workflowmatching.WorkflowTree;
+import com.knime.workbench.workflowdiff.workflowcompare.WorkflowTree;
 
 public class WorkflowStructDifferencer extends Differencer {
 
-	private static class Node{
+	private static class Node {
 		private List<Node> fChildren;
 		private int fCode;
 		private Object fAncestor;
@@ -64,34 +65,35 @@ public class WorkflowStructDifferencer extends Differencer {
 	}
 
 	@Override
-    protected Object visit(final Object parent, final int description, final Object ancestor,
-        final Object left, final Object right) {
-    	if (description == CHANGE) {
-    		if (super.contentsEqual(left, right)) {
-    			return new FlowDiffNode((IDiffContainer)parent, PSEUDO_CONFLICT, (ITypedElement)ancestor,
-                        (ITypedElement)left, (ITypedElement)right);
-    		}
-    	}
-        return new FlowDiffNode((IDiffContainer)parent, description, (ITypedElement)ancestor,
-            (ITypedElement)left, (ITypedElement)right);
-    }
-    @Override
-    protected boolean contentsEqual(Object input1, Object input2) {
-    	// we want all nodes to show up in the diff structure
-    	return false;
-    }
-    
-    @Override
-    protected Object[] getChildren(Object input) {
-    	Object[] children = super.getChildren(input);
-    	if (children != null) {
-    		return children;
-    	} else {
-    		return new Object[0];
-//    		return null;
-    	} 
-    }
-    
+	protected Object visit(final Object parent, final int description, final Object ancestor, final Object left,
+			final Object right) {
+		if (description == CHANGE) {
+			if (super.contentsEqual(left, right)) {
+				return new FlowDiffNode((IDiffContainer) parent, PSEUDO_CONFLICT, (ITypedElement) ancestor,
+						(ITypedElement) left, (ITypedElement) right);
+			}
+		}
+		return new FlowDiffNode((IDiffContainer) parent, description, (ITypedElement) ancestor, (ITypedElement) left,
+				(ITypedElement) right);
+	}
+
+	@Override
+	protected boolean contentsEqual(Object input1, Object input2) {
+		// we want all nodes to show up in the diff structure
+		return false;
+	}
+
+	@Override
+	protected Object[] getChildren(Object input) {
+		Object[] children = super.getChildren(input);
+		if (children != null) {
+			return children;
+		} else {
+			return new Object[0];
+			// return null;
+		}
+	}
+
 	@Override
 	public Object findDifferences(boolean threeWay, IProgressMonitor pm, Object data, Object ancestor, Object left,
 			Object right) {
@@ -119,17 +121,36 @@ public class WorkflowStructDifferencer extends Differencer {
 		return null;
 	}
 
+	private HashMap<String, Double> alignments = new HashMap<String, Double>();
+	private double bestYet = -1;
+
 	private void sequentialAlignment(List<List<WorkflowTree.Node>> left, List<List<WorkflowTree.Node>> right,
 			Node parent) {
+		alignments.clear();
+		{
+			int longestLeft = 0;
+			int longestRight = 0;
+			for (int i = 1; i < left.size(); i++) {
+				if (left.get(i).size() > left.get(longestLeft).size()) {
+					longestLeft = i;
+				}
+			}
+			for (int i = 1; i < right.size(); i++) {
+				if (right.get(i).size() > right.get(longestRight).size()) {
+					longestRight = i;
+				}
+			}
+			needlemanWunsch(left.remove(longestLeft), right.remove(longestRight), parent);
+		}
 		while (left.size() > 0) {
 			double maxAlignment = 0;
 			int best = -1;
 			List<WorkflowTree.Node> sequence = left.remove(0);
-			maxAlignment = calcAlignment(sequence, new ArrayList<WorkflowTree.Node>())
-					+ sequentialAlignment(left, right);
+			maxAlignment = sequentialAlignment(left, right,
+					calcAlignment(sequence, new ArrayList<WorkflowTree.Node>()));
 			for (int i = 0; i < right.size(); i++) {
 				List<WorkflowTree.Node> other = right.remove(i);
-				double alignment = calcAlignment(sequence, other) + sequentialAlignment(left, right);
+				double alignment = sequentialAlignment(left, right, calcAlignment(sequence, other));
 				if (alignment < maxAlignment) {
 					maxAlignment = alignment;
 					best = i;
@@ -147,29 +168,45 @@ public class WorkflowStructDifferencer extends Differencer {
 		}
 	}
 
-	private double sequentialAlignment(List<List<WorkflowTree.Node>> left, List<List<WorkflowTree.Node>> right) {
+	private int skipped = 0;
+
+	private double sequentialAlignment(List<List<WorkflowTree.Node>> left, List<List<WorkflowTree.Node>> right,
+			double currentCost) {
 		if (left.size() > 0) {
 			if (right.size() > 0) {
-				double maxAlignment = 0;
+				double maxAlignment = -1;
 				List<WorkflowTree.Node> sequence = left.remove(0);
-				maxAlignment = calcAlignment(sequence, new ArrayList<WorkflowTree.Node>())
-						+ sequentialAlignment(left, right);
+				if (bestYet != -1
+						&& calcAlignment(sequence, new ArrayList<WorkflowTree.Node>()) + currentCost <= bestYet) {
+					maxAlignment = sequentialAlignment(left, right,
+							calcAlignment(sequence, new ArrayList<WorkflowTree.Node>()));
+				}
 				for (int i = 0; i < right.size(); i++) {
 					List<WorkflowTree.Node> other = right.remove(i);
-					double alignment = calcAlignment(sequence, other) + sequentialAlignment(left, right);
-					if (alignment < maxAlignment) {
+					if (bestYet != -1 && (calcAlignment(sequence, other) + currentCost) > bestYet) {
+						right.add(i, other);
+						continue;
+					}
+					double alignment = sequentialAlignment(left, right, calcAlignment(sequence, other));
+					if (maxAlignment == -1 || alignment < maxAlignment) {
 						maxAlignment = alignment;
 					}
 					right.add(i, other);
 				}
 				left.add(0, sequence);
-				return maxAlignment;
+				if (maxAlignment != -1 && (bestYet != -1 && maxAlignment + currentCost < bestYet) || (bestYet == -1)) {
+					bestYet = maxAlignment + currentCost;
+				}
+				return calcAlignment(sequence, new ArrayList<WorkflowTree.Node>()) + currentCost;
 			} else {
 				double alignment = 0;
 				for (List<WorkflowTree.Node> sequence : left) {
 					alignment += calcAlignment(sequence, new ArrayList<WorkflowTree.Node>());
 				}
-				return alignment;
+				if ((bestYet != -1 && alignment + currentCost < bestYet) || (bestYet == -1)) {
+					bestYet = alignment + currentCost;
+				}
+				return alignment + currentCost;
 			}
 		} else {
 			if (right.size() > 0) {
@@ -177,17 +214,38 @@ public class WorkflowStructDifferencer extends Differencer {
 				for (List<WorkflowTree.Node> sequence : right) {
 					alignment += calcAlignment(new ArrayList<WorkflowTree.Node>(), sequence);
 				}
-				return alignment;
+				if ((bestYet != -1 && alignment + currentCost < bestYet) || (bestYet == -1)) {
+					bestYet = alignment + currentCost;
+				}
+				return alignment + currentCost;
 			} else {
-				return 0;
+				if ((bestYet != -1 && currentCost < bestYet) || (bestYet == -1)) {
+					bestYet = currentCost;
+				}
+				return currentCost;
 			}
 		}
 	}
+
+	double found = 0;
+	double total = 0;
 
 	private double calcAlignment(List<WorkflowTree.Node> left, List<WorkflowTree.Node> right) {
 		double match = 0;
 		double mismatch = 10;
 		double indel = 1;
+
+		if (left.size() == 0) {
+			return right.size() * indel;
+		}
+		if (right.size() == 0) {
+			return left.size() * indel;
+		}
+		total++;
+		if (alignments.containsKey(left.hashCode() + ";" + right.hashCode())) {
+			found++;
+			return alignments.get(left.hashCode() + ";" + right.hashCode());
+		}
 
 		double[][] grid = new double[left.size() + 1][right.size() + 1];
 
@@ -208,9 +266,10 @@ public class WorkflowStructDifferencer extends Differencer {
 				grid[i][j] = Math.min(Math.min(potentialDeletion, potentialInsertion), potentialMatch);
 			}
 		}
+		alignments.put(left.hashCode() + ";" + right.hashCode(), grid[left.size()][right.size()]);
 		return grid[left.size()][right.size()];
 	}
-	
+
 	private static double match = 0;
 	private static double mismatch = 1;
 	private static double indel = 1;
@@ -263,7 +322,8 @@ public class WorkflowStructDifferencer extends Differencer {
 				newNode.fCode = CHANGE;
 				j--;
 			} else {
-				System.out.println("error");
+				// should not happen
+				Assert.isTrue(false);
 			}
 		}
 	}

@@ -23,7 +23,7 @@
             commandId="com.knime.workbench.workflowdiff.SnapCompareCommand">
       </handler>
       <handler
-            class="com.knime.workbench.workflowdiff.nodesettingsview.NodeCompareHandler"
+            class="com.knime.workbench.workflowdiff.nodecompareview.NodeCompareHandler"
             commandId="com.knime.workbench.workflowdiff.compareNodeSettings">
 			<enabledWhen>
 				<with variable="selection">
@@ -70,9 +70,9 @@
          point="org.eclipse.ui.views">
       <view
             category="org.knime.workbench.ui.category"
-            class="com.knime.workbench.workflowdiff.nodesettingsview.NodeSettingsViewer"
+            class="com.knime.workbench.workflowdiff.nodecompareview.NodeSettingsViewer"
             id="com.knime.workbench.workflowdiff.nodeSettingsView"
-            name="Node Settings"
+            name="Node Comparison"
             restorable="true">
       </view>
    </extension>

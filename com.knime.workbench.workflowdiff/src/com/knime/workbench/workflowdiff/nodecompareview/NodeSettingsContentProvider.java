@@ -1,4 +1,4 @@
-package com.knime.workbench.workflowdiff.nodesettingsview;
+package com.knime.workbench.workflowdiff.nodecompareview;
 
 import java.util.Enumeration;
 

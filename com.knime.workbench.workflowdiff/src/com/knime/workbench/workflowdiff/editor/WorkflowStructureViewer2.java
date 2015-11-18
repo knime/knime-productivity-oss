@@ -301,6 +301,11 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 		});
 	}
 
+	@Override
+	public String getTitle() {
+		return "Workflow Comparison";
+	}
+
 	protected void createContextMenu(MenuDetectEvent e, final Menu menu) {
 		// clear the menu first
 		for (MenuItem i : menu.getItems()) {
