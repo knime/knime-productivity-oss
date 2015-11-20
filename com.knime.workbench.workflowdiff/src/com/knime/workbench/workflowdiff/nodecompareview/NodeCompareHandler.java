@@ -7,10 +7,9 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.knime.core.node.workflow.NodeContainer;
+import org.knime.workbench.editor2.WorkflowEditor;
 import org.knime.workbench.editor2.editparts.NodeContainerEditPart;
 
 public class NodeCompareHandler extends AbstractHandler {
@@ -26,16 +25,16 @@ public class NodeCompareHandler extends AbstractHandler {
 				Object firstSel = iterator.next();
 				Object secondSel = iterator.next();
 				if (firstSel instanceof NodeContainerEditPart && secondSel instanceof NodeContainerEditPart) {
-					NodeContainer nc1 = ((NodeContainerEditPart) firstSel).getNodeContainer();
-					NodeContainer nc2 = ((NodeContainerEditPart) secondSel).getNodeContainer();
 					try {
-						NodeSettingsViewer vpart = null;
-						vpart = (NodeSettingsViewer) PlatformUI.getWorkbench().getActiveWorkbenchWindow()
-								.getActivePage().showView(NodeSettingsViewer.ID);
-						vpart.setElements(nc1, nc2);
-					} catch (PartInitException e1) {
+						((NodeSettingsViewer) PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage()
+								.showView(NodeSettingsViewer.ID))
+										.setElements(
+												(WorkflowEditor) HandlerUtil.getActiveWorkbenchWindow(event)
+														.getActivePage().getActiveEditor(),
+												(NodeContainerEditPart) firstSel, (NodeContainerEditPart) secondSel);
+					} catch (Exception e) {
 						// TODO Auto-generated catch block
-						e1.printStackTrace();
+						e.printStackTrace();
 					}
 				}
 			}
