@@ -580,6 +580,100 @@ public class WorkflowTree {
 			}
 			return false;
 		}
+
+		public double getMatchQuality(Node that) {
+			final double TYPEWEIGHT = 1;
+			final double IDWEIGHT = 1;
+			final double NUMOFINPUTSWEIGHT = 1;
+			final double NUMOFOUTPUTSWEIGHT = 1;
+			final double INPUTSUPERCLIQUEWEIGHT = 1;
+			final double TYPEIDWEIGHT = 5;
+			ArrayList<Double> qualities = new ArrayList<Double>();
+			ArrayList<Double> weights = new ArrayList<Double>();
+
+			// TYPE
+			qualities.add(this.getTypeMatchQuality(that));
+			weights.add(TYPEWEIGHT);
+
+			// ID
+			qualities.add(this.getIDMatchQuality(that));
+			weights.add(IDWEIGHT);
+
+			// TYPE+ID
+			qualities.add(qualities.get(0) * qualities.get(1));
+			weights.add(TYPEIDWEIGHT);
+
+			// NUM OF INPUTS
+			qualities.add(this.getNumOfInputsMatchQuality(that));
+			weights.add(NUMOFINPUTSWEIGHT);
+
+			// NUM OF OUTPUTS
+			qualities.add(this.getNumOfOutputsMatchQuality(that));
+			weights.add(NUMOFOUTPUTSWEIGHT);
+
+			// INPUT SUPERCLIQUE
+			qualities.add(this.getInputSupercliqueMatchQuality(that));
+			weights.add(INPUTSUPERCLIQUEWEIGHT);
+
+			double quality = 0;
+			double totalWeight = 0;
+			for (int i = 0; i < qualities.size(); i++) {
+				quality += qualities.get(i) * weights.get(i);
+				totalWeight += weights.get(i);
+			}
+
+			return quality / totalWeight;
+		}
+
+		private double getTypeMatchQuality(Node that) {
+			if (this.getNodeContainer().getType().equals(that.getNodeContainer().getType())) {
+				return 1;
+			}
+			return 0;
+		}
+
+		private double getIDMatchQuality(Node that) {
+			if (this.nc.getID().getIndex() == that.nc.getID().getIndex()) {
+				return 1;
+			}
+			return 0;
+		}
+
+		private double getNumOfInputsMatchQuality(Node that) {
+			int thisNum = this.getNumOfInputs();
+			int thatNum = that.getNumOfInputs();
+			if (thisNum == 0 && thatNum == 0) {
+				return 1;
+			}
+			return Math.min(thisNum, thatNum) / Math.max(thisNum, thatNum);
+		}
+
+		private double getNumOfOutputsMatchQuality(Node that) {
+			int thisNum = this.getNumOfOutputs();
+			int thatNum = that.getNumOfOutputs();
+			if (thisNum == 0 && thatNum == 0) {
+				return 1;
+			}
+			return Math.min(thisNum, thatNum) / Math.max(thisNum, thatNum);
+		}
+
+		private double getInputSupercliqueMatchQuality(Node that) {
+			int thisNum = this.inputs.length;
+			int thatNum = that.inputs.length;
+			if (thisNum == 0 && thatNum == 0) {
+				return 1;
+			}
+			int matches = 0;
+			for (int i = 0; i < Math.min(thisNum, thatNum); i++) {
+				if (this.inputs[i] != null && that.inputs[i] != null && this.inputs[i].equals(that.inputs[i])) {
+					matches++;
+				}
+				if (this.inputs[i] == null && that.inputs[i] == null) {
+					matches++;
+				}
+			}
+			return matches * 1.0 / Math.max(thisNum, thatNum);
+		}
 	}
 
 	/**

@@ -64,6 +64,12 @@ public class WorkflowStructDifferencer extends Differencer {
 		}
 	}
 
+	private HashMap<String, Double> alignments = new HashMap<String, Double>();
+	private HashMap<String, Double> nodeMatchQuality = new HashMap<String, Double>();
+	private double bestYet = -1;
+	private static final double indel = 1;
+	private static final double EPSILON = 0.000001;
+
 	@Override
 	protected Object visit(final Object parent, final int description, final Object ancestor, final Object left,
 			final Object right) {
@@ -121,12 +127,10 @@ public class WorkflowStructDifferencer extends Differencer {
 		return null;
 	}
 
-	private HashMap<String, Double> alignments = new HashMap<String, Double>();
-	private double bestYet = -1;
-
 	private void sequentialAlignment(List<List<WorkflowTree.Node>> left, List<List<WorkflowTree.Node>> right,
 			Node parent) {
 		alignments.clear();
+		nodeMatchQuality.clear();
 		{
 			int longestLeft = 0;
 			int longestRight = 0;
@@ -167,8 +171,6 @@ public class WorkflowStructDifferencer extends Differencer {
 			needlemanWunsch(new ArrayList<WorkflowTree.Node>(), right.remove(0), parent);
 		}
 	}
-
-	private int skipped = 0;
 
 	private double sequentialAlignment(List<List<WorkflowTree.Node>> left, List<List<WorkflowTree.Node>> right,
 			double currentCost) {
@@ -227,13 +229,7 @@ public class WorkflowStructDifferencer extends Differencer {
 		}
 	}
 
-	double found = 0;
-	double total = 0;
-
 	private double calcAlignment(List<WorkflowTree.Node> left, List<WorkflowTree.Node> right) {
-		double match = 0;
-		double mismatch = 10;
-		double indel = 1;
 
 		if (left.size() == 0) {
 			return right.size() * indel;
@@ -241,9 +237,7 @@ public class WorkflowStructDifferencer extends Differencer {
 		if (right.size() == 0) {
 			return left.size() * indel;
 		}
-		total++;
 		if (alignments.containsKey(left.hashCode() + ";" + right.hashCode())) {
-			found++;
 			return alignments.get(left.hashCode() + ";" + right.hashCode());
 		}
 
@@ -259,8 +253,7 @@ public class WorkflowStructDifferencer extends Differencer {
 		}
 		for (int i = 1; i <= left.size(); i++) {
 			for (int j = 1; j <= right.size(); j++) {
-				double potentialMatch = grid[i - 1][j - 1]
-						+ (left.get(i - 1).equals(right.get(j - 1)) ? match : mismatch);
+				double potentialMatch = grid[i - 1][j - 1] + getCost(left.get(i - 1), right.get(j - 1));
 				double potentialDeletion = grid[i - 1][j] + indel;
 				double potentialInsertion = grid[i][j - 1] + indel;
 				grid[i][j] = Math.min(Math.min(potentialDeletion, potentialInsertion), potentialMatch);
@@ -269,10 +262,6 @@ public class WorkflowStructDifferencer extends Differencer {
 		alignments.put(left.hashCode() + ";" + right.hashCode(), grid[left.size()][right.size()]);
 		return grid[left.size()][right.size()];
 	}
-
-	private static double match = 0;
-	private static double mismatch = 1;
-	private static double indel = 1;
 
 	private void needlemanWunsch(List<WorkflowTree.Node> left, List<WorkflowTree.Node> right, Node parent) {
 
@@ -288,8 +277,7 @@ public class WorkflowStructDifferencer extends Differencer {
 		}
 		for (int i = 1; i <= left.size(); i++) {
 			for (int j = 1; j <= right.size(); j++) {
-				double potentialMatch = grid[i - 1][j - 1]
-						+ (left.get(i - 1).equals(right.get(j - 1)) ? match : mismatch);
+				double potentialMatch = grid[i - 1][j - 1] + getCost(left.get(i - 1), right.get(j - 1));
 				double potentialDeletion = grid[i - 1][j] + indel;
 				double potentialInsertion = grid[i][j - 1] + indel;
 				grid[i][j] = Math.min(Math.min(potentialDeletion, potentialInsertion), potentialMatch);
@@ -300,31 +288,42 @@ public class WorkflowStructDifferencer extends Differencer {
 		int i = left.size();
 		int j = right.size();
 		while (i > 0 || j > 0) {
-			if (i > 0 && j > 0 && left.get(i - 1).equals(right.get(j - 1))
-					&& grid[i][j] - match == grid[i - 1][j - 1]) {
+			if (i > 0 && j > 0 && Math
+					.abs(grid[i][j] - getCost(left.get(i - 1), right.get(j - 1)) - grid[i - 1][j - 1]) < EPSILON) {
 				Node newNode = new Node(parent, null, new FlowNode(left.get(i - 1).getNodeContainer()),
 						new FlowNode(right.get(j - 1).getNodeContainer()));
 				newNode.fCode = CHANGE;
 				i--;
 				j--;
-			} else if (i > 0 && j > 0 && grid[i][j] - mismatch == grid[i - 1][j - 1]) {
-				Node newNode = new Node(parent, null, new FlowNode(left.get(i - 1).getNodeContainer()),
-						new FlowNode(right.get(j - 1).getNodeContainer()));
-				newNode.fCode = CHANGE;
-				i--;
-				j--;
-			} else if (i > 0 && grid[i][j] - indel == grid[i - 1][j]) {
+			} else if (i > 0 && Math.abs(grid[i][j] - indel - grid[i - 1][j]) < EPSILON) {
 				Node newNode = new Node(parent, null, new FlowNode(left.get(i - 1).getNodeContainer()), null);
-				newNode.fCode = CHANGE;
+				newNode.fCode = DELETION;
 				i--;
-			} else if (j > 0 && grid[i][j] - indel == grid[i][j - 1]) {
+			} else if (j > 0 && Math.abs(grid[i][j] - indel - grid[i][j - 1]) < EPSILON) {
 				Node newNode = new Node(parent, null, null, new FlowNode(right.get(j - 1).getNodeContainer()));
-				newNode.fCode = CHANGE;
+				newNode.fCode = ADDITION;
 				j--;
 			} else {
 				// should not happen
-				Assert.isTrue(false);
+				Assert.isTrue(false, "Backtracing failed due to double rounding error.");
 			}
 		}
+	}
+
+	private double getCost(WorkflowTree.Node left, WorkflowTree.Node right) {
+		final double SUBSTITUTIONTHRESHOLD = 0.5;
+
+		if (left == null || right == null) {
+			return indel;
+		}
+		if (!nodeMatchQuality.containsKey(left.hashCode() + ";" + right.hashCode())) {
+			nodeMatchQuality.put(left.hashCode() + ";" + right.hashCode(), left.getMatchQuality(right));
+		}
+		double matchQuality = nodeMatchQuality.get(left.hashCode() + ";" + right.hashCode());
+		if (matchQuality < SUBSTITUTIONTHRESHOLD) {
+			return 2 * indel + 1;
+		}
+		double matchCost = (2 * indel) - (nodeMatchQuality.get(left.hashCode() + ";" + right.hashCode()) * (2 * indel));
+		return matchCost;
 	}
 }

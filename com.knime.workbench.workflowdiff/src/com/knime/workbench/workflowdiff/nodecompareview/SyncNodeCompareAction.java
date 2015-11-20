@@ -7,7 +7,7 @@ import org.knime.workbench.core.util.ImageRepository;
 import org.knime.workbench.core.util.ImageRepository.SharedImages;
 
 public class SyncNodeCompareAction extends Action {
-	
+
 	private final NodeSettingsViewer m_viewer;
 
 	public SyncNodeCompareAction(NodeSettingsViewer viewer) {
@@ -24,8 +24,10 @@ public class SyncNodeCompareAction extends Action {
 		GraphicalViewer viewer = m_viewer.getEditor().getViewer();
 		viewer.select(m_viewer.getLeftNCEP());
 		viewer.appendSelection(m_viewer.getRightNCEP());
+		viewer.reveal(m_viewer.getRightNCEP());
+		viewer.reveal(m_viewer.getLeftNCEP());
 		viewer.setFocus(m_viewer.getLeftNCEP());
 		PlatformUI.getWorkbench().getWorkbenchWindows()[0].getPages()[0].activate(m_viewer.getEditor());
 	}
-	
+
 }
