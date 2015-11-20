@@ -636,9 +636,15 @@ public class WorkflowTree {
 		// create sub-trees from the Containers
 		for (NodeContainer nc : wfm.getNodeContainers()) {
 			if (nc instanceof WorkflowManager) {
-				WorkflowTree metaTree = new WorkflowTree((WorkflowManager) nc);
-				Node metaRoot = metaTree.root;
-				root.addChild(metaRoot);
+				WorkflowManager metaWFM = (WorkflowManager) nc;
+				if (metaWFM.isEncrypted()) {
+					Node n = new Leaf(nc);
+					root.addChild(n);
+				} else {
+					WorkflowTree metaTree = new WorkflowTree(metaWFM);
+					Node metaRoot = metaTree.root;
+					root.addChild(metaRoot);
+				}
 			} else {
 				Node n = new Leaf(nc);
 				root.addChild(n);
