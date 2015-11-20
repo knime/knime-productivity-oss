@@ -140,8 +140,8 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
 		compareConfig.setRightLabel(nc2.getNameWithID());
 		WorkflowManager wfm1 = nc1.getParent();
 		WorkflowManager wfm2 = nc2.getParent();
-		Config modelSettings1;
-		Config modelSettings2;
+		Config modelSettings1 = null;
+		Config modelSettings2 = null;
 		Config memorySettings1 = null;
 		Config memorySettings2 = null;
 		Config jobMgrSettings1 = null;
@@ -153,8 +153,12 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
 		try {
 			wfm1.saveNodeSettings(nc1.getID(), nodeSettings1);
 			wfm2.saveNodeSettings(nc2.getID(), nodeSettings2);
-			modelSettings1 = nodeSettings1.getNodeSettings("model");
-			modelSettings2 = nodeSettings2.getNodeSettings("model");
+			if (nodeSettings1.containsKey("model")) {
+				modelSettings1 = nodeSettings1.getNodeSettings("model");
+			}
+			if (nodeSettings2.containsKey("model")) {
+				modelSettings2 = nodeSettings2.getNodeSettings("model");
+			}
 			if (nodeSettings1.containsKey(Node.CFG_MISC_SETTINGS)) {
 				memorySettings1 = nodeSettings1.getNodeSettings(Node.CFG_MISC_SETTINGS);
 			}
@@ -168,17 +172,20 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
 				jobMgrSettings2 = nodeSettings2.getNodeSettings("job.manager");
 			}
 		} catch (InvalidSettingsException e) {
-//			System.out.println("setElements failed");
 			return;
 		}
 		ArrayList<NodeSettingsItem> input1 = new ArrayList<NodeSettingsItem>(3);
 		ArrayList<NodeSettingsItem> input2 = new ArrayList<NodeSettingsItem>(3);
-		NodeSettingsItem modelItem1 = new NodeSettingsItem("Node Settings", "", "");
-		NodeSettingsItem modelItem2 = new NodeSettingsItem("Node Settings", "", "");
-		contProv1.addAllConfigValues(modelItem1, modelSettings1);
-		contProv2.addAllConfigValues(modelItem2, modelSettings2);
-		input1.add(modelItem1);
-		input2.add(modelItem2);
+		if(modelSettings1!=null){
+			NodeSettingsItem modelItem1 = new NodeSettingsItem("Node Settings", "", "");
+			contProv1.addAllConfigValues(modelItem1, modelSettings1);
+			input1.add(modelItem1);
+		}
+		if(modelSettings2!=null){
+			NodeSettingsItem modelItem2 = new NodeSettingsItem("Node Settings", "", "");
+			contProv2.addAllConfigValues(modelItem2, modelSettings2);
+			input2.add(modelItem2);
+		}
 		if (memorySettings1 != null) {
 			NodeSettingsItem memoryItem = new NodeSettingsItem("System Node Settings", "", "");
 			contProv1.addAllConfigValues(memoryItem, memorySettings1);
