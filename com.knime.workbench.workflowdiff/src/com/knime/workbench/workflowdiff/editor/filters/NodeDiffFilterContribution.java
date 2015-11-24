@@ -45,18 +45,13 @@
  */
 package com.knime.workbench.workflowdiff.editor.filters;
 
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.action.ControlContribution;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.KeyListener;
-import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Text;
 
 
@@ -67,15 +62,11 @@ import org.eclipse.swt.widgets.Text;
  */
 public class NodeDiffFilterContribution extends ControlContribution implements KeyListener {
 
-    private static final Color FILTERED = new Color(Display.getDefault(), 198, 198, 255);
-
     private final IFilterableTreeViewer[] m_viewer;
 
     private Text m_text;
 
     private final NodeDiffFilter m_filter;
-
-    private static final boolean IS_OS_WINDOWS = Platform.OS_WIN32.equals(Platform.getOS());
 
     /**
      * Creates the contribution item. The filter is set in the viewer by this class. This can be used in toolbars etc.
@@ -105,48 +96,17 @@ public class NodeDiffFilterContribution extends ControlContribution implements K
     }
 
     private void keyReleased(final char c) {
-        boolean shouldExpand = true;
         String str = m_text.getText();
         if (c == SWT.ESC) {
             m_text.setText("");
             str = "";
         }
-
-        Point backup = null;
-
-        //        if (IS_OS_WINDOWS) {
-        //            Rectangle bounds = m_viewer.getTree().getParent().getShell().getBounds();
-        //            // Bug 2809 -
-        //            // on windows the search is much slower if the cursor is within the KNIME window.
-        //            // so we just set it somewhere outside and restore it afterwards
-        //            backup = Display.getCurrent().getCursorLocation();
-        //            Display.getCurrent().setCursorLocation(new Point(bounds.x - 2, bounds.y - 2));
-        //        }
-        //
-        //        m_viewer.setRedraw(false);
-        //        try {
-        //            if (str.length() == 0) {
-        //                m_viewer.collapseAll();
-        //                shouldExpand = false;
-        //                update = true;
-        //            }
+        
         m_filter.setFilterString(str);
         for (IFilterableTreeViewer v : m_viewer) {
             v.setFilterIcon(str != null && !str.isEmpty());
             v.refresh();
         }
-        //
-        //            if (update) {
-        //                if (shouldExpand) {
-        //                    m_viewer.expandAll();
-        //                }
-        //            }
-        //        } finally {
-        //            if (backup != null) {
-        //                Display.getCurrent().setCursorLocation(backup);
-        //            }
-        //            m_viewer.getControl().setRedraw(true);
-        //        }
 
     }
 

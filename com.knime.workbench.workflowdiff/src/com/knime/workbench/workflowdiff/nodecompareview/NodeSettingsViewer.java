@@ -11,6 +11,10 @@ import org.knime.core.node.workflow.NodeContainer;
 import org.knime.workbench.editor2.WorkflowEditor;
 import org.knime.workbench.editor2.editparts.NodeContainerEditPart;
 
+import com.knime.workbench.workflowdiff.editor.filters.NodeDiffClearFilterButton;
+import com.knime.workbench.workflowdiff.editor.filters.NodeDiffFilter;
+import com.knime.workbench.workflowdiff.editor.filters.NodeDiffFilterContribution;
+
 public class NodeSettingsViewer extends ViewPart {
 
 	public static final String ID = "com.knime.workbench.workflowdiff.nodeSettingsView";
@@ -26,7 +30,7 @@ public class NodeSettingsViewer extends ViewPart {
 		FillLayout layout = new FillLayout();
 		parent.setLayout(layout);
 		m_mergeViewer = new NodeSettingsMergeViewer(parent, SWT.FULL_SELECTION | SWT.BORDER);
-		
+
 		createToolbar();
 
 		getSite().setSelectionProvider(m_mergeViewer.getTreeViewer2());
@@ -37,6 +41,14 @@ public class NodeSettingsViewer extends ViewPart {
 		IActionBars actionBars = getViewSite().getActionBars();
 		IToolBarManager toolBar = actionBars.getToolBarManager();
 		toolbarActions = new Action[2];
+
+		// Search Field
+		NodeDiffFilterContribution searchTextField = new NodeDiffFilterContribution(new NodeDiffFilter(),
+				m_mergeViewer.getTreeViewer1(), m_mergeViewer.getTreeViewer2());
+		toolBar.add(searchTextField);
+		
+		//Clear Search Button
+		toolBar.add(new NodeDiffClearFilterButton(searchTextField));
 
 		// Select Nodes in Workflow Action
 		Action syncAction = new SyncNodeCompareAction(this);
@@ -73,7 +85,7 @@ public class NodeSettingsViewer extends ViewPart {
 		m_leftNCEP = leftNCEP;
 		m_rightNCEP = rightNCEP;
 		m_mergeViewer.setElements(leftNCEP.getNodeContainer(), rightNCEP.getNodeContainer());
-		for(int i=0;i<toolbarActions.length;i++){
+		for (int i = 0; i < toolbarActions.length; i++) {
 			toolbarActions[i].setEnabled(true);
 		}
 	}

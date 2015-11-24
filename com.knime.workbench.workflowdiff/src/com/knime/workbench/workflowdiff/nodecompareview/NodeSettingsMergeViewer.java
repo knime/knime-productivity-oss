@@ -7,7 +7,6 @@ import org.eclipse.compare.CompareConfiguration;
 import org.eclipse.compare.contentmergeviewer.ContentMergeViewer;
 import org.eclipse.jface.viewers.ITreeViewerListener;
 import org.eclipse.jface.viewers.TreeExpansionEvent;
-import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -94,14 +93,6 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
 
 	@Override
 	protected void updateContent(Object ancestor, Object left, Object right) {
-		// WorkflowCompareConfiguration compareConfig =
-		// (WorkflowCompareConfiguration) getCompareConfiguration();
-		// compareConfig.setLeftLabel("left");
-		// compareConfig.setRightLabel("right");
-		// System.out.println("updateContent");
-		// System.out.println("|" + left);
-		// System.out.println("|" + right);
-		// System.out.println("---");
 		m_treeViewerLeft.refresh();
 		m_treeViewerRight.refresh();
 	}
@@ -113,16 +104,15 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
 
 	@Override
 	protected byte[] getContents(boolean left) {
-		// System.out.println("getContents");
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	protected TreeViewer getTreeViewer1() {
+	protected NodeSettingsTreeViewer getTreeViewer1() {
 		return m_treeViewerLeft;
 	}
 
-	protected TreeViewer getTreeViewer2() {
+	protected NodeSettingsTreeViewer getTreeViewer2() {
 		return m_treeViewerRight;
 	}
 
