@@ -55,21 +55,18 @@ import java.util.HashMap;
 
 import javax.swing.tree.TreeNode;
 
-import org.eclipse.jface.viewers.CellLabelProvider;
 import org.eclipse.jface.viewers.ILabelProviderListener;
 import org.eclipse.jface.viewers.ITableColorProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.Viewer;
-import org.eclipse.jface.viewers.ViewerFilter;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Item;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.knime.core.node.InvalidSettingsException;
@@ -85,7 +82,6 @@ import org.knime.workbench.core.util.ImageRepository.SharedImages;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
 import com.knime.workbench.workflowdiff.editor.filters.IFilterableTreeViewer;
 import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
-import com.knime.workbench.workflowdiff.editor.filters.NodeDiffFilter;
 
 /**
  * View for the settings of one node. Used in the bottom part of the compare, one for the left node, one for the right

@@ -46,7 +46,6 @@
 package com.knime.workbench.workflowdiff.editor;
 
 import org.eclipse.jface.action.ControlContribution;
-import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;

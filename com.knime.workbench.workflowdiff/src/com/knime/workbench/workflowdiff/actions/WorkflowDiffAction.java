@@ -89,7 +89,7 @@ public class WorkflowDiffAction implements IObjectActionDelegate {
         if (selection.size() != 2 && selection.size() != 1) {
             return false;
         }
-        Iterator selIter = selection.iterator();
+        Iterator<?> selIter = selection.iterator();
         AbstractExplorerFileStore first = ContentDelegator.getFileStore(selIter.next());
         AbstractExplorerFileStore second = first;
         if (selection.size() == 2) {
@@ -108,7 +108,7 @@ public class WorkflowDiffAction implements IObjectActionDelegate {
         	Assert.isTrue(false);
         	return;
         }
-        Iterator selIter = selection.iterator();
+        Iterator<?> selIter = selection.iterator();
         AbstractExplorerFileStore first = ContentDelegator.getFileStore(selIter.next());
         AbstractExplorerFileStore second = first;
         if (selection.size() == 2) {

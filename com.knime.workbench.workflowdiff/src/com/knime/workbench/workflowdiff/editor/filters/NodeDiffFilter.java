@@ -50,14 +50,8 @@ package com.knime.workbench.workflowdiff.editor.filters;
 
 import java.util.Locale;
 
-import org.eclipse.jface.viewers.CellLabelProvider;
-import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.Viewer;
-import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.ViewerFilter;
-
-import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer;
-import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.SettingsItem;
 
 /**
  * 

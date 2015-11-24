@@ -52,7 +52,6 @@ import java.util.ResourceBundle;
 
 import org.eclipse.compare.CompareConfiguration;
 import org.eclipse.compare.CompareUI;
-import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.contentmergeviewer.ContentMergeViewer;
 import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.jface.viewers.ITreeViewerListener;
@@ -62,8 +61,6 @@ import org.eclipse.swt.widgets.Composite;
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
 import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.NodeSettingsTreeContentProvider;
 import com.knime.workbench.workflowdiff.editor.NodeSettingsTreeViewer.SettingsItem;
-import com.knime.workbench.workflowdiff.editor.filters.IFilterableTreeViewer;
-import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
 import com.knime.workbench.workflowdiff.editor.filters.NodeDiffFilter;
 import com.knime.workbench.workflowdiff.editor.filters.NodeDiffClearFilterButton;
 import com.knime.workbench.workflowdiff.editor.filters.NodeDiffFilterContribution;

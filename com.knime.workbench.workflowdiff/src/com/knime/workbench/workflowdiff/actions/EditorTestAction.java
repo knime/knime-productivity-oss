@@ -3,8 +3,6 @@ package com.knime.workbench.workflowdiff.actions;
 
 import java.util.Iterator;
 
-import org.eclipse.compare.CompareConfiguration;
-import org.eclipse.compare.CompareUI;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.viewers.ISelection;
@@ -12,16 +10,8 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
-import org.eclipse.ui.dialogs.ElementTreeSelectionDialog;
 import org.knime.core.node.NodeLogger;
 import org.knime.workbench.editor2.editparts.NodeContainerEditPart;
-import org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore;
-import org.knime.workbench.explorer.view.ContentDelegator;
-import org.knime.workbench.explorer.view.ExplorerView;
-import org.knime.workbench.explorer.view.actions.ExplorerAction;
-import org.omg.CosNaming.NamingContextExtPOA;
-
-import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput;
 
 public class EditorTestAction implements IObjectActionDelegate {
     public static final String TEST_ACTION_ID = "com.knime.workbench.workflowdiff.actions.EditorTestAction";
@@ -46,7 +36,7 @@ public class EditorTestAction implements IObjectActionDelegate {
             return;
         }
         
-        Iterator selIter = selection.iterator();
+        Iterator<?> selIter = selection.iterator();
         Object first = selIter.next();
         Object second = selIter.next();
         if ((first instanceof NodeContainerEditPart) && (second instanceof NodeContainerEditPart)) {

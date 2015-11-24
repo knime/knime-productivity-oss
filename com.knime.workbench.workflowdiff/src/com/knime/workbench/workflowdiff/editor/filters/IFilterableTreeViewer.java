@@ -1,6 +1,5 @@
 package com.knime.workbench.workflowdiff.editor.filters;
 
-import org.eclipse.jface.viewers.CellLabelProvider;
 import org.eclipse.jface.viewers.ViewerFilter;
 
 public interface IFilterableTreeViewer {
