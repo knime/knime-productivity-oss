@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.knime.update.productivity"
+      label="KNIME.com Productivity Extension Update Site"
+      version="3.1.0.qualifier">
+
+   <includes
+         id="com.knime.features.licenses"
+         version="0.0.0"/>
+
+   <includes
+         id="com.knime.features.localautomation"
+         version="0.0.0"/>
+
+   <includes
+         id="com.knime.features.personalproductivity"
+         version="0.0.0"/>
+</feature>
