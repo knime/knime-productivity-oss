@@ -61,7 +61,15 @@
       </menuContribution>
       <menuContribution
             allPopups="false"
-            locationURI="popup:org.knime.workbench.editor.WorkflowEditor">
+            locationURI="popup:org.knime.workbench.editor.WorkflowEditor?endof=group.application">
+         <separator
+               name="CompareSeparator"
+               visible="true">
+         </separator>
+      </menuContribution>
+      <menuContribution
+            allPopups="false"
+            locationURI="popup:org.knime.workbench.editor.WorkflowEditor?endof=CompareSeparator">
          <command
                commandId="com.knime.workbench.workflowdiff.compareNodeSettings"
                label="Compare Nodes"
