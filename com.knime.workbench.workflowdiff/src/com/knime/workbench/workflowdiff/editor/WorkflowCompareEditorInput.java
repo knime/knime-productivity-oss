@@ -124,7 +124,9 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
     @Override
     public Viewer findContentViewer(final Viewer oldViewer, final ICompareInput input, final Composite parent) {
         if (input instanceof FlowDiffNode) {
-            return new NodeSettingsMergeViewer(parent, SWT.NONE, getCompareConfiguration());
+        	NodeSettingsMergeViewer contViewer = new NodeSettingsMergeViewer(parent, SWT.NONE, getCompareConfiguration());
+			((WorkflowCompareConfiguration)getCompareConfiguration()).setContViewer(contViewer);
+        	return contViewer;
         }
         return super.findContentViewer(oldViewer, input, parent);
     }

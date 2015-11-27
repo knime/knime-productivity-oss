@@ -19,6 +19,7 @@ public class WorkflowCompareConfiguration extends CompareConfiguration {
 
 	private FlowDiffNode m_leftSelection;
 	private FlowDiffNode m_rightSelection;
+	private NodeSettingsMergeViewer m_contViewer;
 
 	public FlowDiffNode getRightSelection() {
 		return m_rightSelection;
@@ -34,6 +35,14 @@ public class WorkflowCompareConfiguration extends CompareConfiguration {
 
 	public void setLeftSelection(FlowDiffNode leftSelection) {
 		m_leftSelection = leftSelection;
+	}
+
+	public void setContViewer(NodeSettingsMergeViewer contViewer) {
+		this.m_contViewer=contViewer;
+	}
+	
+	public NodeSettingsMergeViewer getContViewer(){
+		return m_contViewer;
 	}
 
 }

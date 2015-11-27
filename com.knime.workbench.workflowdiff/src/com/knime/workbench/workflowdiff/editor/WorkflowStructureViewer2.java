@@ -421,6 +421,10 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 
 	@Override
 	public void handleOpen(SelectionEvent event) {
+		if(getCompareConfiguration().getContViewer() != null){
+			getCompareConfiguration().getContViewer().updateContent(null, null, null);
+			getCompareConfiguration().getContViewer().refresh();
+		}
 		if (m_config.getLeftSelection() == null || m_config.getRightSelection() == null) {
 			MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
 					"No Nodes Selected", "Please select two nodes you wish to compare.");
