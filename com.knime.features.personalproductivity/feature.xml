@@ -6,7 +6,7 @@
       provider-name="KNIME.com, Zurich, Switzerland">
 
    <description url="http://www.knime.org/knime-personal-productivity">
-      This feature contains the KNIME Personal Productivity Tools.
+      This feature contains the KNIME Personal Productivity Tools, including workflow diff and the custom node repository.
    </description>
 
    <copyright>
@@ -31,6 +31,14 @@ In case of any questions, please contact KNIME.com at contact@knime.com
          download-size="0"
          install-size="0"
          version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="com.knime.workbench.repository.custom"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         fragment="true"
          unpack="false"/>
 
 </feature>
