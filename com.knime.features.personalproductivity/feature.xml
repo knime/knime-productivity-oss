@@ -6,7 +6,7 @@
       provider-name="KNIME.com, Zurich, Switzerland">
 
    <description url="http://www.knime.org/knime-personal-productivity">
-      This feature contains the KNIME Personal Productivity Tools, including workflow diff and the custom node repository.
+      This feature contains the KNIME Personal Productivity Tools including features such as MetaNode and WrappedNode sharing, Workflow Difference Viewer, &quot;Call Local Workflow&quot; node and an enhanced batch executor.
    </description>
 
    <copyright>
