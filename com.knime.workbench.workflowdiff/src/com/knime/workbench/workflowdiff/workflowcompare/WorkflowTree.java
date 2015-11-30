@@ -234,7 +234,7 @@ public class WorkflowTree {
 					ConnectionContainer cc = getParent().getWorkflowManager()
 							.getIncomingConnectionFor(getNodeContainer().getID(), i);
 					// If there is Node connected
-					if (cc != null) {
+					if (cc != null && root.getNode(cc.getSource()) != root) {
 						// Store the connection
 						inputs[i] = root.getNode(cc.getSource());
 						inPorts[i] = cc.getSourcePort();
@@ -295,19 +295,7 @@ public class WorkflowTree {
 		 *         {@code nc} or {@code null} if not present in this tree
 		 */
 		public Node getNode(NodeContainer nc) {
-			// Simple recursive search.
-			if (this.getNodeContainer().equals(nc)) {
-				return this;
-			}
-			// If not found search in the sub-trees.
-			for (Node n : children) {
-				Node child = n.getNode(nc);
-				if (child != null) {
-					return child;
-				}
-			}
-			// If not found their either return null
-			return null;
+			return getNode(nc.getID());
 		}
 
 		/**
@@ -339,6 +327,9 @@ public class WorkflowTree {
 		 *         (ignores Sub- and Meta-Nodes)
 		 */
 		public Node getInNode(int portIndex) {
+			if (this == root) {
+				return null;
+			}
 			// Nothing here
 			if (inputs[portIndex] == null) {
 				return null;
@@ -351,7 +342,11 @@ public class WorkflowTree {
 			// of this node, this node is the first node in it and receives the
 			// input from outside. Determine the input of the parent.
 			if (inputs[portIndex].equals(this.getParent())) {
-				return inputs[portIndex].getInNode(inPorts[portIndex]);
+				if (this.getParent() != root) {
+					return inputs[portIndex].getInNode(inPorts[portIndex]);
+				} else {
+					return null;
+				}
 			}
 			// Now this node has to receive its input from the output of a
 			// Meta-Node. Determine the outputting node of the Meta-Node.
@@ -366,8 +361,7 @@ public class WorkflowTree {
 		 */
 		public Collection<Node> getOutNodes(int portIndex) {
 			Collection<Node> outNodes = new HashSet<WorkflowTree.Node>();
-			// Nothing here
-			if (outputs.get(portIndex).size() == 0) {
+			if (this == root) {
 				return outNodes;
 			}
 			// get the nodes and further investigate the Meta-Nodes
@@ -484,7 +478,10 @@ public class WorkflowTree {
 			ArrayList<Node> incomings = new ArrayList<Node>();
 			for (int i = 0; i < inputs.length; i++) {
 				if (inputs[i] != null) {
-					incomings.add(getInNode(i));
+					Node in = getInNode(i);
+					if (in != null) {
+						incomings.add(in);
+					}
 				}
 			}
 			return incomings;
@@ -738,6 +735,7 @@ public class WorkflowTree {
 					WorkflowTree metaTree = new WorkflowTree(metaWFM);
 					Node metaRoot = metaTree.root;
 					root.addChild(metaRoot);
+					metaTree.root=root;
 				}
 			} else {
 				Node n = new Leaf(nc);

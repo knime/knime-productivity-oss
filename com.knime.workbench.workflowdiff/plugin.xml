@@ -1,26 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
-   <extension
-         point="org.eclipse.ui.popupMenus">
-      <objectContribution
-            adaptable="true"
-            id="com.knime.workbench.workflowdiff.actions.WorkflowDiffAction"
-            objectClass="org.knime.workbench.explorer.view.ContentObject">
-         <action
-               class="com.knime.workbench.workflowdiff.actions.WorkflowDiffAction"
-               enablesFor="+"
-               icon="../org.knime.workbench.core/icons/diff.png"
-               id="com.knime.workbench.workflowdiff.actions.WorkflowDiffAction"
-               label="Compare">
-         </action>
-      </objectContribution>
-   </extension>
-   <extension
-         point="org.eclipse.ui.handlers">
+	<extension
+			point="org.eclipse.ui.handlers">
 		<handler
-				class="com.knime.workbench.workflowdiff.handlers.SnapshotViewContextMenuHandler"
-				commandId="com.knime.workbench.workflowdiff.SnapCompareCommand">
+				class="com.knime.workbench.workflowdiff.handlers.NodeCompareHandler"
+				commandId="com.knime.workbench.workflowdiff.CompareNodesCommand">
+			<enabledWhen>
+				<with variable="selection">
+					<count value="2"/>
+					<iterate ifEmpty="false">
+						<instanceof value="org.knime.workbench.editor2.editparts.NodeContainerEditPart"/>
+					</iterate>
+				</with>
+			</enabledWhen>
+		</handler>
+		<handler
+				class="com.knime.workbench.workflowdiff.handlers.WorkflowCompareHandler"
+				commandId="com.knime.workbench.workflowdiff.CompareWorkflowsCommand">
 			<enabledWhen>
 				<with variable="selection">
 					<or>
@@ -36,66 +33,75 @@
 				</with>
 			</enabledWhen>
 		</handler>
-      <handler
-            class="com.knime.workbench.workflowdiff.nodecompareview.NodeCompareHandler"
-            commandId="com.knime.workbench.workflowdiff.compareNodeSettings">
-			<enabledWhen>
-				<with variable="selection">
-					<count value="2"/>
-					<iterate ifEmpty="false">
-						<instanceof value="org.knime.workbench.editor2.editparts.NodeContainerEditPart"/>
-					</iterate>
-				</with>
-			</enabledWhen>
-      </handler>
-   </extension>
-   <extension
-         point="org.eclipse.ui.menus">
-      <menuContribution
-            locationURI="popup:com.knime.explorer.server.views.snapshots">
-         <command
-               commandId="com.knime.workbench.workflowdiff.SnapCompareCommand"
-               label="Compare"
-               style="push">
-         </command>
-      </menuContribution>
-      <menuContribution
-            allPopups="false"
-            locationURI="popup:org.knime.workbench.editor.WorkflowEditor?endof=group.application">
-         <separator
-               name="CompareSeparator"
-               visible="true">
-         </separator>
-      </menuContribution>
-      <menuContribution
-            allPopups="false"
-            locationURI="popup:org.knime.workbench.editor.WorkflowEditor?endof=CompareSeparator">
-         <command
-               commandId="com.knime.workbench.workflowdiff.compareNodeSettings"
-               label="Compare Nodes"
-               style="push">
-         </command>
-      </menuContribution>
-   </extension>
-   <extension
-         point="org.eclipse.ui.commands">
-      <command
-            id="com.knime.workbench.workflowdiff.SnapCompareCommand"
-            name="serverCompare">
-      </command>
-      <command
-            id="com.knime.workbench.workflowdiff.compareNodeSettings"
-            name="Compare Node Settings">
-      </command>
-   </extension>
-   <extension
-         point="org.eclipse.ui.views">
-      <view
-            category="org.knime.workbench.ui.category"
-            class="com.knime.workbench.workflowdiff.nodecompareview.NodeSettingsViewer"
-            id="com.knime.workbench.workflowdiff.nodeSettingsView"
-            name="Node Comparison"
-            restorable="true">
-      </view>
-   </extension>
+	</extension>
+
+	<extension
+			point="org.eclipse.ui.menus">
+		<menuContribution
+				locationURI="popup:org.knime.workbench.editor.WorkflowEditor?endof=group.application">
+			<separator
+					name="NodeCompareSeparator"
+					visible="true"/>
+		</menuContribution>
+		<menuContribution
+				locationURI="popup:org.knime.workbench.editor.WorkflowEditor?endof=NodeCompareSeparator">
+			<command
+					commandId="com.knime.workbench.workflowdiff.CompareNodesCommand"
+					label="Compare Nodes"/>
+		</menuContribution>
+		<menuContribution
+				locationURI="popup:org.eclipse.ui.popup.any?before=additions">
+			<separator
+					name="WorkflowCompareSeparator"
+					visible="true"/>
+		</menuContribution>
+		<menuContribution
+				locationURI="popup:org.eclipse.ui.popup.any?endof=WorkflowCompareSeparator">
+			<command
+					commandId="com.knime.workbench.workflowdiff.CompareWorkflowsCommand"
+					label="Compare">
+				<visibleWhen>
+					<with variable="selection">
+						<count value="(0-"/>
+						<iterate ifEmpty="false">
+							<or>
+								<instanceof value="org.knime.workbench.explorer.view.IFileStoreProvider"/>
+								<instanceof value="org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore"/>
+							</or>
+						</iterate>
+					</with>
+				</visibleWhen>
+			</command>
+		</menuContribution>
+	</extension>
+
+	<extension
+			point="org.eclipse.ui.commands">
+		<command
+				id="com.knime.workbench.workflowdiff.CompareNodesCommand"
+				name="NodeCompare"/>
+		<command
+				id="com.knime.workbench.workflowdiff.CompareWorkflowsCommand"
+				name="WorkflowCompare"/>
+	</extension>
+
+	<extension
+			point="org.eclipse.ui.commandImages">
+		<image
+				commandId="com.knime.workbench.workflowdiff.CompareWorkflowsCommand"
+				icon="icons/diff.png"/>
+		<image
+				commandId="com.knime.workbench.workflowdiff.CompareNodesCommand"
+				icon="icons/diff.png"/>
+	</extension>
+
+	<extension
+			point="org.eclipse.ui.views">
+		<view
+				category="org.knime.workbench.ui.category"
+				class="com.knime.workbench.workflowdiff.nodecompareview.NodeSettingsViewer"
+				id="com.knime.workbench.workflowdiff.nodeSettingsView"
+				name="Node Comparison"
+				restorable="true"/>
+	</extension>
 </plugin>

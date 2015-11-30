@@ -51,6 +51,7 @@ package com.knime.workbench.workflowdiff.editor;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
 
 import org.eclipse.compare.CompareEditorInput;
 import org.eclipse.compare.structuremergeviewer.Differencer;
@@ -64,11 +65,17 @@ import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
+import org.knime.core.node.workflow.TemplateNodeContainerPersistor;
 import org.knime.core.node.workflow.UnsupportedWorkflowVersionException;
+import org.knime.core.node.workflow.WorkflowCreationHelper;
+import org.knime.core.node.workflow.WorkflowEvent;
 import org.knime.core.node.workflow.WorkflowLoadHelper;
 import org.knime.core.node.workflow.WorkflowManager;
+import org.knime.core.node.workflow.WorkflowPersistor.MetaNodeLinkUpdateResult;
+import org.knime.core.node.workflow.WorkflowPersistor.WorkflowLoadResult;
 import org.knime.core.util.LockFailedException;
 import org.knime.core.util.ProgressMonitorAdapter;
+import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore;
 
 import com.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowContainer;
@@ -90,6 +97,7 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
 
     private FlowElement m_rightTree;
 
+	private static WorkflowManager m_templateROOT;
 
     public WorkflowCompareEditorInput(final AbstractExplorerFileStore left, final AbstractExplorerFileStore right,
         final WorkflowCompareConfiguration config) {
@@ -133,42 +141,95 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
 
     private void createCompareElements(final IProgressMonitor monitor) {
         ExecutionMonitor m = new ExecutionMonitor(new ProgressMonitorAdapter(monitor));
-        WorkflowManager left;
-        WorkflowManager right;
+        final WorkflowManager left;
+        final WorkflowManager right;
 
         disposeWorkflows();
+		FlowStructureCreator creator = new FlowStructureCreator(
+				"Workflow Compare: " + m_left.getName() + " - " + m_right.getName());
         try {
-        	File leftLocalFile = m_left.toLocalFile();
-        	if (leftLocalFile == null) {
-        		LOGGER.debug("Downloading flow for comparison: " + m_left.getMountIDWithFullPath());
-        		leftLocalFile = m_left.resolveToLocalFile(monitor);
-        	}
-			left = WorkflowManager.ROOT.load(leftLocalFile, m, new WorkflowLoadHelper(leftLocalFile), false)
-					.getWorkflowManager();
+			if (!AbstractExplorerFileStore.isWorkflowTemplate(m_left)) {
+				File leftLocalFile = m_left.toLocalFile();
+				if (leftLocalFile == null) {
+					LOGGER.debug("Downloading flow for comparison: " + m_left.getMountIDWithFullPath());
+					leftLocalFile = m_left.resolveToLocalFile(monitor);
+				}
+				WorkflowLoadResult leftLoadResult = WorkflowManager.ROOT.load(leftLocalFile, m,
+						new WorkflowLoadHelper(leftLocalFile), false);
+				left = leftLoadResult.getWorkflowManager();
+				m_leftTree = creator.getStructure(left.getID());
+			} else {
+				URI sourceURI = m_left.toURI();
+				File parentFile = ResolverUtil.resolveURItoLocalOrTempFile(sourceURI, monitor);
+				WorkflowLoadHelper loadHelper = new WorkflowLoadHelper(true);
+				TemplateNodeContainerPersistor loadPersistor = loadHelper.createTemplateLoadPersistor(parentFile,
+						sourceURI);
+				MetaNodeLinkUpdateResult loadResult = new MetaNodeLinkUpdateResult(
+						"Template from \"" + sourceURI + "\"");
+				getTemplateParentWFM().load(loadPersistor, loadResult, new ExecutionMonitor(), false);
+				left = (WorkflowManager) loadResult.getLoadedInstance();
+				m_leftTree = creator.getStructure(left);
+			}
         } catch (IOException | InvalidSettingsException | CanceledExecutionException
                 | UnsupportedWorkflowVersionException | LockFailedException | CoreException e) {
             LOGGER.error(e);
             return;
         }
         try {
-        	File rightLocalFile = m_right.toLocalFile();
-        	if (rightLocalFile == null) {
-        		LOGGER.debug("Downloading flow for comparison: " + m_right.getMountIDWithFullPath());
-        		rightLocalFile = m_right.resolveToLocalFile(monitor);
-        	}
-			right = WorkflowManager.ROOT.load(rightLocalFile, m, new WorkflowLoadHelper(rightLocalFile), false)
-					.getWorkflowManager();
+			if (!AbstractExplorerFileStore.isWorkflowTemplate(m_right)) {
+				File rightLocalFile = m_right.toLocalFile();
+				if (rightLocalFile == null) {
+					LOGGER.debug("Downloading flow for comparison: " + m_right.getMountIDWithFullPath());
+					rightLocalFile = m_right.resolveToLocalFile(monitor);
+				}
+				WorkflowLoadResult rightLoadResult = WorkflowManager.ROOT.load(rightLocalFile, m,
+						new WorkflowLoadHelper(rightLocalFile), false);
+				right = rightLoadResult.getWorkflowManager();
+				m_rightTree = creator.getStructure(right.getID());
+			} else {
+				URI sourceURI = m_right.toURI();
+				File parentFile = ResolverUtil.resolveURItoLocalOrTempFile(sourceURI, monitor);
+				WorkflowLoadHelper loadHelper = new WorkflowLoadHelper(true);
+				TemplateNodeContainerPersistor loadPersistor = loadHelper.createTemplateLoadPersistor(parentFile,
+						sourceURI);
+				MetaNodeLinkUpdateResult loadResult = new MetaNodeLinkUpdateResult(
+						"Template from \"" + sourceURI + "\"");
+				getTemplateParentWFM().load(loadPersistor, loadResult, new ExecutionMonitor(), false);
+				right = (WorkflowManager) loadResult.getLoadedInstance();
+				m_rightTree = creator.getStructure(right);
+			}
         } catch (IOException | InvalidSettingsException | CanceledExecutionException
                 | UnsupportedWorkflowVersionException | LockFailedException | CoreException e) {
             LOGGER.error(e);
             return;
         }
-        FlowStructureCreator creator =
-            new FlowStructureCreator("Workflow Compare: " + m_left.getName() + " - " + m_right.getName());
-        m_leftTree = creator.getStructure(left.getID());
-        m_rightTree = creator.getStructure(right.getID());
         return;
     }
+
+	/**
+	 * @return the templateParentWFM
+	 */
+	private synchronized static WorkflowManager getTemplateParentWFM() {
+		if (m_templateROOT == null) {
+			LOGGER.debug("Creating template parent workflow project");
+			m_templateROOT = WorkflowManager.ROOT.createAndAddProject("Template-Parent", new WorkflowCreationHelper());
+			m_templateROOT.addListener(e -> checkAutoDiscardTemplateWFM(e));
+		}
+		return m_templateROOT;
+	}
+
+	/**
+	 * @param e
+	 */
+	private synchronized static void checkAutoDiscardTemplateWFM(final WorkflowEvent e) {
+		if (WorkflowEvent.Type.NODE_REMOVED.equals(e.getType())) {
+			if (m_templateROOT!=null&&m_templateROOT.getNodeContainers().isEmpty()) {
+				LOGGER.debug("Discarding template parent workflow project");
+				WorkflowManager.ROOT.removeProject(m_templateROOT.getID());
+				m_templateROOT = null;
+			}
+		}
+	}
 
     /**
      * {@inheritDoc}
@@ -182,11 +243,19 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
     private void disposeWorkflows() {
         if (m_leftTree instanceof FlowContainer) {
             WorkflowManager wfm = ((FlowContainer)m_leftTree).getWorkflowManager();
-            wfm.getParent().removeProject(wfm.getID());
+			if (wfm.isProject()) {
+				wfm.getParent().removeProject(wfm.getID());
+			} else {
+				wfm.getParent().removeNode(wfm.getID());
+			}
         }
         if (m_rightTree instanceof FlowContainer) {
             WorkflowManager wfm = ((FlowContainer)m_rightTree).getWorkflowManager();
-            wfm.getParent().removeProject(wfm.getID());
+			if (wfm.isProject()) {
+				wfm.getParent().removeProject(wfm.getID());
+			} else {
+				wfm.getParent().removeNode(wfm.getID());
+			}
         }
         m_leftTree = null;
         m_rightTree = null;
