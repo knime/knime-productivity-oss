@@ -65,6 +65,8 @@ import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
+import org.knime.core.node.workflow.NodeContainerTemplate;
+import org.knime.core.node.workflow.SubNodeContainer;
 import org.knime.core.node.workflow.TemplateNodeContainerPersistor;
 import org.knime.core.node.workflow.UnsupportedWorkflowVersionException;
 import org.knime.core.node.workflow.WorkflowCreationHelper;
@@ -167,7 +169,14 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
 				MetaNodeLinkUpdateResult loadResult = new MetaNodeLinkUpdateResult(
 						"Template from \"" + sourceURI + "\"");
 				getTemplateParentWFM().load(loadPersistor, loadResult, new ExecutionMonitor(), false);
-				left = (WorkflowManager) loadResult.getLoadedInstance();
+				NodeContainerTemplate loadedInstance = loadResult.getLoadedInstance();
+				if (loadedInstance instanceof WorkflowManager) {
+					left = (WorkflowManager) loadedInstance;
+				}else if(loadedInstance instanceof SubNodeContainer){
+					left = ((SubNodeContainer) loadedInstance).getWorkflowManager();
+				}else{
+					left = null;
+				}
 				m_leftTree = creator.getStructure(left);
 			}
         } catch (IOException | InvalidSettingsException | CanceledExecutionException
@@ -195,7 +204,14 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
 				MetaNodeLinkUpdateResult loadResult = new MetaNodeLinkUpdateResult(
 						"Template from \"" + sourceURI + "\"");
 				getTemplateParentWFM().load(loadPersistor, loadResult, new ExecutionMonitor(), false);
-				right = (WorkflowManager) loadResult.getLoadedInstance();
+				NodeContainerTemplate loadedInstance = loadResult.getLoadedInstance();
+				if (loadedInstance instanceof WorkflowManager) {
+					right = (WorkflowManager) loadedInstance;
+				}else if(loadedInstance instanceof SubNodeContainer){
+					right = ((SubNodeContainer) loadedInstance).getWorkflowManager();
+				}else{
+					right = null;
+				}
 				m_rightTree = creator.getStructure(right);
 			}
         } catch (IOException | InvalidSettingsException | CanceledExecutionException
