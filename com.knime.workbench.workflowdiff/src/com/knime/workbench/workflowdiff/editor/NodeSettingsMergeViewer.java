@@ -65,6 +65,7 @@ import com.knime.workbench.workflowdiff.editor.filters.NodeDiffFilterContributio
 
 /**
  * Bottom view of the compare editor. Shows two settings trees.
+ * 
  * @author ohl
  */
 public class NodeSettingsMergeViewer extends ContentMergeViewer {
@@ -76,9 +77,12 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
     private NodeSettingsTreeViewer m_ancestor;
 
     /**
-     * @param parent the parent
-     * @param styles SWT style(s)
-     * @param mp configuration for the viewer
+     * @param parent
+     *            the parent
+     * @param styles
+     *            SWT style(s)
+     * @param mp
+     *            configuration for the viewer
      */
     protected NodeSettingsMergeViewer(final Composite parent, final int styles, final CompareConfiguration mp) {
         super(styles, ResourceBundle.getBundle("org.eclipse.compare.contentmergeviewer.TextMergeViewerResources"), mp);
@@ -95,32 +99,34 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
         m_left = new NodeSettingsTreeViewer(composite);
         m_right = new NodeSettingsTreeViewer(composite);
 
-        /* Let the trees expand/collapse synchronously.
-         * It is important that the setExpanded method call doesn't
-         * trigger a listener notification. Obviously. */
+        /*
+         * Let the trees expand/collapse synchronously. It is important that the
+         * setExpanded method call doesn't trigger a listener notification.
+         * Obviously.
+         */
         m_left.addTreeListener(new ITreeViewerListener() {
             @Override
             public void treeExpanded(final TreeExpansionEvent event) {
-                SettingsItem sItem = (SettingsItem)event.getElement();
+                SettingsItem sItem = (SettingsItem) event.getElement();
                 m_right.setExpanded(sItem, true);
             }
 
             @Override
             public void treeCollapsed(final TreeExpansionEvent event) {
-                SettingsItem sItem = (SettingsItem)event.getElement();
+                SettingsItem sItem = (SettingsItem) event.getElement();
                 m_right.setExpanded(sItem, false);
             }
         });
         m_right.addTreeListener(new ITreeViewerListener() {
             @Override
             public void treeExpanded(final TreeExpansionEvent event) {
-                SettingsItem sItem = (SettingsItem)event.getElement();
+                SettingsItem sItem = (SettingsItem) event.getElement();
                 m_left.setExpanded(sItem, true);
             }
 
             @Override
             public void treeCollapsed(final TreeExpansionEvent event) {
-                SettingsItem sItem = (SettingsItem)event.getElement();
+                SettingsItem sItem = (SettingsItem) event.getElement();
                 m_left.setExpanded(sItem, false);
             }
         });
@@ -133,8 +139,8 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
     protected void createToolItems(final ToolBarManager toolBarManager) {
         // TODO Auto-generated method stub
         super.createToolItems(toolBarManager);
-        NodeDiffFilterContribution searchTextField =
-            new NodeDiffFilterContribution(new NodeDiffFilter(), m_left, m_right);
+        NodeDiffFilterContribution searchTextField = new NodeDiffFilterContribution(new NodeDiffFilter(), m_left,
+                m_right);
         toolBarManager.add(searchTextField);
         toolBarManager.add(new NodeDiffClearFilterButton(searchTextField));
     }
@@ -151,7 +157,7 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
 
     @Override
     protected void handleResizeLeftRight(final int x, final int y, final int width1, final int centerWidth,
-        final int width2, final int height) {
+            final int width2, final int height) {
         m_left.setBounds(x, y, width1, height);
         m_right.setBounds(x + width1 + centerWidth, y, width2, height);
     }
@@ -161,34 +167,38 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
      */
     @Override
     protected void updateContent(final Object ancestor, final Object left, final Object right) {
-    	WorkflowCompareConfiguration compareConfig = (WorkflowCompareConfiguration)getCompareConfiguration();
-		FlowDiffNode leftSelection = compareConfig.getLeftSelection();
-    	FlowDiffNode rightSelection = compareConfig.getRightSelection();
-        
-    	Object newLeft = null;
-    	String nameLeft = "No Node Selected.";
-    	if ((left != null || right != null) && (leftSelection != null) && (leftSelection.getLeft() instanceof FlowNode)) {
-    		// if both are null: clear the object. Accept only nodes (no meta nodes) for comparison
-    		newLeft = leftSelection.getLeft();
-    		nameLeft = ((FlowNode)newLeft).getName();
-    	}
-    	Object newRight = null;
-    	String nameRight = "No Node Selected.";
-    	if ((left != null || right != null) && (rightSelection != null) && (rightSelection.getRight() instanceof FlowNode)) {
-    		// if both are null: clear the object. Accept only nodes (no meta nodes) for comparison
-    		newRight = rightSelection.getRight();
-    		nameRight = ((FlowNode)newRight).getName();
-    	}
-    	m_ancestor.setInput(ancestor);
-    	m_left.setInput(newLeft);
-    	m_right.setInput(newRight);
-    	
-    	compareConfig.setLeftLabel(nameLeft);
-    	compareConfig.setRightLabel(nameRight);
-        SettingsItem[] leftItems =
-                (SettingsItem[])((NodeSettingsTreeContentProvider)m_left.getContentProvider()).getElements(null);
-        SettingsItem[] rightItems =
-                (SettingsItem[])((NodeSettingsTreeContentProvider)m_right.getContentProvider()).getElements(null);
+        WorkflowCompareConfiguration compareConfig = (WorkflowCompareConfiguration) getCompareConfiguration();
+        FlowDiffNode leftSelection = compareConfig.getLeftSelection();
+        FlowDiffNode rightSelection = compareConfig.getRightSelection();
+
+        Object newLeft = null;
+        String nameLeft = "No Node Selected.";
+        if ((left != null || right != null) && (leftSelection != null)
+                && (leftSelection.getLeft() instanceof FlowNode)) {
+            // if both are null: clear the object. Accept only nodes (no meta
+            // nodes) for comparison
+            newLeft = leftSelection.getLeft();
+            nameLeft = ((FlowNode) newLeft).getName();
+        }
+        Object newRight = null;
+        String nameRight = "No Node Selected.";
+        if ((left != null || right != null) && (rightSelection != null)
+                && (rightSelection.getRight() instanceof FlowNode)) {
+            // if both are null: clear the object. Accept only nodes (no meta
+            // nodes) for comparison
+            newRight = rightSelection.getRight();
+            nameRight = ((FlowNode) newRight).getName();
+        }
+        m_ancestor.setInput(ancestor);
+        m_left.setInput(newLeft);
+        m_right.setInput(newRight);
+
+        compareConfig.setLeftLabel(nameLeft);
+        compareConfig.setRightLabel(nameRight);
+        SettingsItem[] leftItems = (SettingsItem[]) ((NodeSettingsTreeContentProvider) m_left.getContentProvider())
+                .getElements(null);
+        SettingsItem[] rightItems = (SettingsItem[]) ((NodeSettingsTreeContentProvider) m_right.getContentProvider())
+                .getElements(null);
         if (leftItems != null && rightItems != null && leftItems.length > 0 && rightItems.length > 0) {
             NodeSettingsTreeViewer.colorItems(leftItems, rightItems);
             m_left.refresh();
@@ -209,13 +219,13 @@ public class NodeSettingsMergeViewer extends ContentMergeViewer {
      */
     @Override
     protected byte[] getContents(final boolean left) {
-        //        if (left && (m_left.getInput() instanceof FlowNode)) {
-        //            return ((FlowNode)m_left.getInput()).getBytes();
-        //        }
-        //        if (!left && (m_right.getInput() instanceof FlowNode)) {
-        //            return ((FlowNode)m_right.getInput()).getBytes();
-        //        }
-        return new byte[]{};
+        // if (left && (m_left.getInput() instanceof FlowNode)) {
+        // return ((FlowNode)m_left.getInput()).getBytes();
+        // }
+        // if (!left && (m_right.getInput() instanceof FlowNode)) {
+        // return ((FlowNode)m_right.getInput()).getBytes();
+        // }
+        return new byte[] {};
     }
 
 }

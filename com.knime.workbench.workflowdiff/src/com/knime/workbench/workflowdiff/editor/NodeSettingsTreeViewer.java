@@ -66,225 +66,253 @@ import com.knime.workbench.workflowdiff.editor.filters.IFilterableTreeViewer;
 import com.knime.workbench.workflowdiff.editor.filters.IHierMatchableItem;
 
 /**
- * View for the settings of one node. Used in the bottom part of the compare, one for the left node, one for the right
- * node settings.
+ * View for the settings of one node. Used in the bottom part of the compare,
+ * one for the left node, one for the right node settings.
  * 
  * @author ohl
  */
 public class NodeSettingsTreeViewer extends TreeViewer implements IFilterableTreeViewer {
 
-	private final NodeSettingsTableLabelProvider m_labelProv;
-	
-	/**
-	 * New instance of the tree.
-	 * 
-	 * @param parent
-	 *            of the tree.
-	 */
-	public NodeSettingsTreeViewer(final Composite parent) {
-		super(parent, SWT.NO_FOCUS | SWT.BORDER);
-		Tree tree = getTree();
-		tree.setHeaderVisible(true);
-		TreeColumn key = new TreeColumn(tree, SWT.LEFT);
-		key.setText("Name");
-		key.setWidth(200);
-		TreeColumn type = new TreeColumn(tree, SWT.LEFT);
-		type.setText("Type");
-		type.setWidth(200);
-		TreeColumn value = new TreeColumn(tree, SWT.LEFT);
-		value.setText("Value");
-		value.setWidth(200);
+    public static final Color DIFFERENT = new Color(Display.getDefault(), 255, 196, 196);
 
-		setContentProvider(new NodeSettingsTreeContentProvider());
-		m_labelProv = new NodeSettingsTableLabelProvider();
-		setLabelProvider(m_labelProv);
-	}
+    public static final Color CONTAINSDIFF = Display.getDefault().getSystemColor(SWT.COLOR_GRAY);
 
-	/**
-	 * Shows a funnel icon in the column headers.
-	 * 
-	 * @param showIt
-	 *            or hideIt
-	 */
-	public void setFilterIcon(final boolean showIt) {
-		Image searchImg = showIt ? ImageRepository.getIconImage(SharedImages.FunnelIcon) : null;
-		for (TreeColumn col : getTree().getColumns()) {
-			col.setImage(searchImg);
-		}
-	}
+    public static final Color DEFAULT = Display.getDefault().getSystemColor(SWT.COLOR_WHITE);
 
-	@Override
-	public String getMatchLabel(IHierMatchableItem item, int col) {
-		return m_labelProv.getColumnText(item, col);
-	}
-	
-	@Override
-	public int getMatchNumOfColumns() {
-		return getTree().getColumnCount();
-	}
-	
-	/**
-	 * Expands the item in the tree that has the same "path" than the passed item. I.e. the item could be from the
-	 * "other" NodeSettingsTreeViewer and if the item with the same (hierarchical) id exists in this tree it will be
-	 * expanded.
-	 * 
-	 * @param item
-	 *            to find in this tree and to set the expand state
-	 * @param expand
-	 *            or not.
-	 */
-	public void setExpanded(final SettingsItem item, final boolean expand) {
-		if (expand) {
-			expandToLevel(item, 1); // uses equals to find the item
-		} else {
-			collapseToLevel(item, 1);
-		}
-	}
+    private final NodeSettingsTableLabelProvider m_labelProv;
 
-	/**
-	 * @param x
-	 *            new x
-	 * @param y
-	 *            new y
-	 * @param width
-	 *            new width
-	 * @param height
-	 *            new height
-	 * @see org.eclipse.swt.widgets.Control#setBounds(int, int, int, int)
-	 */
-	public void setBounds(final int x, final int y, final int width, final int height) {
-		getTree().setBounds(x, y, width, height);
-	}
+    /**
+     * New instance of the tree.
+     * 
+     * @param parent
+     *            of the tree.
+     */
+    public NodeSettingsTreeViewer(final Composite parent) {
+        super(parent, SWT.NO_FOCUS | SWT.BORDER);
+        Tree tree = getTree();
+        tree.setHeaderVisible(true);
+        TreeColumn key = new TreeColumn(tree, SWT.LEFT);
+        key.setText("Name");
+        key.setWidth(200);
+        TreeColumn type = new TreeColumn(tree, SWT.LEFT);
+        type.setText("Type");
+        type.setWidth(200);
+        TreeColumn value = new TreeColumn(tree, SWT.LEFT);
+        value.setText("Value");
+        value.setWidth(200);
 
-	/**
-	 * @param rect
-	 *            to set as new bounds
-	 * @see org.eclipse.swt.widgets.Control#setBounds(org.eclipse.swt.graphics.Rectangle)
-	 */
-	public void setBounds(final Rectangle rect) {
-		getTree().setBounds(rect);
-	}
+        setContentProvider(new NodeSettingsTreeContentProvider());
+        m_labelProv = new NodeSettingsTableLabelProvider();
+        setLabelProvider(m_labelProv);
+    }
 
-	public void setVisible(final boolean visible) {
-		getTree().setVisible(visible);
-	}
+    /**
+     * New instance of the tree.
+     * 
+     * @param parent
+     *            of the tree.
+     */
+    public NodeSettingsTreeViewer(final Composite parent, int style) {
+        super(parent, style);
+        Tree tree = getTree();
+        tree.setHeaderVisible(true);
+        TreeColumn key = new TreeColumn(tree, SWT.LEFT);
+        key.setText("Name");
+        key.setWidth(200);
+        TreeColumn type = new TreeColumn(tree, SWT.LEFT);
+        type.setText("Type");
+        type.setWidth(200);
+        TreeColumn value = new TreeColumn(tree, SWT.LEFT);
+        value.setText("Value");
+        value.setWidth(200);
 
-	public static void colorItems(final SettingsItem[] itemSet1, final SettingsItem[] itemSet2) {
-		HashMap<String, SettingsItem> items1 = new HashMap<String, SettingsItem>(itemSet1.length);
-		HashMap<String, SettingsItem> items2 = new HashMap<String, SettingsItem>(itemSet2.length);
-		for (SettingsItem item : itemSet1) {
-			items1.put(item.getText(0), item); // column 0 contains the settings
-												// "name" - should be the unique
-												// id
-		}
-		for (SettingsItem item : itemSet2) {
-			items2.put(item.getText(0), item);
-		}
+        setContentProvider(new NodeSettingsTreeContentProvider());
+        m_labelProv = new NodeSettingsTableLabelProvider();
+        setLabelProvider(m_labelProv);
+        setInput("");
+    }
 
-		for (SettingsItem item : itemSet1) {
-			item.setBackground(DEFAULT);
-			boolean diff = false;
-			SettingsItem otherItem = items2.get(item.getText(0));
-			if (item.getChildren().length > 0) {
-				if (otherItem == null) {
-					// new subconfig
-					item.setBackground(DIFFERENT);
-					colorDownTree(item, DIFFERENT);
-					colorUpTree(item, CONTAINSDIFF);
-				} else {
-					colorItems(item.getChildren(), otherItem.getChildren());
-				}
-			} else {
-				if (otherItem == null) {
-					item.setBackground(DIFFERENT);
-					diff = true;
-				} else {
-					// also in the other tree
-					if (!objectEquals(item.getText(1), otherItem.getText(1))) {
-						// different type
-						item.setBackground(1, DIFFERENT);
-						diff = true;
-					}
-					if (!objectEquals(item.getText(2), otherItem.getText(2))) {
-						// different value
-						item.setBackground(2, DIFFERENT);
-						diff = true;
-					}
-				}
-				if (diff) {
-					colorUpTree(item, CONTAINSDIFF);
-				}
-			}
-		}
-		for (SettingsItem item : itemSet2) {
-			item.setBackground(DEFAULT);
-			boolean diff = false;
-			SettingsItem otherItem = items1.get(item.getText(0));
-			if (item.getChildren().length > 0) {
-				if (otherItem == null) {
-					// new subconfig
-					item.setBackground(DIFFERENT);
-					colorDownTree(item, DIFFERENT);
-					colorUpTree(item, CONTAINSDIFF);
-				} else {
-					colorItems(item.getChildren(), otherItem.getChildren());
-				}
-			} else {
-				if (otherItem == null) {
-					item.setBackground(DIFFERENT);
-					diff = true;
-				} else {
-					// also in the other tree
-					if (!objectEquals(item.getText(1), otherItem.getText(1))) {
-						// different type
-						item.setBackground(1, DIFFERENT);
-						diff = true;
-					}
-					if (!objectEquals(item.getText(2), otherItem.getText(2))) {
-						// different value
-						item.setBackground(2, DIFFERENT);
-						diff = true;
-					}
-				}
-				if (diff) {
-					colorUpTree(item, CONTAINSDIFF);
-				}
-			}
-		}
+    /**
+     * Shows a funnel icon in the column headers.
+     * 
+     * @param showIt
+     *            or hideIt
+     */
+    public void setFilterIcon(final boolean showIt) {
+        Image searchImg = showIt ? ImageRepository.getIconImage(SharedImages.FunnelIcon) : null;
+        for (TreeColumn col : getTree().getColumns()) {
+            col.setImage(searchImg);
+        }
+    }
 
-	}
+    @Override
+    public String getMatchLabel(IHierMatchableItem item, int col) {
+        return m_labelProv.getColumnText(item, col);
+    }
 
-	private static boolean objectEquals(final Object o1, final Object o2) {
-		return o1 == null ? o2 == null : o1.equals(o2);
-	}
+    @Override
+    public int getMatchNumOfColumns() {
+        return getTree().getColumnCount();
+    }
 
-	/**
-	 * Sets the background color of all children (recursively) of the passed tree item.
-	 * 
-	 * @param parent
-	 *            of the items that should be colored
-	 * @param col
-	 *            background color to set
-	 */
-	private static void colorDownTree(final SettingsItem parent, final Color col) {
-		for (SettingsItem child : parent.getChildren()) {
-			child.setBackground(col);
-			colorDownTree(child, col);
-		}
-	}
+    /**
+     * Expands the item in the tree that has the same "path" than the passed
+     * item. I.e. the item could be from the "other" NodeSettingsTreeViewer and
+     * if the item with the same (hierarchical) id exists in this tree it will
+     * be expanded.
+     * 
+     * @param item
+     *            to find in this tree and to set the expand state
+     * @param expand
+     *            or not.
+     */
+    public void setExpanded(final SettingsItem item, final boolean expand) {
+        if (expand) {
+            expandToLevel(item, 1); // uses equals to find the item
+        } else {
+            collapseToLevel(item, 1);
+        }
+    }
 
-	private static void colorUpTree(final SettingsItem child, final Color col) {
-		SettingsItem parent = child.getParent();
-		if (parent == null) {
-			return;
-		}
-		parent.setBackground(col);
-		colorUpTree(parent, col);
-	}
+    /**
+     * @param x
+     *            new x
+     * @param y
+     *            new y
+     * @param width
+     *            new width
+     * @param height
+     *            new height
+     * @see org.eclipse.swt.widgets.Control#setBounds(int, int, int, int)
+     */
+    public void setBounds(final int x, final int y, final int width, final int height) {
+        getTree().setBounds(x, y, width, height);
+    }
 
-	public static final Color DIFFERENT = new Color(Display.getDefault(), 255, 196, 196);
+    /**
+     * @param rect
+     *            to set as new bounds
+     * @see org.eclipse.swt.widgets.Control#setBounds(org.eclipse.swt.graphics.Rectangle)
+     */
+    public void setBounds(final Rectangle rect) {
+        getTree().setBounds(rect);
+    }
 
-	public static final Color CONTAINSDIFF = Display.getDefault().getSystemColor(SWT.COLOR_GRAY);
+    public void setVisible(final boolean visible) {
+        getTree().setVisible(visible);
+    }
 
-	public static final Color DEFAULT = Display.getDefault().getSystemColor(SWT.COLOR_WHITE);
+    public static void colorItems(final SettingsItem[] itemSet1, final SettingsItem[] itemSet2) {
+        HashMap<String, SettingsItem> items1 = new HashMap<String, SettingsItem>(itemSet1.length);
+        HashMap<String, SettingsItem> items2 = new HashMap<String, SettingsItem>(itemSet2.length);
+        for (SettingsItem item : itemSet1) {
+            items1.put(item.getID(), item); // column 0 contains the settings
+                                            // "name" - should be the unique
+                                            // id
+        }
+        for (SettingsItem item : itemSet2) {
+            items2.put(item.getID(), item);
+        }
+
+        for (SettingsItem item : itemSet1) {
+            item.setBackground(DEFAULT);
+            boolean diff = false;
+            SettingsItem otherItem = items2.get(item.getID());
+            if (item.getChildren().length > 0) {
+                if (otherItem == null) {
+                    // new subconfig
+                    item.setBackground(DIFFERENT);
+                    colorDownTree(item, DIFFERENT);
+                    colorUpTree(item, CONTAINSDIFF);
+                } else {
+                    colorItems(item.getChildren(), otherItem.getChildren());
+                }
+            } else {
+                if (otherItem == null) {
+                    item.setBackground(DIFFERENT);
+                    diff = true;
+                } else {
+                    // also in the other tree
+                    if (!objectEquals(item.getType(), otherItem.getType())) {
+                        // different type
+                        item.setBackground(1, DIFFERENT);
+                        diff = true;
+                    }
+                    if (!objectEquals(item.getValue(), otherItem.getValue())) {
+                        // different value
+                        item.setBackground(2, DIFFERENT);
+                        diff = true;
+                    }
+                }
+                if (diff) {
+                    colorUpTree(item, CONTAINSDIFF);
+                }
+            }
+        }
+        for (SettingsItem item : itemSet2) {
+            item.setBackground(DEFAULT);
+            boolean diff = false;
+            SettingsItem otherItem = items1.get(item.getID());
+            if (item.getChildren().length > 0) {
+                if (otherItem == null) {
+                    // new subconfig
+                    item.setBackground(DIFFERENT);
+                    colorDownTree(item, DIFFERENT);
+                    colorUpTree(item, CONTAINSDIFF);
+                } else {
+                    colorItems(item.getChildren(), otherItem.getChildren());
+                }
+            } else {
+                if (otherItem == null) {
+                    item.setBackground(DIFFERENT);
+                    diff = true;
+                } else {
+                    // also in the other tree
+                    if (!objectEquals(item.getType(), otherItem.getType())) {
+                        // different type
+                        item.setBackground(1, DIFFERENT);
+                        diff = true;
+                    }
+                    if (!objectEquals(item.getValue(), otherItem.getValue())) {
+                        // different value
+                        item.setBackground(2, DIFFERENT);
+                        diff = true;
+                    }
+                }
+                if (diff) {
+                    colorUpTree(item, CONTAINSDIFF);
+                }
+            }
+        }
+
+    }
+
+    private static boolean objectEquals(final Object o1, final Object o2) {
+        return o1 == null ? o2 == null : o1.equals(o2);
+    }
+
+    /**
+     * Sets the background color of all children (recursively) of the passed
+     * tree item.
+     * 
+     * @param parent
+     *            of the items that should be colored
+     * @param col
+     *            background color to set
+     */
+    private static void colorDownTree(final SettingsItem parent, final Color col) {
+        for (SettingsItem child : parent.getChildren()) {
+            child.setBackground(col);
+            colorDownTree(child, col);
+        }
+    }
+
+    private static void colorUpTree(final SettingsItem child, final Color col) {
+        SettingsItem parent = child.getParent();
+        if (parent == null) {
+            return;
+        }
+        parent.setBackground(col);
+        colorUpTree(parent, col);
+    }
 }

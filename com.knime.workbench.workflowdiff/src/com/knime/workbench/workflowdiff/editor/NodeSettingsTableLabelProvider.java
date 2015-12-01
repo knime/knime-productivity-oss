@@ -13,78 +13,88 @@ import org.eclipse.swt.graphics.Image;
  */
 public class NodeSettingsTableLabelProvider implements ITableLabelProvider, ITableColorProvider {
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void addListener(final ILabelProviderListener listener) {
-		// TODO Auto-generated method stub
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addListener(final ILabelProviderListener listener) {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void dispose() {
-		// TODO Auto-generated method stub
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void dispose() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public boolean isLabelProperty(final Object element, final String property) {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isLabelProperty(final Object element, final String property) {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void removeListener(final ILabelProviderListener listener) {
-		// TODO Auto-generated method stub
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void removeListener(final ILabelProviderListener listener) {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public Image getColumnImage(final Object element, final int columnIndex) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Image getColumnImage(final Object element, final int columnIndex) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public String getColumnText(final Object element, final int columnIndex) {
-		if (element instanceof SettingsItem) {
-			return ((SettingsItem) element).getText(columnIndex);
-		}
-		return "";
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getColumnText(final Object element, final int columnIndex) {
+        if (element instanceof SettingsItem) {
+            SettingsItem settingsItem = (SettingsItem) element;
+            switch (columnIndex) {
+            case 0:
+                return settingsItem.getID();
+            case 1:
+                return settingsItem.getType();
+            case 2:
+                return settingsItem.getValue();
+            default:
+                break;
+            }
+        }
+        return "";
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public Color getBackground(final Object element, final int columnIndex) {
-		if (element instanceof SettingsItem && columnIndex < 3) {
-			return ((SettingsItem) element).getBackground(columnIndex);
-		}
-		return null;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Color getBackground(final Object element, final int columnIndex) {
+        if (element instanceof SettingsItem && columnIndex < 3) {
+            return ((SettingsItem) element).getBackground(columnIndex);
+        }
+        return null;
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public Color getForeground(final Object element, final int columnIndex) {
-		return null;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Color getForeground(final Object element, final int columnIndex) {
+        return null;
+    }
 }

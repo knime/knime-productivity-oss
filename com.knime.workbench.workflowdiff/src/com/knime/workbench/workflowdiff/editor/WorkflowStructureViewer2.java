@@ -422,6 +422,9 @@ public class WorkflowStructureViewer2 extends DiffTreeViewer implements IFiltera
 	@Override
 	public void handleOpen(SelectionEvent event) {
 		if(getCompareConfiguration().getContViewer() != null){
+		    //HandleOpen checks the last input. When comparing a node to the matched node the last input
+		    //is the same row and therefore the view does not get updated.
+		    //Clearing the view fixes this.
 			getCompareConfiguration().getContViewer().updateContent(null, null, null);
 			getCompareConfiguration().getContViewer().refresh();
 		}
