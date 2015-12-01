@@ -65,8 +65,8 @@ import org.knime.core.node.workflow.WorkflowPersistor;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.json.util.JSONUtil;
 
-import com.knime.explorer.nodes.callworkflow.IWorkflowBackend;
-import com.knime.explorer.nodes.callworkflow.JSONInputPanel;
+import com.knime.productivity.base.callworkflow.IWorkflowBackend;
+import com.knime.productivity.base.callworkflow.JSONInputPanel;
 
 /**
  * Dialog to node.

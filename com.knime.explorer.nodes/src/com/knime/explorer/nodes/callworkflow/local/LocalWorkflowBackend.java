@@ -55,7 +55,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.knime.explorer.nodes.callworkflow.IWorkflowBackend;
+import com.knime.productivity.base.callworkflow.IWorkflowBackend;
 
 /**
  * A local workflow representation. Workflows are kept in a cache and re-used with exclusive locks.

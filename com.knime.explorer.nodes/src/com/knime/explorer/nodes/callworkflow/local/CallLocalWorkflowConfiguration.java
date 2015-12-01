@@ -20,7 +20,7 @@
  */
 package com.knime.explorer.nodes.callworkflow.local;
 
-import com.knime.explorer.nodes.callworkflow.CallWorkflowConfiguration;
+import com.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
 
 /**
  *
