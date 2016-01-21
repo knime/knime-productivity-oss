@@ -2,7 +2,7 @@
   * This source code, its documentation and all appendant files
   * are protected by copyright law. All rights reserved.
   *
-  * Copyright by 
+  * Copyright by
   * KNIME.com, Zurich, Switzerland
   *
   * You may not modify, publish, transmit, transfer or sell, reproduce,
@@ -25,7 +25,6 @@ package com.knime.explorer.nodes;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
@@ -40,6 +39,7 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObjectSpec;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.core.util.pathresolve.ResolverUtil;
 
 /**
@@ -85,39 +85,24 @@ public class ExplorerBrowserNodeModel extends NodeModel {
     }
 
     private void publishVariables() throws InvalidSettingsException {
-        if (m_config == null) {
-            throw new InvalidSettingsException("No configuration available.");
-        }
-
-        String url = m_config.getFullOutputURL();
-        if (url == null || url.isEmpty()) {
-            throw new InvalidSettingsException("No configuration available.");
-        }
+        CheckUtils.checkSettingNotNull(m_config, "No configuration available.");
+        String urlString = m_config.getFullOutputURL();
 
         /* Try to resolve the URI to a local file. If this is possible the
          * absolute path is exported as flow variable as well. */
         File resolvedFile = null;
-        URI uri;
-        try {
-            uri = new URI(url);
-        } catch (URISyntaxException e) {
-            throw new InvalidSettingsException("Invalid URI provided \" +"
-                    + url + "\".", e);
-        }
+        URI uri = ExplorerBrowserNodeSettings.toURI(urlString);
         try {
             resolvedFile = ResolverUtil.resolveURItoLocalFile(uri);
             if (resolvedFile != null) {
-                pushFlowVariableString("explorer_path",
-                        resolvedFile.getAbsolutePath());
+                pushFlowVariableString("explorer_path", resolvedFile.getAbsolutePath());
             } else {
-                LOGGER.warn("URI \"" + uri
-                        + "\" could not be resolved to a local file.");
+                LOGGER.warn("URI \"" + uri + "\" could not be resolved to a local file.");
             }
         } catch (Exception e) {
-            LOGGER.warn("URI \"" + uri
-                    + "\" could not be resolved to a local file.", e);
+            LOGGER.warn("URI \"" + uri + "\" could not be resolved to a local file.", e);
         }
-        pushFlowVariableString("explorer_url", url);
+        pushFlowVariableString("explorer_url", urlString);
     }
 
     /**

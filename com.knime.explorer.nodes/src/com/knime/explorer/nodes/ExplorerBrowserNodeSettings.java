@@ -2,7 +2,7 @@
   * This source code, its documentation and all appendant files
   * are protected by copyright law. All rights reserved.
   *
-  * Copyright by 
+  * Copyright by
   * KNIME.com, Zurich, Switzerland
   *
   * You may not modify, publish, transmit, transfer or sell, reproduce,
@@ -22,13 +22,20 @@
 
 package com.knime.explorer.nodes;
 
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
+import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.workbench.explorer.filesystem.ExplorerFileSystem;
+
+import com.google.common.net.UrlEscapers;
 
 /**
  *
@@ -42,25 +49,41 @@ final class ExplorerBrowserNodeSettings {
     /**
      * @return the URL of the directory to save the file to
      */
-    public String getOutputURL() {
+    String getOutputURL() {
         return m_outputURL;
     }
 
     /**
      * @param outputURL the outputURL to set
      */
-    public void setOutputURL(final String outputURL) {
+    void setOutputURL(final String outputURL) {
         m_outputURL = outputURL;
     }
 
     /**
      * @return the full path including the file name
+     * @throws UnsupportedEncodingException
      */
-    public String getFullOutputURL() {
-        if (!m_outputURL.endsWith("/") || m_filename.startsWith("/")) {
-            return m_outputURL + "/" + m_filename;
-        } else {
-            return m_outputURL + m_filename;
+    String getFullOutputURL() throws InvalidSettingsException {
+        CheckUtils.checkSettingNotNull(m_outputURL, "No configuration available");
+        return getFullOutputURL(m_outputURL, m_filename);
+    }
+
+    private static String getFullOutputURL(final String rawOutputURL, final String rawFilename)
+            throws InvalidSettingsException {
+        String outputURL = StringUtils.removeEnd(StringUtils.defaultString(rawOutputURL), "/");
+        String filename = StringUtils.removeStart(StringUtils.defaultString(rawFilename), "/");
+        filename = UrlEscapers.urlPathSegmentEscaper().escape(filename);
+        return String.join("/", outputURL, filename);
+    }
+
+    static URI toURI(final String urlString) throws InvalidSettingsException {
+        try {
+            URL url = new URL(urlString);
+            return url.toURI();
+        } catch (URISyntaxException | MalformedURLException e) {
+            throw new InvalidSettingsException("Cannot compose URI object from URL string \""
+                    + urlString + "\": " + e.getMessage(), e);
         }
     }
 
@@ -68,37 +91,30 @@ final class ExplorerBrowserNodeSettings {
      * @param settings To load from.
      * @throws InvalidSettingsException If that fails for any reason.
      */
-    public void loadSettingsInModel(final NodeSettingsRO settings)
-        throws InvalidSettingsException {
-        String outputURL = settings.getString("outputURL");
+    void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
+        String outputURL = CheckUtils.checkSettingNotNull(settings.getString("outputURL"), "URL must not be null");
         try {
             new URL(outputURL);
         } catch (MalformedURLException e) {
-            throw new InvalidSettingsException("Invalid output URL \""
-                    + outputURL + "\" provided.", e);
+            throw new InvalidSettingsException("Invalid output URL \"" + outputURL + "\" provided.", e);
         }
         m_outputURL = outputURL;
+        //String filename = CheckUtils.checkSettingNotNull(settings.getString("outputFilename"), "file must not be null");
         String filename = settings.getString("outputFilename");
-        try {
-            new URL(outputURL + "/" + filename);
-        } catch (MalformedURLException e) {
-            throw new InvalidSettingsException("Invalid file name \""
-                    + filename + "\" provided.", e);
-        }
+        toURI(getFullOutputURL(outputURL, filename)); // for validation
         m_filename = filename;
     }
 
     /** Load settings in dialog, init defaults if that fails.
      * @param settings To load from.
      */
-    public void loadSettingsInDialog(final NodeSettingsRO settings) {
-        m_outputURL = settings.getString("outputURL",
-                ExplorerFileSystem.SCHEME + "://");
+    void loadSettingsInDialog(final NodeSettingsRO settings) {
+        m_outputURL = settings.getString("outputURL", ExplorerFileSystem.SCHEME + "://");
         m_filename = settings.getString("outputFilename", "");
     }
 
     /** @param settings to save to. */
-    public void saveSettingsTo(final NodeSettingsWO settings) {
+    void saveSettingsTo(final NodeSettingsWO settings) {
         settings.addString("outputURL", m_outputURL);
         settings.addString("outputFilename", m_filename);
     }
@@ -106,15 +122,15 @@ final class ExplorerBrowserNodeSettings {
     /**
      * @return the filename
      */
-    public String getFilename() {
+    String getFilename() {
         return m_filename;
     }
     /**
      * @param filename the filename to set
      */
-    public void setFilename(final String filename) {
+
+    void setFilename(final String filename) {
         m_filename = filename;
     }
-
 
 }
