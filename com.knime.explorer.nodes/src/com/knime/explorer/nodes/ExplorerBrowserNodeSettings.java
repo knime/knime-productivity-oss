@@ -2,7 +2,7 @@
   * This source code, its documentation and all appendant files
   * are protected by copyright law. All rights reserved.
   *
-  * Copyright by 
+  * Copyright by
   * KNIME.com, Zurich, Switzerland
   *
   * You may not modify, publish, transmit, transfer or sell, reproduce,
@@ -25,6 +25,7 @@ package com.knime.explorer.nodes;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
@@ -57,10 +58,12 @@ final class ExplorerBrowserNodeSettings {
      * @return the full path including the file name
      */
     public String getFullOutputURL() {
-        if (!m_outputURL.endsWith("/") || m_filename.startsWith("/")) {
-            return m_outputURL + "/" + m_filename;
+        String outputURL = StringUtils.defaultString(m_outputURL);
+        String filename = StringUtils.defaultString(m_filename);
+        if (!outputURL.endsWith("/") && !StringUtils.defaultString(filename).startsWith("/")) {
+            return outputURL + "/" + filename;
         } else {
-            return m_outputURL + m_filename;
+            return outputURL + filename;
         }
     }
 
