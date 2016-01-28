@@ -48,6 +48,8 @@ import org.knime.core.node.workflow.WorkflowPersistor.WorkflowLoadResult;
 import org.knime.core.util.KNIMETimer;
 import org.knime.core.util.Pair;
 import org.knime.core.util.pathresolve.ResolverUtil;
+import org.knime.workbench.explorer.ExplorerMountTable;
+import org.knime.workbench.explorer.filesystem.LocalExplorerFileStore;
 import org.knime.workbench.ui.navigator.ProjectWorkflowMap;
 
 import com.google.common.cache.CacheBuilder;
@@ -81,8 +83,16 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
                 File file = new File(uri);
                 WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(uri);
                 if (m == null) {
-                    WorkflowLoadResult l =
-                        WorkflowManager.loadProject(file, new ExecutionMonitor(), new WorkflowLoadHelper(file));
+                    WorkflowContext.Factory ctxFac = new WorkflowContext.Factory(file);
+
+                    LocalExplorerFileStore fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
+                    if (fs != null) {
+                        File mountpointRoot = fs.getContentProvider().getFileStore("/").toLocalFile();
+                        ctxFac.setMountpointRoot(mountpointRoot);
+                    }
+
+                    WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
+                        new WorkflowLoadHelper(ctxFac.createContext()));
                     m = l.getWorkflowManager();
                     ProjectWorkflowMap.putWorkflow(uri, m);
                 }
