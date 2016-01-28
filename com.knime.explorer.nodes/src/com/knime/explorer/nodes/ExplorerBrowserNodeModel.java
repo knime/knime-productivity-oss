@@ -2,7 +2,7 @@
   * This source code, its documentation and all appendant files
   * are protected by copyright law. All rights reserved.
   *
-  * Copyright by 
+  * Copyright by
   * KNIME.com, Zurich, Switzerland
   *
   * You may not modify, publish, transmit, transfer or sell, reproduce,
@@ -101,7 +101,7 @@ public class ExplorerBrowserNodeModel extends NodeModel {
         try {
             uri = new URI(url);
         } catch (URISyntaxException e) {
-            throw new InvalidSettingsException("Invalid URI provided \" +"
+            throw new InvalidSettingsException("Invalid URI provided \""
                     + url + "\".", e);
         }
         try {
