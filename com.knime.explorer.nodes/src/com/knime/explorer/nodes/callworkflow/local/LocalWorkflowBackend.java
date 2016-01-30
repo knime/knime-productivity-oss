@@ -40,6 +40,7 @@ import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.workflow.NodeContainerState;
+import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.NodeMessage;
 import org.knime.core.node.workflow.WorkflowContext;
 import org.knime.core.node.workflow.WorkflowLoadHelper;
@@ -89,6 +90,10 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
                     if (fs != null) {
                         File mountpointRoot = fs.getContentProvider().getFileStore("/").toLocalFile();
                         ctxFac.setMountpointRoot(mountpointRoot);
+                    } else if (NodeContext.getContext() != null) {
+                        // use context from current workflow if available (if run headless no filesystem may be mounted)
+                        WorkflowContext tmp = NodeContext.getContext().getWorkflowManager().getContext();
+                        ctxFac.setMountpointRoot(tmp.getMountpointRoot());
                     }
 
                     WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
