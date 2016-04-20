@@ -45,4 +45,11 @@ In case of any questions, please contact KNIME.com at contact@knime.com
          fragment="true"
          unpack="false"/>
 
+   <plugin
+         id="com.knime.workbench.workflowcoach"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
 </feature>
