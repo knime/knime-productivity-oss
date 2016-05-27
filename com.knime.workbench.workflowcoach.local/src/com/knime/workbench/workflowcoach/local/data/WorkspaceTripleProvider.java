@@ -40,8 +40,8 @@ import com.knime.licenses.LicenseChecker;
 import com.knime.licenses.LicenseException;
 import com.knime.licenses.LicenseFeatures;
 import com.knime.licenses.LicenseUtil;
-import com.knime.workbench.workflowcoach.local.prefs.WorkflowCoachPreferenceInitializer;
-import com.knime.workbench.workflowcoach.local.prefs.WorkflowCoachPreferencePage;
+import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferenceInitializer;
+import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferencePage;
 
 /**
  * Reads the node triples from a json file that was generated based on the local workspace.
@@ -87,7 +87,7 @@ public class WorkspaceTripleProvider implements NodeTripleProvider {
      */
     @Override
     public String getPreferencePageID() {
-        return WorkflowCoachPreferencePage.ID;
+        return WorkspaceRecommendationsPreferencePage.ID;
     }
 
     /**
@@ -98,7 +98,7 @@ public class WorkspaceTripleProvider implements NodeTripleProvider {
         IEclipsePreferences prefs =
             InstanceScope.INSTANCE.getNode(FrameworkUtil.getBundle(getClass()).getSymbolicName());
 
-        return prefs.getBoolean(WorkflowCoachPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER, false)
+        return prefs.getBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER, false)
             && Files.exists(Paths.get(WORKSPACE_NODE_TRIPLES_JSON_FILE)) && checkLicense();
     }
 

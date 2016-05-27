@@ -31,7 +31,7 @@ import org.osgi.framework.FrameworkUtil;
  *
  * @author Martin Horn, KNIME.com
  */
-public class WorkflowCoachPreferenceInitializer extends AbstractPreferenceInitializer {
+public class WorkspaceRecommendationsPreferenceInitializer extends AbstractPreferenceInitializer {
     /** Preference store keys. */
     public static final String P_WORKSPACE_NODE_TRIPLE_PROVIDER = "workspace_node_triple_provider";
 

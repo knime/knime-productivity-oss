@@ -64,7 +64,7 @@ import com.knime.workbench.workflowcoach.local.data.WorkspaceTripleProvider;
  *
  * @author Martin Horn, KNIME.com
  */
-public class WorkflowCoachPreferencePage extends PreferencePage implements IWorkbenchPreferencePage {
+public class WorkspaceRecommendationsPreferencePage extends PreferencePage implements IWorkbenchPreferencePage {
     private final class WorkspaceAnalyzerJob extends Job {
         private WorkspaceAnalyzerJob() {
             super("Determine node recommendations from workspace");
@@ -105,7 +105,7 @@ public class WorkflowCoachPreferencePage extends PreferencePage implements IWork
     }
 
     /** The id of this preference page. */
-    public static final String ID = "com.knime.workbench.workflowcoach";
+    public static final String ID = "com.knime.workbench.workflowcoach.local";
 
     private Button m_checkWorkspaceProvider;
 
@@ -114,7 +114,7 @@ public class WorkflowCoachPreferencePage extends PreferencePage implements IWork
     /**
      * Creates a new preference page.
      */
-    public WorkflowCoachPreferencePage() {
+    public WorkspaceRecommendationsPreferencePage() {
         super("Custom KNIME Workflow Coach Settings");
         setDescription("Configure the Workflow Coach.");
     }
@@ -170,7 +170,7 @@ public class WorkflowCoachPreferencePage extends PreferencePage implements IWork
 
     private void initializeValues() {
         m_checkWorkspaceProvider.setSelection(
-            getPreferenceStore().getBoolean(WorkflowCoachPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER));
+            getPreferenceStore().getBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER));
     }
 
     /**
@@ -185,7 +185,7 @@ public class WorkflowCoachPreferencePage extends PreferencePage implements IWork
         }
 
         //store values
-        getPreferenceStore().setValue(WorkflowCoachPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER,
+        getPreferenceStore().setValue(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER,
             m_checkWorkspaceProvider.getSelection());
         //reload the statistics
         try {
@@ -205,7 +205,7 @@ public class WorkflowCoachPreferencePage extends PreferencePage implements IWork
     protected void performDefaults() {
         //restore default values
         m_checkWorkspaceProvider.setSelection(getPreferenceStore()
-            .getDefaultBoolean(WorkflowCoachPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER));
+            .getDefaultBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER));
     }
 
     private Composite createComposite(final Composite parent, final int numColumns) {
