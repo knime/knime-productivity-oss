@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: KNIME Workbench Workflow Coach
-Bundle-SymbolicName: com.knime.workbench.workflowcoach;singleton:=true
+Bundle-Name: KNIME Local Workspace Workflow Coach
+Bundle-SymbolicName: com.knime.workbench.workflowcoach.local;singleton:=true
 Bundle-Version: 3.2.0.qualifier
 Bundle-ClassPath: .
 Bundle-Vendor: KNIME.com AG, Zurich, Switzerland

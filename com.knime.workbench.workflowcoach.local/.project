@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>com.knime.workbench.workflowcoach</name>
+	<name>com.knime.workbench.workflowcoach.local</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -22,6 +22,11 @@
 		</buildCommand>
 		<buildCommand>
 			<name>net.sf.eclipsecs.core.CheckstyleBuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+		<buildCommand>
+			<name>org.sonarlint.eclipse.core.sonarlintBuilder</name>
 			<arguments>
 			</arguments>
 		</buildCommand>

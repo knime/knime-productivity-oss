@@ -46,7 +46,7 @@ In case of any questions, please contact KNIME.com at contact@knime.com
          unpack="false"/>
 
    <plugin
-         id="com.knime.workbench.workflowcoach"
+         id="com.knime.workbench.workflowcoach.local"
          download-size="0"
          install-size="0"
          version="0.0.0"
