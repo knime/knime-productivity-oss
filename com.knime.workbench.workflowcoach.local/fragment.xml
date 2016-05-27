@@ -6,8 +6,8 @@
       <page
             category="org.knime.workbench.workflowcoach"
             class="com.knime.workbench.workflowcoach.local.prefs.WorkflowCoachPreferencePage"
-            id="com.knime.workbench.workflowcoach"
-            name="Custom Workflow Coach">
+            id="com.knime.workbench.workflowcoach.local"
+            name="Workspace recommendations">
       </page>
    </extension>
    <extension
