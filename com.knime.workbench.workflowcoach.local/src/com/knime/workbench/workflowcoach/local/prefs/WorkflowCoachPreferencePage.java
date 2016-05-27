@@ -16,7 +16,7 @@
  * email: contact@knime.com
  * ---------------------------------------------------------------------
  */
-package com.knime.workbench.workflowcoach.prefs;
+package com.knime.workbench.workflowcoach.local.prefs;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -57,7 +57,7 @@ import org.knime.workbench.workflowcoach.NodeRecommendationManager;
 import org.osgi.framework.FrameworkUtil;
 
 import com.knime.enterprise.utility.recommendation.WorkspaceAnalyzer;
-import com.knime.workbench.workflowcoach.data.WorkspaceTripleProvider;
+import com.knime.workbench.workflowcoach.local.data.WorkspaceTripleProvider;
 
 /**
  * Preference page for the local workflow coache.

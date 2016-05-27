@@ -19,7 +19,7 @@
  * History
  *   Mar 15, 2016 (hornm): created
  */
-package com.knime.workbench.workflowcoach.prefs;
+package com.knime.workbench.workflowcoach.local.prefs;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.core.runtime.preferences.DefaultScope;

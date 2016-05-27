@@ -5,7 +5,7 @@
          point="org.eclipse.ui.preferencePages">
       <page
             category="org.knime.workbench.workflowcoach"
-            class="com.knime.workbench.workflowcoach.prefs.WorkflowCoachPreferencePage"
+            class="com.knime.workbench.workflowcoach.local.prefs.WorkflowCoachPreferencePage"
             id="com.knime.workbench.workflowcoach"
             name="Custom Workflow Coach">
       </page>
@@ -13,13 +13,13 @@
    <extension
          point="org.eclipse.core.runtime.preferences">
       <initializer
-            class="com.knime.workbench.workflowcoach.prefs.WorkflowCoachPreferenceInitializer">
+            class="com.knime.workbench.workflowcoach.local.prefs.WorkflowCoachPreferenceInitializer">
       </initializer>
    </extension>
    <extension
          point="org.knime.workbench.workflowcoach.nodetriples">
       <tripleprovider
-            provider-class="com.knime.workbench.workflowcoach.data.WorkspaceTripleProvider">
+            provider-class="com.knime.workbench.workflowcoach.local.data.WorkspaceTripleProvider">
       </tripleprovider>
    </extension>
 </plugin>

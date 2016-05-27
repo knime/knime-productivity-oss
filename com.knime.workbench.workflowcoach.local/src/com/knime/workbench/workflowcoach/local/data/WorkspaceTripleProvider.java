@@ -19,7 +19,7 @@
  * History
  *   Mar 17, 2016 (hornm): created
  */
-package com.knime.workbench.workflowcoach.data;
+package com.knime.workbench.workflowcoach.local.data;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,8 +40,8 @@ import com.knime.licenses.LicenseChecker;
 import com.knime.licenses.LicenseException;
 import com.knime.licenses.LicenseFeatures;
 import com.knime.licenses.LicenseUtil;
-import com.knime.workbench.workflowcoach.prefs.WorkflowCoachPreferenceInitializer;
-import com.knime.workbench.workflowcoach.prefs.WorkflowCoachPreferencePage;
+import com.knime.workbench.workflowcoach.local.prefs.WorkflowCoachPreferenceInitializer;
+import com.knime.workbench.workflowcoach.local.prefs.WorkflowCoachPreferencePage;
 
 /**
  * Reads the node triples from a json file that was generated based on the local workspace.
