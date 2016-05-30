@@ -5,17 +5,13 @@
     <extension point="org.knime.workbench.repository.nodes">
        <node
             category-path="/flowcontrol/automation"
-            factory-class="com.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory"
-            id="com.knime.explorer.nodes.callworkflow.CallLocalWorkflowNodeFactory" />
+            factory-class="com.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory"/>
        <node 
             after="_last_"
             category-path="/io/read" 
-            factory-class="com.knime.explorer.nodes.ExplorerBrowserNodeFactory" 
-            id="com.knime.explorer.nodes.writer.ExplorerBrowserNodeFactory"/>
+            factory-class="com.knime.explorer.nodes.ExplorerBrowserNodeFactory" />
        <node 
             category-path="/io/write" 
-            factory-class="com.knime.explorer.nodes.ExplorerWriterNodeFactory" 
-            id="com.knime.explorer.nodes.writer.ExplorerWriterNodeFactory"/>
+            factory-class="com.knime.explorer.nodes.ExplorerWriterNodeFactory" />
     </extension>
-
 </plugin>
