@@ -21,6 +21,8 @@ package com.knime.workbench.workflowcoach.local.prefs;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 import javax.xml.xpath.XPathExpressionException;
 
@@ -42,7 +44,6 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
@@ -51,6 +52,7 @@ import org.knime.core.internal.KNIMEPath;
 import org.knime.core.node.NodeFrequencies;
 import org.knime.core.node.NodeLogger;
 import org.knime.workbench.workflowcoach.NodeRecommendationManager;
+import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
 import org.osgi.framework.FrameworkUtil;
 
 import com.knime.enterprise.utility.recommendation.WorkspaceAnalyzer;
@@ -94,6 +96,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
                     Display.getDefault().asyncExec(() -> {
                         m_analyseButton.setEnabled(true);
                         m_analyseButton.setText("    Analyse    ");
+                        m_analyseButton.setText("Analysis finished!");
                     });
                 }
             }
@@ -108,12 +111,14 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
 
     private Button m_analyseButton;
 
+    private Label m_lastUpdate;
+
     /**
      * Creates a new preference page.
      */
     public WorkspaceRecommendationsPreferencePage() {
         super("Custom KNIME Workflow Coach Settings");
-        setDescription("Configure the Workflow Coach.");
+        setDescription("Here you can enable the local workspace as a source for the Workflow Coach.");
     }
 
     /**
@@ -133,12 +138,12 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
     protected Control createContents(final Composite parent) {
         Composite composite = createComposite(parent, 1);
 
-        Composite compositeWorkspaceProvider = createComposite(composite);
-        Composite smallComp = createComposite(compositeWorkspaceProvider, 2);
-        m_checkWorkspaceProvider = new Button(smallComp, SWT.CHECK);
+        m_checkWorkspaceProvider = new Button(composite, SWT.CHECK);
         m_checkWorkspaceProvider.setText("Workspace Node Recommendations");
         m_checkWorkspaceProvider.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
         m_checkWorkspaceProvider.addSelectionListener(createUpdateValidStatusSelectionListener());
+
+        Composite smallComp = createComposite(composite, 2);
         m_analyseButton = new Button(smallComp, SWT.PUSH);
         m_analyseButton.setText("    Analyse    ");
         m_analyseButton.addSelectionListener(new SelectionAdapter() {
@@ -147,14 +152,19 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
                 onAnalyse();
             }
         });
-        Label help = new Label(compositeWorkspaceProvider, SWT.NONE);
+
+        m_lastUpdate = new Label(smallComp, SWT.NONE);
+
+
+        Label help = new Label(composite, SWT.NONE);
         help.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
         help.setText("Determines the node recommendations from your local workspace.");
 
         if(!WorkspaceTripleProvider.checkLicense()) {
             m_checkWorkspaceProvider.setEnabled(false);
             m_analyseButton.setEnabled(false);
-            Label licenseHint = new Label(compositeWorkspaceProvider, SWT.NONE);
+            m_lastUpdate.setEnabled(false);
+            Label licenseHint = new Label(composite, SWT.NONE);
             licenseHint.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
             licenseHint.setText("No Personal Productivity License found.");
             licenseHint.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_RED));
@@ -166,8 +176,20 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
     }
 
     private void initializeValues() {
-        m_checkWorkspaceProvider.setSelection(
-            getPreferenceStore().getBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER));
+        m_checkWorkspaceProvider.setSelection(getPreferenceStore()
+            .getBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER));
+
+        Optional<Optional<LocalDateTime>> lastUpdate = NodeRecommendationManager.getInstance().getNodeTripleProviders()
+                .stream().filter(p -> p instanceof WorkspaceTripleProvider)
+                .map(p -> p.getLastUpdate()).findFirst();
+
+        if (lastUpdate.isPresent() && lastUpdate.get().isPresent()) {
+            m_lastUpdate
+                .setText("Last analysis: " + NodeTripleProvider.LAST_UPDATE_FORMAT.format(lastUpdate.get().get()));
+        } else {
+            m_lastUpdate.setText("Not analysed yet.");
+            m_lastUpdate.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_RED));
+        }
     }
 
     /**
@@ -176,7 +198,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
     @Override
     public boolean performOk() {
         //check whether the workspace recommendation file exists
-        if (Files.exists(WorkspaceTripleProvider.WORKSPACE_NODE_TRIPLES_JSON_FILE)) {
+        if (!Files.exists(WorkspaceTripleProvider.WORKSPACE_NODE_TRIPLES_JSON_FILE)) {
             setErrorMessage("Please analyse the workspace first.");
             return false;
         }
@@ -205,7 +227,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
             .getDefaultBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER));
     }
 
-    private Composite createComposite(final Composite parent, final int numColumns) {
+    private static Composite createComposite(final Composite parent, final int numColumns) {
         Composite composite = new Composite(parent, SWT.NULL);
         GridLayout layout = new GridLayout();
         layout.marginWidth = 0;
@@ -214,15 +236,6 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
         composite.setLayout(layout);
         composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
         return composite;
-    }
-
-    private Composite createComposite(final Composite parent) {
-        GridLayout layout = new GridLayout();
-        layout.numColumns = 1;
-        Group group = new Group(parent, SWT.NONE);
-        group.setLayout(layout);
-        group.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-        return group;
     }
 
     private SelectionListener createUpdateValidStatusSelectionListener() {
@@ -246,6 +259,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
     private void onAnalyse() {
         m_analyseButton.setEnabled(false);
         m_analyseButton.setText("Analysing...");
+        m_lastUpdate.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_BLACK));
         Job j = new WorkspaceAnalyzerJob();
         j.setUser(true);
         j.schedule();
