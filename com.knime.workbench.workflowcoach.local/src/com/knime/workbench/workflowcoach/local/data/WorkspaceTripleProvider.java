@@ -21,17 +21,19 @@
  */
 package com.knime.workbench.workflowcoach.local.data;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.stream.Stream;
 
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.ui.preferences.ScopedPreferenceStore;
 import org.knime.core.node.KNIMEConstants;
 import org.knime.core.node.NodeFrequencies;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeTriple;
 import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
 import org.osgi.framework.FrameworkUtil;
@@ -49,21 +51,24 @@ import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPre
  * @author Martin Horn, KNIME.com
  */
 public class WorkspaceTripleProvider implements NodeTripleProvider {
+    private static final ScopedPreferenceStore PREFS = new ScopedPreferenceStore(InstanceScope.INSTANCE,
+        FrameworkUtil.getBundle(WorkspaceTripleProvider.class).getSymbolicName());
+
 
     private static final LicenseChecker LICENSE_CHECKER = new LicenseUtil(LicenseFeatures.CustomWorkflowCoach);
 
     /**
      * The triple json-file store within the knime workflow metadata directory.
      */
-    public static final String WORKSPACE_NODE_TRIPLES_JSON_FILE =
-        KNIMEConstants.getKNIMEHomeDir() + File.separator + "workspace_recommendations.json";
+    public static final Path WORKSPACE_NODE_TRIPLES_JSON_FILE =
+        Paths.get(KNIMEConstants.getKNIMEHomeDir(), "workspace_recommendations.json");
 
     /**
      * {@inheritDoc}
      */
     @Override
     public Stream<NodeTriple> getNodeTriples() throws IOException {
-        return NodeFrequencies.from(new FileInputStream(WORKSPACE_NODE_TRIPLES_JSON_FILE)).getFrequencies().stream();
+        return NodeFrequencies.from(Files.newInputStream(WORKSPACE_NODE_TRIPLES_JSON_FILE)).getFrequencies().stream();
     }
 
     /**
@@ -95,11 +100,8 @@ public class WorkspaceTripleProvider implements NodeTripleProvider {
      */
     @Override
     public boolean isEnabled() {
-        IEclipsePreferences prefs =
-            InstanceScope.INSTANCE.getNode(FrameworkUtil.getBundle(getClass()).getSymbolicName());
-
-        return prefs.getBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER, false)
-            && Files.exists(Paths.get(WORKSPACE_NODE_TRIPLES_JSON_FILE)) && checkLicense();
+        return PREFS.getBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER)
+            && Files.exists(WORKSPACE_NODE_TRIPLES_JSON_FILE) && checkLicense();
     }
 
     /**
@@ -117,6 +119,26 @@ public class WorkspaceTripleProvider implements NodeTripleProvider {
             //            box.setText("Custom Workflow Coach not available");
             //            box.open();
             return false;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Optional<LocalDateTime> getLastUpdate() {
+        try {
+            if (Files.exists(WORKSPACE_NODE_TRIPLES_JSON_FILE)) {
+                return Optional
+                    .of(LocalDateTime.from(Files.getLastModifiedTime(WORKSPACE_NODE_TRIPLES_JSON_FILE).toInstant()));
+            } else {
+                return Optional.empty();
+            }
+        } catch (IOException ex) {
+            NodeLogger.getLogger(getClass()).warn(
+                "Could not determine last update of '" + WORKSPACE_NODE_TRIPLES_JSON_FILE + "': " + ex.getMessage(),
+                ex);
+            return Optional.empty();
         }
     }
 }

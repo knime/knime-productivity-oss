@@ -18,12 +18,9 @@
  */
 package com.knime.workbench.workflowcoach.local.prefs;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import javax.xml.xpath.XPathExpressionException;
 
@@ -86,7 +83,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
                 wa.analyze();
                 NodeFrequencies nf = new NodeFrequencies("KNIME Workspace", wa.getTriplets());
                 try (OutputStream os =
-                    new FileOutputStream(new File(WorkspaceTripleProvider.WORKSPACE_NODE_TRIPLES_JSON_FILE))) {
+                    Files.newOutputStream(WorkspaceTripleProvider.WORKSPACE_NODE_TRIPLES_JSON_FILE)) {
                     nf.write(os);
                 }
             } catch (XPathExpressionException | IOException ex) {
@@ -179,7 +176,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
     @Override
     public boolean performOk() {
         //check whether the workspace recommendation file exists
-        if(Files.exists(Paths.get(WorkspaceTripleProvider.WORKSPACE_NODE_TRIPLES_JSON_FILE))) {
+        if (Files.exists(WorkspaceTripleProvider.WORKSPACE_NODE_TRIPLES_JSON_FILE)) {
             setErrorMessage("Please analyse the workspace first.");
             return false;
         }
