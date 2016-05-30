@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -129,8 +130,8 @@ public class WorkspaceTripleProvider implements NodeTripleProvider {
     public Optional<LocalDateTime> getLastUpdate() {
         try {
             if (Files.exists(WORKSPACE_NODE_TRIPLES_JSON_FILE)) {
-                return Optional
-                    .of(LocalDateTime.from(Files.getLastModifiedTime(WORKSPACE_NODE_TRIPLES_JSON_FILE).toInstant()));
+                return Optional.of(LocalDateTime.ofInstant(
+                    Files.getLastModifiedTime(WORKSPACE_NODE_TRIPLES_JSON_FILE).toInstant(), ZoneId.systemDefault()));
             } else {
                 return Optional.empty();
             }
