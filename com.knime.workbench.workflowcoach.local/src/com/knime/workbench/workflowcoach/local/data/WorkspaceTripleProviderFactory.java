@@ -54,6 +54,8 @@ import java.util.List;
 import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
 import org.knime.workbench.workflowcoach.data.NodeTripleProviderFactory;
 
+import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferencePage;
+
 /**
  * Factory for {@link WorkspaceTripleProvider}s.
  *
@@ -66,5 +68,13 @@ public class WorkspaceTripleProviderFactory implements NodeTripleProviderFactory
     @Override
     public List<NodeTripleProvider> createProviders() {
         return Collections.singletonList(new WorkspaceTripleProvider());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getPreferencePageID() {
+        return WorkspaceRecommendationsPreferencePage.ID;
     }
 }

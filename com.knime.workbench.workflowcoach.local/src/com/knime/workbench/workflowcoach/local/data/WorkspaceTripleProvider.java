@@ -44,7 +44,6 @@ import com.knime.licenses.LicenseException;
 import com.knime.licenses.LicenseFeatures;
 import com.knime.licenses.LicenseUtil;
 import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferenceInitializer;
-import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferencePage;
 
 /**
  * Reads the node triples from a json file that was generated based on the local workspace.
@@ -86,14 +85,6 @@ public class WorkspaceTripleProvider implements NodeTripleProvider {
     @Override
     public String getDescription() {
         return "Frequency of how often the nodes were used in the workflows of your workspace.";
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getPreferencePageID() {
-        return WorkspaceRecommendationsPreferencePage.ID;
     }
 
     /**
