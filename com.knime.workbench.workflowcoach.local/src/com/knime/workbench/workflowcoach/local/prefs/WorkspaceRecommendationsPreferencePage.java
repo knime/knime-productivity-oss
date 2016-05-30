@@ -208,7 +208,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
             m_checkWorkspaceProvider.getSelection());
         //reload the statistics
         try {
-            NodeRecommendationManager.getInstance().loadStatistics();
+            NodeRecommendationManager.getInstance().loadRecommendations();
             return true;
         } catch (Exception ex) {
             setErrorMessage("Can't load the requested node recommendations. Please see log for details.");
