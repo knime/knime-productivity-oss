@@ -7,7 +7,7 @@
             category="org.knime.workbench.workflowcoach"
             class="com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferencePage"
             id="com.knime.workbench.workflowcoach.local"
-            name="Workspace recommendations">
+            name="Workspace Recommendations">
       </page>
    </extension>
    <extension
