@@ -92,13 +92,13 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
                 return new Status(IStatus.ERROR, FrameworkUtil.getBundle(getClass()).getSymbolicName(),
                     "Error while analysing the workspace: " + ex.getMessage(), ex);
             } finally {
-                if (!m_analyseButton.isDisposed()) {
-                    Display.getDefault().asyncExec(() -> {
+                Display.getDefault().asyncExec(() -> {
+                    if (!m_analyseButton.isDisposed()) {
                         m_analyseButton.setEnabled(true);
                         m_analyseButton.setText("    Analyse    ");
-                        m_analyseButton.setText("Analysis finished!");
-                    });
-                }
+                        m_lastUpdate.setText("Analysis finished!");
+                    }
+                });
             }
             return Status.OK_STATUS;
         }
