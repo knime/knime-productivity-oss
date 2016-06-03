@@ -90,6 +90,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
                     if (fs != null) {
                         File mountpointRoot = fs.getContentProvider().getFileStore("/").toLocalFile();
                         ctxFac.setMountpointRoot(mountpointRoot);
+                        ctxFac.setMountpointURI(fs.toURI());
                     } else if (NodeContext.getContext() != null) {
                         // use context from current workflow if available (if run headless no filesystem may be mounted)
                         WorkflowContext tmp = NodeContext.getContext().getWorkflowManager().getContext();
