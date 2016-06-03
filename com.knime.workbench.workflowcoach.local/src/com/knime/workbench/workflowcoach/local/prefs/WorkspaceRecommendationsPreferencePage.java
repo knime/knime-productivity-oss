@@ -113,6 +113,8 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
 
     private Label m_lastUpdate;
 
+    private Job m_analyzerJob;
+
     /**
      * Creates a new preference page.
      */
@@ -198,7 +200,8 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
     @Override
     public boolean performOk() {
         //check whether the workspace recommendation file exists
-        if (!Files.exists(WorkspaceTripleProvider.WORKSPACE_NODE_TRIPLES_JSON_FILE)) {
+        if (!Files.exists(WorkspaceTripleProvider.WORKSPACE_NODE_TRIPLES_JSON_FILE)
+            && ((m_analyzerJob == null) || (m_analyzerJob.getState() != Job.RUNNING))) {
             setErrorMessage("Please analyse the workspace first.");
             return false;
         }
@@ -260,8 +263,8 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
         m_analyseButton.setEnabled(false);
         m_analyseButton.setText("Analysing...");
         m_lastUpdate.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_BLACK));
-        Job j = new WorkspaceAnalyzerJob();
-        j.setUser(true);
-        j.schedule();
+        m_analyzerJob = new WorkspaceAnalyzerJob();
+        m_analyzerJob.setUser(true);
+        m_analyzerJob.schedule();
     }
 }
