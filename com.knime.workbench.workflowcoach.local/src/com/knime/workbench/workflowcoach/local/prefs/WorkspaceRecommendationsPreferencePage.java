@@ -160,7 +160,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
 
         Label help = new Label(composite, SWT.NONE);
         help.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-        help.setText("Determines the node recommendations from your local workspace.");
+        help.setText("The Analyze button assesses the node recommendations based on your local workspace.");
 
         if(!WorkspaceTripleProvider.checkLicense()) {
             m_checkWorkspaceProvider.setEnabled(false);
