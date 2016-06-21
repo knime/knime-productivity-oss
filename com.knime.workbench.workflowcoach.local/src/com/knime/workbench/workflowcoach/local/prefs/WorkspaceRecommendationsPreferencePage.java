@@ -120,7 +120,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
      */
     public WorkspaceRecommendationsPreferencePage() {
         super("Custom KNIME Workflow Coach Settings");
-        setDescription("Here you can enable the local workspace as a source for the Workflow Coach.");
+        setDescription("Enable the Workflow Coach to retrieve recommendations based on your local workspace node usage.");
     }
 
     /**
