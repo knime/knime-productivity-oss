@@ -46,10 +46,12 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.data.DataTableSpec;
@@ -61,10 +63,12 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.VerticalCollapsablePanels;
+import org.knime.core.node.util.ViewUtils;
 import org.knime.core.node.workflow.WorkflowPersistor;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.json.util.JSONUtil;
 
+import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
 import com.knime.productivity.base.callworkflow.IWorkflowBackend;
 import com.knime.productivity.base.callworkflow.JSONInputPanel;
 
@@ -81,6 +85,10 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     private final VerticalCollapsablePanels m_collapsablePanels;
 
     private final Map<String, JSONInputPanel> m_panelMap;
+
+    private final JCheckBox m_createReportChecker;
+
+    private final JComboBox<RptOutputFormat> m_reportFormatCombo;
 
     private DataTableSpec m_spec;
 
@@ -111,6 +119,11 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
             }
         });
         fillWorkflowList();
+
+        m_createReportChecker = new JCheckBox("Create Report");
+        m_reportFormatCombo = new JComboBox<>(ArrayUtils.removeElement(RptOutputFormat.values(), RptOutputFormat.HTML));
+        m_createReportChecker.addItemListener(e -> m_reportFormatCombo.setEnabled(m_createReportChecker.isSelected()));
+        m_createReportChecker.doClick();
 
         m_collapsablePanels = new VerticalCollapsablePanels();
         m_panelMap = new LinkedHashMap<>();
@@ -143,9 +156,13 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         gbc.gridx = 0;
         gbc.gridy += 1;
         p.add(m_errorLabel, gbc);
+
         gbc.gridy += 1;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weighty = 1.0;
+        p.add(ViewUtils.getInFlowLayout(m_createReportChecker, m_reportFormatCombo), gbc);
+
+        gbc.gridy += 1;
         p.add(m_collapsablePanels, gbc);
 
         p.setMinimumSize(new Dimension(650, 300));
@@ -207,6 +224,13 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                 }
             }
         }
+        RptOutputFormat reportFormatOrNull;
+        if (m_createReportChecker.isSelected()) {
+            reportFormatOrNull = (RptOutputFormat)m_reportFormatCombo.getSelectedItem();
+        } else {
+            reportFormatOrNull = null;
+        }
+        m_settings.setReportFormatOrNull(reportFormatOrNull);
         m_settings.setParameterToJsonColumnMap(parameterToJsonColumnMap);
         m_settings.setParameterToJsonConfigMap(parameterToJsonConfigMap);
         m_settings.save(settings);
@@ -220,6 +244,12 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         m_spec = specs[0];
 
         m_workflowPath.setSelectedItem(m_settings.getWorkflowPath());
+        RptOutputFormat reportFormatOrNull = m_settings.getReportFormatOrNull();
+        if ((reportFormatOrNull != null) != m_createReportChecker.isSelected()) {
+            m_createReportChecker.doClick();
+        }
+        m_reportFormatCombo.setSelectedItem(reportFormatOrNull != null
+                ? reportFormatOrNull : m_reportFormatCombo.getModel().getElementAt(0));
         updatePanels();
 
         for (Map.Entry<String, ExternalNodeData> entry : m_settings.getParameterToJsonConfigMap().entrySet()) {

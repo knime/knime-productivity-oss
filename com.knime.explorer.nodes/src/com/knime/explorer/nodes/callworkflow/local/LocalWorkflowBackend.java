@@ -36,8 +36,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.json.JsonValue;
 
+import org.apache.commons.io.FileUtils;
+import org.eclipse.birt.report.engine.api.EngineException;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.workflow.NodeContainerState;
 import org.knime.core.node.workflow.NodeContext;
@@ -58,6 +61,9 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.knime.enterprise.reportexecutor.ReportExecutor;
+import com.knime.enterprise.utility.oda.ReportingConstants;
+import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
 import com.knime.productivity.base.callworkflow.IWorkflowBackend;
 
 /**
@@ -66,6 +72,9 @@ import com.knime.productivity.base.callworkflow.IWorkflowBackend;
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class LocalWorkflowBackend implements IWorkflowBackend {
+
+    private static final NodeLogger LOGGER = NodeLogger.getLogger(LocalWorkflowBackend.class);
+
     private static final LoadingCache<URI, LocalWorkflowBackend> CACHE = CacheBuilder.newBuilder()
         .expireAfterAccess(1L, TimeUnit.MINUTES).maximumSize(5)
         .removalListener(new RemovalListener<URI, LocalWorkflowBackend>() {
@@ -282,5 +291,33 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
     @Override
     public void setInputNodes(final Map<String, ExternalNodeData> input) throws InvalidSettingsException {
         m_manager.setInputNodes(input);
+    }
+
+    /** {@inheritDoc}
+     * @throws ReportGenerationException */
+    @Override
+    public byte[] generateReport(final RptOutputFormat format) throws ReportGenerationException {
+        File reportDocDir = null;
+        try {
+            LOGGER.debug("Starting report document generation for workflow \"" + m_manager.getName() + "\".");
+            reportDocDir = ReportExecutor.runReport(m_manager);
+        } catch (EngineException e) {
+            throw new ReportGenerationException("The generation of the report document failed.", e);
+        } catch (IOException e) {
+            throw new ReportGenerationException("Reading the report design file or writing the report document failed: "
+                    + e.getMessage(), e);
+        }
+        try {
+            byte[] report = ReportExecutor.renderReport(m_manager, reportDocDir, format,
+                new ReportingConstants.RptOutputOptions());
+            LOGGER.debugWithFormat("Successfully rendered report (%s) for workflow '%s'; report is %s large",
+                format.getExtension(), m_manager.getName(), FileUtils.byteCountToDisplaySize(report.length));
+            return report;
+        } catch (EngineException e) {
+            throw new ReportGenerationException(
+                "The report document does not exist, is invalid, or could not be rendered.", e);
+        } finally {
+            FileUtils.deleteQuietly(reportDocDir);
+        }
     }
 }

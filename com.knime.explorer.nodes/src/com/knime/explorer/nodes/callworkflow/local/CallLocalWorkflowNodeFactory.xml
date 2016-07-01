@@ -23,6 +23,13 @@
         You can also use paths relative to the current workflow, e.g <tt>../Called Workflow</tt>.
         You may also use an URL with the knime-protocol pointing to a local resource (e.g. knime://TeamspaceMount/Workflow).
         </option>
+        <option name="Create Report">If checked the report associated with the called workflow will be generated and 
+            put into the output table. The format can be chosen in the drop-down. The output table will contain a column
+            containing the binary content of the report (column type: binary object); the column can be further processed,
+            e.g. use a &quot;Binary Objects to Files&quot; node to write the content to a file, or use a database writer
+            to write the report as BLOB into a database. Failures to generate the report 
+            (for instance, because no report is attached to the workflow) will result in a missing cell. 
+        </option>
         <option name="Inputs">After you have loaded the input format you will see an input block for every input node in
         the called workflow. You can select if you want to use a static value or the value of a column for the respective
         input field.
