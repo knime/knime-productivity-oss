@@ -41,6 +41,8 @@ import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataType;
 import org.knime.core.data.MissingCell;
 import org.knime.core.data.RowKey;
+import org.knime.core.data.blob.BinaryObjectCellFactory;
+import org.knime.core.data.blob.BinaryObjectDataCell;
 import org.knime.core.data.def.DefaultRow;
 import org.knime.core.data.def.StringCell;
 import org.knime.core.data.json.JSONCellFactory;
@@ -52,12 +54,15 @@ import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.KNIMEConstants;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.StringFormat;
 import org.knime.core.util.UniqueNameGenerator;
 
+import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
+import com.knime.productivity.base.callworkflow.IWorkflowBackend.ReportGenerationException;
 import com.knime.productivity.base.callworkflow.IWorkflowBackend.WorkflowState;
 
 /**
@@ -67,6 +72,11 @@ import com.knime.productivity.base.callworkflow.IWorkflowBackend.WorkflowState;
  * @author Thorsten Meinl, KNIME.com, Zurich, Switzerland
  */
 public abstract class CallWorkflowNodeModel extends NodeModel {
+    /**
+     *
+     */
+    private static final NodeLogger LOGGER = NodeLogger.getLogger(CallWorkflowNodeModel.class);
+
     /**
      * Creates a new node model.
      */
@@ -84,7 +94,7 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
 
         for (String jsonCol : getConfiguration().getParameterToJsonColumnMap().values()) {
             DataColumnSpec col = inSpecs[0].getColumnSpec(jsonCol);
-            CheckUtils.checkSetting(col != null, "Column \"%s\" does not exist in input", jsonCol);
+            CheckUtils.checkSettingNotNull(col, "Column \"%s\" does not exist in input", jsonCol);
             CheckUtils.checkSetting(col.getType().isCompatible(JSONValue.class), "Column \"%s\" does not contain JSON",
                 jsonCol);
         }
@@ -112,6 +122,7 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
 
         try (IWorkflowBackend backend = newBackend(getConfiguration().getWorkflowPath())) {
             Map<String, String> parameterToJsonColumnMap = getConfiguration().getParameterToJsonColumnMap();
+            RptOutputFormat reportFormatOrNull = getConfiguration().getReportFormatOrNull();
             // set static input once
             // dynamic input (columns variable) is set in a loop further down below.
             backend.setInputNodes(getConfiguration().getParameterToJsonConfigMap());
@@ -120,10 +131,11 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             List<String> outputNodeKeys = new ArrayList<>(backend.getOutputValues().keySet());
             Collections.sort(outputNodeKeys);
             BufferedDataContainer container =
-                createDataContainer(inData[0].getDataTableSpec(), exec, outputNodeKeys, outputColIndexMap);
+                createDataContainer(inData[0].getDataTableSpec(), exec, reportFormatOrNull, outputNodeKeys, outputColIndexMap);
 
             final long rowCount = inData[0].size();
             long rowIndex = 0;
+            BinaryObjectCellFactory reportCellFactory = new BinaryObjectCellFactory(exec);
             for (DataRow row : inData[0]) {
                 exec.checkCanceled();
                 exec.setProgress(rowIndex++ / (double)rowCount,
@@ -132,7 +144,8 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
                 Map<String, ExternalNodeData> input = new LinkedHashMap<>();
                 boolean ok = fillInputMap(inData[0].getDataTableSpec(), parameterToJsonColumnMap, row, input);
                 if (ok) {
-                    DataRow newRow = executeWorkflow(outputColIndexMap, backend, row, input);
+                    DataRow newRow = executeWorkflow(outputColIndexMap, backend,
+                        reportFormatOrNull, reportCellFactory, row, input);
                     container.addRowToTable(newRow);
                 } else {
                     container.addRowToTable(createFailureRow(row.getKey(),
@@ -144,13 +157,15 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         }
     }
 
-    private DataRow executeWorkflow(final Map<String, Integer> outputColIndexMap,
-        final IWorkflowBackend backend, final DataRow inputRow, final Map<String, ExternalNodeData> input)
-        throws InvalidSettingsException, Exception {
+    private DataRow executeWorkflow(final Map<String, Integer> outputColIndexMap, final IWorkflowBackend backend,
+        final RptOutputFormat reportFormatOrNull, final BinaryObjectCellFactory reportCellFactory, final DataRow inputRow,
+        final Map<String, ExternalNodeData> input) throws InvalidSettingsException, Exception {
 
         long start = System.currentTimeMillis();
         WorkflowState state = backend.execute(input);
         long delay = System.currentTimeMillis() - start;
+        // one extra column for status; and another one for the report
+        final int cellCount = outputColIndexMap.size() + (reportFormatOrNull != null ? 2 : 1);
 
         if (!state.equals(WorkflowState.EXECUTED)) {
             String m = "Failure, workflow was not executed.";
@@ -158,9 +173,9 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             if (StringUtils.isNotBlank(workflowMessage)) {
                 m = m + "\n" + workflowMessage;
             }
-            return createFailureRow(inputRow.getKey(), m, outputColIndexMap.size());
+            return createFailureRow(inputRow.getKey(), m, cellCount);
         } else {
-            DataCell[] cells = new DataCell[outputColIndexMap.size() + 1];
+            DataCell[] cells = new DataCell[cellCount];
             Arrays.fill(cells, DataType.getMissingCell());
             cells[cells.length - 1] = new StringCell("Completed in " + StringFormat.formatElapsedTime(delay));
 
@@ -172,6 +187,17 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
                 } else {
                     cells[outputColIndexEntry.getValue()] = new MissingCell("No JSON data returned");
                 }
+            }
+            if (reportFormatOrNull != null) {
+                DataCell reportCell;
+                try {
+                    byte[] report = backend.generateReport(reportFormatOrNull);
+                    reportCell = reportCellFactory.create(report);
+                } catch (IOException | ReportGenerationException e) {
+                    LOGGER.warn("Can't generate report: " + e.getMessage(), e);
+                    reportCell = new MissingCell(e.getMessage());
+                }
+                cells[cells.length - 2] = reportCell;
             }
             return new DefaultRow(inputRow.getKey(), cells);
         }
@@ -194,19 +220,23 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
     }
 
     private static BufferedDataContainer createDataContainer(final DataTableSpec inSpec, final ExecutionContext exec,
-        final Iterable<String> outputKeys, final Map<String, Integer> emptyOutputColIndexMap) {
+        final RptOutputFormat reportFormatOrNull, final Iterable<String> outputKeys,
+        final Map<String, Integer> emptyOutputColIndexMap) {
         UniqueNameGenerator nameGen = new UniqueNameGenerator(inSpec);
         List<DataColumnSpec> columns = new ArrayList<>();
         for (String s : outputKeys) {
             columns.add(nameGen.newColumn(s, JSONCellFactory.TYPE));
             emptyOutputColIndexMap.put(s, emptyOutputColIndexMap.size());
         }
+        if (reportFormatOrNull != null) {
+            columns.add(nameGen.newColumn("Report", BinaryObjectDataCell.TYPE));
+        }
         columns.add(nameGen.newColumn("Status", StringCell.TYPE));
         return exec.createDataContainer(new DataTableSpec(columns.toArray(new DataColumnSpec[0])));
     }
 
     private static DataRow createFailureRow(final RowKey rowKey, final String message, final int numColumns) {
-        DataCell[] cells = new DataCell[numColumns + 1];
+        DataCell[] cells = new DataCell[numColumns];
         Arrays.fill(cells, DataType.getMissingCell());
         cells[cells.length - 1] = new StringCell(message);
         return new DefaultRow(rowKey, cells);

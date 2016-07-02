@@ -27,6 +27,8 @@ import javax.json.JsonValue;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
 
+import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
+
 /**
  * Interface to access a workflow. Can be either a local workflow or a remote flow (via REST calls then).
  *
@@ -77,4 +79,23 @@ public interface IWorkflowBackend extends AutoCloseable {
      * @return the messages or an empty string if there are no messages
      */
     String getWorkflowMessage();
+
+    /**
+     * @param format
+     * @return
+     */
+    byte[] generateReport(final RptOutputFormat format) throws ReportGenerationException;
+
+    /** Thrown by {@link IWorkflowBackend#generateReport(RptOutputFormat)} in case the report could not be generated. */
+    public final class ReportGenerationException extends Exception {
+
+        /**
+         * @param message
+         * @param cause
+         */
+        public ReportGenerationException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
+
+    }
 }

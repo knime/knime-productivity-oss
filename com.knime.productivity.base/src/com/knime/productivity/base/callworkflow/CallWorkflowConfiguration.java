@@ -24,15 +24,19 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.json.JsonValue;
 
+import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.json.util.JSONUtil;
+
+import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
 
 /**
  * Config object to node. Holds (remote) workflow URI and parameters.
@@ -45,6 +49,8 @@ public abstract class CallWorkflowConfiguration {
     private Map<String, String> m_parameterToJsonColumnMap = Collections.emptyMap();
 
     private String m_workflowPath;
+
+    private RptOutputFormat m_reportFormatOrNull;
 
     /** @return the parameterToJsonConfigMap */
     public Map<String, ExternalNodeData> getParameterToJsonConfigMap() {
@@ -80,8 +86,24 @@ public abstract class CallWorkflowConfiguration {
         return this;
     }
 
+    /** @return the reportFormatOrNull ... */
+    public RptOutputFormat getReportFormatOrNull() {
+        return m_reportFormatOrNull;
+    }
+
+    /** @param reportFormatOrNull the reportFormatOrNull to set
+     * @eturn this */
+    public CallWorkflowConfiguration setReportFormatOrNull(final RptOutputFormat reportFormatOrNull)
+            throws InvalidSettingsException {
+        CheckUtils.checkArgument(!RptOutputFormat.HTML.equals(reportFormatOrNull),
+            "Rendering HTML not supported (image location unclear)");
+        m_reportFormatOrNull = reportFormatOrNull;
+        return this;
+    }
+
     public CallWorkflowConfiguration save(final NodeSettingsWO settings) {
         settings.addString("workflow", m_workflowPath);
+        settings.addString("reportFormatOrNull", Objects.toString(m_reportFormatOrNull, null));
         NodeSettingsWO settings2 = settings.addNodeSettings("parameterToJsonConfigMap");
         for (Map.Entry<String, ExternalNodeData> entry : m_parameterToJsonConfigMap.entrySet()) {
             NodeSettingsWO childSettings = settings2.addNodeSettings(entry.getKey());
@@ -98,6 +120,16 @@ public abstract class CallWorkflowConfiguration {
 
     public CallWorkflowConfiguration loadInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
         m_workflowPath = settings.getString("workflow");
+        final String reportString = settings.getString("reportFormatOrNull", null); // added in 3.2
+        if (StringUtils.isBlank(reportString)) {
+            m_reportFormatOrNull = null;
+        } else {
+            try {
+                setReportFormatOrNull(RptOutputFormat.valueOf(reportString));
+            } catch (IllegalArgumentException e) {
+                throw new InvalidSettingsException("Unsupported report format '" + reportString + "'", e);
+            }
+        }
         NodeSettingsRO settings2 = settings.getNodeSettings("parameterToJsonConfigMap");
         m_parameterToJsonConfigMap = new LinkedHashMap<>();
         for (String s : settings2.keySet()) {
@@ -123,6 +155,16 @@ public abstract class CallWorkflowConfiguration {
 
     public CallWorkflowConfiguration loadInDialog(final NodeSettingsRO settings) {
         m_workflowPath = settings.getString("workflow", "");
+        final String reportString = settings.getString("reportFormatOrNull", null);
+        if (StringUtils.isBlank(reportString)) {
+            m_reportFormatOrNull = null;
+        } else {
+            try {
+                setReportFormatOrNull(RptOutputFormat.valueOf(reportString));
+            } catch (IllegalArgumentException | InvalidSettingsException e) {
+                m_reportFormatOrNull = null;
+            }
+        }
         m_parameterToJsonConfigMap = new LinkedHashMap<>();
         m_parameterToJsonColumnMap = new LinkedHashMap<>();
         NodeSettingsRO settings2;
