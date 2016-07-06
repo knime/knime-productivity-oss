@@ -68,8 +68,6 @@ public class BrandingService implements IBrandingService {
 	 */
 	public BrandingService() {
 		try {
-			LicenseChecker checker = new LicenseUtil(LicenseFeatures.ClientBranding);
-			checker.checkLicense();
 			retrieveBrandingInformation();
 			brandUpdateSite();
 			brandTitle();
@@ -89,17 +87,19 @@ public class BrandingService implements IBrandingService {
 	/**
 	 * retrieves the branding information of the Extension Point, validates it
 	 * and stores it in {@code m_brandingValues}
-	 *
-	 * @throws Exception
-	 *             if the Extension Point is misconfigured
+	 * @throws LicenseException if no license for partner branding is available
 	 */
-	private void retrieveBrandingInformation() {
+	private void retrieveBrandingInformation() throws LicenseException {
         IExtensionPoint extensionPoint =
             Platform.getExtensionRegistry().getExtensionPoint("com.knime.branding.PartnerBranding");
 		IExtension[] extensions = extensionPoint.getExtensions();
 		if (extensions.length < 1) {
 			return;
-		} else if (extensions.length > 1) {
+		}
+        LicenseChecker checker = new LicenseUtil(LicenseFeatures.ClientBranding);
+        checker.checkLicense();
+
+		if (extensions.length > 1) {
 			LOGGER.warn("More than one branding extension found. Only " + extensions[0].getLabel()
 					+ " will be used.");
 		}
