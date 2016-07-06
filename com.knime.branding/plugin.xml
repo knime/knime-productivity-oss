@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension-point id="PartnerBranding" name="PartnerBranding" schema="schema/PartnerBranding.exsd"/>
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            allPopups="false"
+            locationURI="menu:help">
+         <command
+               commandId="com.knime.branding.helpButton"
+               label="Contact Support"
+               style="push">
+            <visibleWhen
+                  checkEnabled="true">
+            </visibleWhen>
+         </command>
+      </menuContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            defaultHandler="com.knime.branding.BrandingContactSupportHandler"
+            id="com.knime.branding.helpButton"
+            name="Contact Support">
+      </command>
+   </extension>
+
+</plugin>
