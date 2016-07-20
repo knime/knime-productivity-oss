@@ -286,7 +286,12 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                 m_errorLabel.setText(e.getMessage());
             }
         }
-        getPanel().revalidate();
+
+        JPanel panel = getPanel();
+        // some weird sequence to force the UI to properly update, see AP-6191
+        panel.invalidate();
+        panel.revalidate();
+        panel.repaint();
     }
 
     private IWorkflowBackend newBackend() throws Exception {
