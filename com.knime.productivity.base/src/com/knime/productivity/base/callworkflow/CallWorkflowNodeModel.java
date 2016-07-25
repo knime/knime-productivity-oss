@@ -134,6 +134,7 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
                 createDataContainer(inData[0].getDataTableSpec(), exec, reportFormatOrNull, outputNodeKeys, outputColIndexMap);
 
             final long rowCount = inData[0].size();
+            final int columnCount = container.getTableSpec().getNumColumns();
             long rowIndex = 0;
             BinaryObjectCellFactory reportCellFactory = new BinaryObjectCellFactory(exec);
             for (DataRow row : inData[0]) {
@@ -149,7 +150,7 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
                     container.addRowToTable(newRow);
                 } else {
                     container.addRowToTable(createFailureRow(row.getKey(),
-                        "Row contains missing values, workflow not called", outputColIndexMap.size()));
+                        "Row contains missing values, workflow not called", columnCount));
                 }
             }
             container.close();
