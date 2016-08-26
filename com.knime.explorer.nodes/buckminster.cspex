@@ -4,6 +4,7 @@
     <dependency name="com.google.gson" componentType="osgi.bundle"/>
     <dependency name="net.minidev.json-smart" componentType="osgi.bundle"/>
     <dependency name="net.minidev.asm" componentType="osgi.bundle"/>
+    <dependency name="org.slf4j.api" componentType="osgi.bundle"/>
     <!-- needed so that the KNIME_Documentation_Builder application is available 
              for the knime.create.helpfiles action. -->
     <dependency name="org.knime.workbench.help" componentType="osgi.bundle"/>
