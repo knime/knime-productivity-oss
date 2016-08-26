@@ -11,6 +11,7 @@
     <dependency name="com.github.fge.uri-template" componentType="osgi.bundle"/>
     <dependency name="com.googlecode.libphonenumber" componentType="osgi.bundle"/>
     <dependency name="net.sf.jopt-simple.jopt-simple" componentType="osgi.bundle"/>
+    <dependency name="joda-time" componentType="osgi.bundle"/>
     <!-- needed so that the KNIME_Documentation_Builder application is available 
              for the knime.create.helpfiles action. -->
     <dependency name="org.knime.workbench.help" componentType="osgi.bundle"/>
