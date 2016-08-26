@@ -9,6 +9,7 @@
     <dependency name="com.github.fge.msg-simple" componentType="osgi.bundle"/>
     <dependency name="com.google.guava" componentType="osgi.bundle" versionDesignator="[16.0.0,17.0.0)"/>
     <dependency name="com.github.fge.uri-template" componentType="osgi.bundle"/>
+    <dependency name="com.googlecode.libphonenumber" componentType="osgi.bundle"/>
     <!-- needed so that the KNIME_Documentation_Builder application is available 
              for the knime.create.helpfiles action. -->
     <dependency name="org.knime.workbench.help" componentType="osgi.bundle"/>
