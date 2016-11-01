@@ -56,7 +56,7 @@ public class ExplorerBrowserNodeModel extends NodeModel {
     private static final NodeLogger LOGGER = NodeLogger
             .getLogger(ExplorerBrowserNodeModel.class);
 
-    private ExplorerBrowserNodeSettings m_config;
+    private final ExplorerBrowserNodeSettings m_config = new ExplorerBrowserNodeSettings();
 
     /**
      * Constructor for the node model.
@@ -94,7 +94,6 @@ public class ExplorerBrowserNodeModel extends NodeModel {
     }
 
     private void publishVariables() throws InvalidSettingsException {
-        CheckUtils.checkSettingNotNull(m_config, "No configuration available.");
         String urlString = m_config.getFullOutputURL();
 
         /* Try to resolve the URI to a local file. If this is possible the
@@ -127,9 +126,7 @@ public class ExplorerBrowserNodeModel extends NodeModel {
      */
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
-        if (m_config != null) {
-            m_config.saveSettingsTo(settings);
-        }
+        m_config.saveSettingsTo(settings);
     }
 
     /**
@@ -138,9 +135,7 @@ public class ExplorerBrowserNodeModel extends NodeModel {
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings)
             throws InvalidSettingsException {
-        ExplorerBrowserNodeSettings c = new ExplorerBrowserNodeSettings();
-        c.loadSettingsInModel(settings);
-        m_config = c;
+        m_config.loadSettingsInModel(settings);
     }
 
     /**
