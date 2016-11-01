@@ -88,7 +88,6 @@ public class ExplorerBrowserNodeModel extends NodeModel {
         } catch (MalformedURLException e) {
             throw new InvalidSettingsException("Invalid output URL \"" + outputURL + "\" provided.", e);
         }
-        CheckUtils.checkSettingNotNull(m_config.getFilename(), "Output filename must not be null");
 
         publishVariables();
         return new PortObjectSpec[] {FlowVariablePortObjectSpec.INSTANCE};
