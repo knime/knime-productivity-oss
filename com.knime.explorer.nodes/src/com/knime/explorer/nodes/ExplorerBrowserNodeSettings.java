@@ -92,18 +92,15 @@ final class ExplorerBrowserNodeSettings {
      * @throws InvalidSettingsException If that fails for any reason.
      */
     void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
-        String outputURL = CheckUtils.checkSettingNotNull(settings.getString("outputURL"), "URL must not be null");
-        try {
-            new URL(outputURL);
-        } catch (MalformedURLException e) {
-            throw new InvalidSettingsException("Invalid output URL \"" + outputURL + "\" provided.", e);
-        }
-        m_outputURL = outputURL;
-        //String filename = CheckUtils.checkSettingNotNull(settings.getString("outputFilename"), "file must not be null");
-        String filename = settings.getString("outputFilename");
-        toURI(getFullOutputURL(outputURL, filename)); // for validation
-        m_filename = filename;
+        m_outputURL = settings.getString("outputURL");
+        m_filename = settings.getString("outputFilename");
     }
+
+    void validateSetting(final NodeSettingsRO settings) throws InvalidSettingsException {
+        settings.getString("outputURL");
+        settings.getString("outputFilename");
+    }
+
 
     /** Load settings in dialog, init defaults if that fails.
      * @param settings To load from.

@@ -21,11 +21,13 @@
  */
 package com.knime.explorer.nodes;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
@@ -59,17 +61,43 @@ public class ExplorerBrowserNodeDialog extends AbstractExplorerLocationSelection
     protected ExplorerBrowserNodeDialog() {
         m_outputURL = new JTextField();
         m_outputURL.setColumns(20);
+        m_outputURL.setMaximumSize(new Dimension(Integer.MAX_VALUE, m_outputURL.getMaximumSize().height));
         m_outputFilename = new JTextField();
         m_outputFilename.setColumns(20);
+        m_outputFilename.setMaximumSize(new Dimension(Integer.MAX_VALUE, m_outputFilename.getMaximumSize().height));
         final JButton browseButton = createBrowseButton(m_outputURL);
 
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = new Insets(20, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
-        addPairToPanel("Output Filename", m_outputFilename, panel, gbc);
-        addTripelToPanel("Target Location", m_outputURL, browseButton, panel, gbc);
-        addTab("Options", panel);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(new JLabel("Output Filename"), gbc);
+        gbc.gridx++;
+        gbc.weightx = 1;
+        panel.add(m_outputFilename, gbc);
+        gbc.weightx = 0;
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(new JLabel("Target Location"), gbc);
+        gbc.gridx++;
+        gbc.weightx = 1;
+        panel.add(m_outputURL, gbc);
+        gbc.weightx = 0;
+        gbc.gridx++;
+        panel.add(browseButton, gbc);
+
+        gbc.gridy++;
+        gbc.weighty = 1;
+        gbc.gridx = 1;
+        gbc.weightx = 1;
+        panel.add(new JPanel(), gbc);
+
+        addTab("Settings", panel);
     }
 
     /**

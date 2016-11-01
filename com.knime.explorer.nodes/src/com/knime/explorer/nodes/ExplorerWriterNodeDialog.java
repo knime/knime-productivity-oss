@@ -29,6 +29,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
@@ -76,13 +77,37 @@ public class ExplorerWriterNodeDialog
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
-        addPairToPanel("File Path Variable", m_filePathVariableNameCombo,
-                panel, gbc);
-        addTripelToPanel("Target Location", m_outputURL, browseButton, panel,
-                gbc);
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(new JLabel("File Path Variable"), gbc);
+        gbc.gridx++;
+        gbc.weightx = 1;
+        panel.add(m_filePathVariableNameCombo, gbc);
+        gbc.weightx = 0;
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(new JLabel("Target Location"), gbc);
+        gbc.gridx++;
+        gbc.weightx = 1;
+        panel.add(m_outputURL, gbc);
+        gbc.weightx = 0;
+        gbc.gridx++;
+        panel.add(browseButton, gbc);
+
+        gbc.gridy++;
+        gbc.gridx = 1;
         panel.add(m_overwriteCheckbox, gbc);
-        addTab("Options", panel);
+
+        gbc.gridy++;
+        gbc.weighty = 1;
+        gbc.gridx = 1;
+        gbc.weightx = 1;
+        panel.add(new JPanel(), gbc);
+
+        addTab("Settings", panel);
     }
 
 

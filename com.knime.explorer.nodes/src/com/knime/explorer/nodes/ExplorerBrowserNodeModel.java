@@ -24,7 +24,9 @@ package com.knime.explorer.nodes;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
@@ -80,6 +82,14 @@ public class ExplorerBrowserNodeModel extends NodeModel {
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs)
             throws InvalidSettingsException {
+        String outputURL = CheckUtils.checkSettingNotNull(m_config.getOutputURL(), "URL must not be null");
+        try {
+            new URL(outputURL);
+        } catch (MalformedURLException e) {
+            throw new InvalidSettingsException("Invalid output URL \"" + outputURL + "\" provided.", e);
+        }
+        CheckUtils.checkSettingNotNull(m_config.getFilename(), "Output filename must not be null");
+
         publishVariables();
         return new PortObjectSpec[] {FlowVariablePortObjectSpec.INSTANCE};
     }
@@ -141,7 +151,7 @@ public class ExplorerBrowserNodeModel extends NodeModel {
     protected void validateSettings(final NodeSettingsRO settings)
             throws InvalidSettingsException {
        ExplorerBrowserNodeSettings c = new ExplorerBrowserNodeSettings();
-       c.loadSettingsInModel(settings);
+       c.validateSetting(settings);
     }
 
     /**
