@@ -28,6 +28,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 
+import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
@@ -103,7 +104,13 @@ public class ExplorerBrowserNodeModel extends NodeModel {
         try {
             resolvedFile = ResolverUtil.resolveURItoLocalFile(uri);
             if (resolvedFile != null) {
-                pushFlowVariableString("explorer_path", resolvedFile.getAbsolutePath());
+                String explorerPath = resolvedFile.getAbsolutePath();
+                // for directories append a trailing separator -- this is not really required but it used to be like
+                // that in 3.2 and we want to be backward compatible
+                if (resolvedFile.isDirectory()) {
+                    explorerPath = StringUtils.appendIfMissing(explorerPath, File.separator, File.separator);
+                }
+                pushFlowVariableString("explorer_path", explorerPath);
             } else {
                 LOGGER.warn("URI \"" + uri + "\" could not be resolved to a local file.");
             }
