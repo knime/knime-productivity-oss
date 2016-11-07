@@ -22,7 +22,6 @@
 
 package com.knime.explorer.nodes;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -62,7 +61,7 @@ final class ExplorerBrowserNodeSettings {
 
     /**
      * @return the full path including the file name
-     * @throws UnsupportedEncodingException
+     * @throws InvalidSettingsException If no output url is set
      */
     String getFullOutputURL() throws InvalidSettingsException {
         CheckUtils.checkSettingNotNull(m_outputURL, "No configuration available");
