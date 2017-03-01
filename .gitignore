@@ -1,3 +1,5 @@
 */bin/
 */target/
 */build/
+/com.knime.product.reportbatch/src/xmlbeans/org
+/com.knime.product.reportbatch/lib/schemas.jar
