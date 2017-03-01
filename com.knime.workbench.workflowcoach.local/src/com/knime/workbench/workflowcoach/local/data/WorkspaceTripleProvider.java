@@ -39,10 +39,6 @@ import org.knime.core.node.NodeTriple;
 import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
 import org.osgi.framework.FrameworkUtil;
 
-import com.knime.licenses.LicenseChecker;
-import com.knime.licenses.LicenseException;
-import com.knime.licenses.LicenseFeatures;
-import com.knime.licenses.LicenseUtil;
 import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferenceInitializer;
 
 /**
@@ -53,9 +49,6 @@ import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPre
 public class WorkspaceTripleProvider implements NodeTripleProvider {
     private static final ScopedPreferenceStore PREFS = new ScopedPreferenceStore(InstanceScope.INSTANCE,
         FrameworkUtil.getBundle(WorkspaceTripleProvider.class).getSymbolicName());
-
-
-    private static final LicenseChecker LICENSE_CHECKER = new LicenseUtil(LicenseFeatures.CustomWorkflowCoach);
 
     /**
      * The triple json-file store within the knime workflow metadata directory.
@@ -93,25 +86,7 @@ public class WorkspaceTripleProvider implements NodeTripleProvider {
     @Override
     public boolean isEnabled() {
         return PREFS.getBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER)
-            && Files.exists(WORKSPACE_NODE_TRIPLES_JSON_FILE) && checkLicense();
-    }
-
-    /**
-     * Checks the license if enabled for the {@link LicenseFeatures#CustomWorkflowCoach} feature.
-     *
-     * @return <code>true</code> if license exists
-     */
-    public static boolean checkLicense() {
-        try {
-            LICENSE_CHECKER.checkLicense();
-            return true;
-        } catch (LicenseException ex) {
-            //            MessageBox box = new MessageBox(Display.getCurrent().getActiveShell(), SWT.ICON_WARNING | SWT.OK);
-            //            box.setMessage("Custom Workflow Coach not available: " + ex.getMessage());
-            //            box.setText("Custom Workflow Coach not available");
-            //            box.open();
-            return false;
-        }
+            && Files.exists(WORKSPACE_NODE_TRIPLES_JSON_FILE);
     }
 
     /**

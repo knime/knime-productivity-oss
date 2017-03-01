@@ -17,23 +17,15 @@ import org.knime.workbench.explorer.filesystem.AbstractExplorerFileInfo;
 import org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore;
 import org.knime.workbench.explorer.view.IFileStoreProvider;
 
-import com.knime.licenses.LicenseChecker;
-import com.knime.licenses.LicenseException;
-import com.knime.licenses.LicenseFeatures;
-import com.knime.licenses.LicenseUtil;
 import com.knime.workbench.workflowdiff.editor.WorkflowCompareConfiguration;
 import com.knime.workbench.workflowdiff.editor.WorkflowCompareEditorInput;
 
 public class WorkflowCompareHandler extends AbstractHandler {
 
 	private static final NodeLogger LOGGER = NodeLogger.getLogger(WorkflowCompareHandler.class);
-    private static final LicenseChecker LICENSE_CHECKER = new LicenseUtil(LicenseFeatures.WorkflowDiff);
 
     @Override
     public Object execute(ExecutionEvent event) throws ExecutionException {
-        if (!checkLicense()) {
-            return false;
-        }
 
         ISelection selection = HandlerUtil.getActiveWorkbenchWindow(event).getActivePage().getSelection();
         if (selection != null & selection instanceof IStructuredSelection) {
@@ -86,19 +78,6 @@ public class WorkflowCompareHandler extends AbstractHandler {
             }
         }
         return null;
-    }
-
-    private boolean checkLicense() {
-        try {
-            LICENSE_CHECKER.checkLicense();
-            return true;
-        } catch (LicenseException ex) {
-            MessageBox box = new MessageBox(Display.getCurrent().getActiveShell(), SWT.ICON_WARNING | SWT.OK);
-            box.setMessage("Workflow diff not available: " + ex.getMessage());
-            box.setText("Workflow diff not available");
-            box.open();
-            return false;
-        }
     }
 
 }

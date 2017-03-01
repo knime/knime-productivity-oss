@@ -51,11 +51,11 @@ import org.eclipse.ui.preferences.ScopedPreferenceStore;
 import org.knime.core.internal.KNIMEPath;
 import org.knime.core.node.NodeFrequencies;
 import org.knime.core.node.NodeLogger;
+import org.knime.core.node.recommendation.WorkspaceAnalyzer;
 import org.knime.workbench.workflowcoach.NodeRecommendationManager;
 import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
 import org.osgi.framework.FrameworkUtil;
 
-import com.knime.enterprise.utility.recommendation.WorkspaceAnalyzer;
 import com.knime.workbench.workflowcoach.local.data.WorkspaceTripleProvider;
 
 /**
@@ -161,16 +161,6 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
         Label help = new Label(composite, SWT.NONE);
         help.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
         help.setText("The Analyze button assesses the node recommendations based on your local workspace.");
-
-        if(!WorkspaceTripleProvider.checkLicense()) {
-            m_checkWorkspaceProvider.setEnabled(false);
-            m_analyseButton.setEnabled(false);
-            m_lastUpdate.setEnabled(false);
-            Label licenseHint = new Label(composite, SWT.NONE);
-            licenseHint.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-            licenseHint.setText("No Personal Productivity License found.");
-            licenseHint.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_RED));
-        }
 
         initializeValues();
 
