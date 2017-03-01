@@ -26,10 +26,6 @@ by the copyright owner.
 In case of any questions, please contact KNIME.com at contact@knime.com
    </license>
 
-   <includes
-         id="com.knime.features.reportbatch"
-         version="0.0.0"/>
-
    <plugin
          id="com.knime.explorer.nodes"
          download-size="0"

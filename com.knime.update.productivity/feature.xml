@@ -9,21 +9,11 @@
          version="0.0.0"/>
 
    <includes
-         id="com.knime.features.localautomation"
-         version="0.0.0"/>
-
-   <includes
-         id="com.knime.features.personalproductivity"
-         version="0.0.0"/>
-
-   <includes
          id="com.knime.features.partnerproductivity"
          version="0.0.0"/>
 
-   <plugin
-         id="com.knime.productivity.base"
-         download-size="0"
-         install-size="0"
+   <includes
+         id="com.knime.features.reportbatch"
          version="0.0.0"/>
 
 </feature>
