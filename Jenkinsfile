@@ -36,6 +36,5 @@ node {
 	
 	stage('Archive artifacts') {
 		archive()
-		step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: 'testing@knime.com', sendToIndividuals: true])
 	}
 }
