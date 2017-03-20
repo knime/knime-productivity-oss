@@ -32,7 +32,7 @@
         </option>
         <option name="Inputs">After you have loaded the input format you will see an input block for every input node in
         the called workflow. You can select if you want to use a static value or the value of a column for the respective
-        input field.
+        input field or use the default value (that is the value that is set up in the workflow being called).
         </option>
     </fullDescription>
     <ports>

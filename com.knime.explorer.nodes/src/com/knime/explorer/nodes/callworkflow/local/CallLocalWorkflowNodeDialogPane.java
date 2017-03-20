@@ -21,7 +21,6 @@
 package com.knime.explorer.nodes.callworkflow.local;
 
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -50,6 +49,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -66,7 +66,6 @@ import org.knime.core.node.util.VerticalCollapsablePanels;
 import org.knime.core.node.util.ViewUtils;
 import org.knime.core.node.workflow.WorkflowPersistor;
 import org.knime.core.util.SwingWorkerWithContext;
-import org.knime.json.util.JSONUtil;
 
 import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
 import com.knime.productivity.base.callworkflow.IWorkflowBackend;
@@ -165,9 +164,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         gbc.gridy += 1;
         p.add(m_collapsablePanels, gbc);
 
-        p.setMinimumSize(new Dimension(650, 300));
-        p.setPreferredSize(new Dimension(650, 300));
-        addTab("Workflow", p);
+        addTab("Workflow", new JScrollPane(p));
     }
 
     private void fillWorkflowList() {
@@ -207,32 +204,15 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         m_settings.setWorkflowPath((String) m_workflowPath.getSelectedItem());
-        Map<String, String> parameterToJsonColumnMap = new LinkedHashMap<>();
-        Map<String, ExternalNodeData> parameterToJsonConfigMap = new LinkedHashMap<>();
-        for (Map.Entry<String, JSONInputPanel> entry : m_panelMap.entrySet()) {
-            final String key = entry.getKey();
-            final JSONInputPanel p = entry.getValue();
-            final String jsonColumn = p.getJSONColumn();
-            if (jsonColumn != null) {
-                parameterToJsonColumnMap.put(key, jsonColumn);
-            } else {
-                try {
-                    parameterToJsonConfigMap.put(key,
-                        ExternalNodeData.builder(key).jsonValue(JSONUtil.parseJSONValue(p.getJSONConfig())).build());
-                } catch (IOException ex) {
-                    throw new InvalidSettingsException("No valid JSON for key " + key + ": " + ex.getMessage(), ex);
-                }
-            }
-        }
+
         RptOutputFormat reportFormatOrNull;
         if (m_createReportChecker.isSelected()) {
             reportFormatOrNull = (RptOutputFormat)m_reportFormatCombo.getSelectedItem();
         } else {
             reportFormatOrNull = null;
         }
+        JSONInputPanel.saveSettingsTo(m_settings, m_panelMap.entrySet());
         m_settings.setReportFormatOrNull(reportFormatOrNull);
-        m_settings.setParameterToJsonColumnMap(parameterToJsonColumnMap);
-        m_settings.setParameterToJsonConfigMap(parameterToJsonConfigMap);
         m_settings.save(settings);
     }
 
@@ -252,19 +232,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                 ? reportFormatOrNull : m_reportFormatCombo.getModel().getElementAt(0));
         updatePanels();
 
-        for (Map.Entry<String, ExternalNodeData> entry : m_settings.getParameterToJsonConfigMap().entrySet()) {
-            JSONInputPanel p = m_panelMap.get(entry.getKey());
-            if (p != null) {
-                p.update(m_spec, entry.getValue().getJSONValue(), null);
-            }
-        }
-
-        for (Map.Entry<String, String> entry : m_settings.getParameterToJsonColumnMap().entrySet()) {
-            JSONInputPanel p = m_panelMap.get(entry.getKey());
-            if (p != null) {
-                p.update(specs[0], null, entry.getValue());
-            }
-        }
+        JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
     }
 
     private void updatePanels() {
