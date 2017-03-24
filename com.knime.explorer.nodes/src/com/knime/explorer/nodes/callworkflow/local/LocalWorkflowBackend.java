@@ -162,12 +162,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
         }
 
         synchronized (CALLER_MAP) {
-            Set<URI> workflowsUsedBy = CALLER_MAP.get(callingWorkflow);
-            if (workflowsUsedBy == null) {
-                workflowsUsedBy = new HashSet<>();
-                CALLER_MAP.put(callingWorkflow, workflowsUsedBy);
-            }
-            workflowsUsedBy.add(workflowUri);
+            CALLER_MAP.computeIfAbsent(callingWorkflow, k -> new HashSet<>()).add(workflowUri);
         }
 
         return localWorkflowBackend;
@@ -188,13 +183,12 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
 
     static void cleanCalledWorkflows(final WorkflowManager callingWorkflow) {
         synchronized (CALLER_MAP) {
-            Set<URI> workflowsUsedBy = CALLER_MAP.get(callingWorkflow);
+            Set<URI> workflowsUsedBy = CALLER_MAP.remove(callingWorkflow);
             if (workflowsUsedBy != null) {
                 for (URI workflowUri : workflowsUsedBy) {
                     CACHE.invalidate(workflowUri);
                 }
                 CACHE.cleanUp();
-                CALLER_MAP.remove(callingWorkflow);
             }
         }
     }
