@@ -25,8 +25,6 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.workflow.NodeContext;
 
-import com.knime.licenses.LicenseFeatures;
-import com.knime.licenses.LicenseStore;
 import com.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
 import com.knime.productivity.base.callworkflow.CallWorkflowNodeModel;
 import com.knime.productivity.base.callworkflow.IWorkflowBackend;
@@ -42,11 +40,6 @@ final class CallLocalWorkflowNodeModel extends CallWorkflowNodeModel {
     /** {@inheritDoc} */
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        String licenseMessage = LicenseStore.getDefaultStore().checkLicense(LicenseFeatures.CallLocalWorkflow);
-        if (licenseMessage != null) {
-            throw new InvalidSettingsException(licenseMessage);
-        }
-
         m_configuration.loadInModel(settings);
     }
 
