@@ -133,12 +133,6 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
         URL resolvedUrl;
         try {
             resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(new URL(path));
-            if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
-                workflowDir = FileUtil.resolveToPath(resolvedUrl);
-            } else {
-                assert resolvedUrl.getProtocol().startsWith("http") : "Expected http URL but not " + resolvedUrl;
-                workflowDir = downloadAndExtractRemoteWorkflow(new URL(path));
-            }
         } catch (IOException ex) {
             // no URI, try mountpoint relative path instead
             if (path.startsWith("/")) { // absolute path
@@ -148,6 +142,14 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
             }
             resolvedUrl = workflowDir.toUri().toURL();
         }
+
+        if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
+            workflowDir = FileUtil.resolveToPath(resolvedUrl);
+        } else {
+            assert resolvedUrl.getProtocol().startsWith("http") : "Expected http URL but not " + resolvedUrl;
+            workflowDir = downloadAndExtractRemoteWorkflow(new URL(path));
+        }
+
         if (!Files.isDirectory(workflowDir)) {
             throw new IOException("No such workflow: " + workflowDir);
         }
@@ -174,6 +176,12 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
 
         try (OutputStream os = new FileOutputStream(zippedWorkflow); InputStream is = url.openStream()) {
             IOUtils.copy(is, os);
+        } catch (IOException ex) {
+            if (ex.getMessage().contains("Server returned HTTP response code: 403")) {
+                throw new IOException("User does not have permissions to read workflow " + url + " on the server", ex);
+            } else {
+                throw ex;
+            }
         }
 
         FileUtil.unzip(zippedWorkflow, tempDir);
