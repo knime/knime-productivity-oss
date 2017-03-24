@@ -21,9 +21,14 @@
 package com.knime.explorer.nodes.callworkflow.local;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +42,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.json.JsonValue;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.birt.report.engine.api.EngineException;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
@@ -49,10 +55,11 @@ import org.knime.core.node.workflow.WorkflowContext;
 import org.knime.core.node.workflow.WorkflowLoadHelper;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.node.workflow.WorkflowPersistor.WorkflowLoadResult;
+import org.knime.core.util.FileUtil;
 import org.knime.core.util.KNIMETimer;
 import org.knime.core.util.Pair;
-import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.workbench.explorer.ExplorerMountTable;
+import org.knime.workbench.explorer.ExplorerURLStreamHandler;
 import org.knime.workbench.explorer.filesystem.LocalExplorerFileStore;
 import org.knime.workbench.ui.navigator.ProjectWorkflowMap;
 
@@ -122,28 +129,37 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
     static LocalWorkflowBackend newInstance(final String path, final WorkflowManager callingWorkflow) throws Exception {
         CACHE.cleanUp();
 
-        WorkflowContext wfContext = callingWorkflow.getContext();
-
-        File workflowDir;
+        Path workflowDir;
+        URL resolvedUrl;
         try {
-            URI uri = new URI(path);
-            workflowDir = ResolverUtil.resolveURItoLocalFile(uri).getCanonicalFile();
-        } catch (URISyntaxException | IOException ex) {
+            resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(new URL(path));
+            if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
+                workflowDir = FileUtil.resolveToPath(resolvedUrl);
+            } else {
+                assert resolvedUrl.getProtocol().startsWith("http") : "Expected http URL but not " + resolvedUrl;
+                workflowDir = downloadAndExtractRemoteWorkflow(new URL(path));
+            }
+        } catch (IOException ex) {
             // no URI, try mountpoint relative path instead
             if (path.startsWith("/")) { // absolute path
-                workflowDir = new File(wfContext.getMountpointRoot(), path).getCanonicalFile();
+                workflowDir = callingWorkflow.getContext().getMountpointRoot().toPath().resolve(path).toRealPath();
             } else {
-                workflowDir = new File(wfContext.getCurrentLocation(), path).getCanonicalFile();
+                workflowDir = callingWorkflow.getContext().getCurrentLocation().toPath().resolve(path).toRealPath();
             }
-
+            resolvedUrl = workflowDir.toUri().toURL();
         }
-        if (!workflowDir.isDirectory()) {
+        if (!Files.isDirectory(workflowDir)) {
             throw new IOException("No such workflow: " + workflowDir);
         }
 
-        URI workflowUri = workflowDir.toURI();
+        URI workflowUri = workflowDir.toUri();
         final LocalWorkflowBackend localWorkflowBackend = CACHE.get(workflowUri);
         localWorkflowBackend.lock();
+
+        if (!resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
+            // workflow downloaded from server
+            localWorkflowBackend.m_deleteAfterUse = true;
+        }
 
         synchronized (CALLER_MAP) {
             Set<URI> workflowsUsedBy = CALLER_MAP.get(callingWorkflow);
@@ -155,6 +171,19 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
         }
 
         return localWorkflowBackend;
+    }
+
+    private static Path downloadAndExtractRemoteWorkflow(final URL url) throws IOException {
+        File tempDir = FileUtil.createTempDir("Called-workflow");
+        File zippedWorkflow = new File(tempDir, "workflow.knwf");
+
+        try (OutputStream os = new FileOutputStream(zippedWorkflow); InputStream is = url.openStream()) {
+            IOUtils.copy(is, os);
+        }
+
+        FileUtil.unzip(zippedWorkflow, tempDir);
+        Files.delete(zippedWorkflow.toPath());
+        return tempDir.listFiles()[0].toPath();
     }
 
     static void cleanCalledWorkflows(final WorkflowManager callingWorkflow) {
@@ -177,6 +206,9 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
     private final ReentrantLock m_inUse = new ReentrantLock();
 
     private boolean m_discardAfterUse;
+
+    // set when the workflow has been downloaded from the server into a temporary directory
+    private boolean m_deleteAfterUse;
 
     private LocalWorkflowBackend(final URI uri, final WorkflowManager m) {
         m_uri = uri;
@@ -283,6 +315,9 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
     void discard() {
         ProjectWorkflowMap.unregisterClientFrom(m_uri, this);
         ProjectWorkflowMap.remove(m_uri);
+        if (m_deleteAfterUse) {
+            FileUtil.deleteRecursively(new File(m_uri));
+        }
     }
 
     /**
