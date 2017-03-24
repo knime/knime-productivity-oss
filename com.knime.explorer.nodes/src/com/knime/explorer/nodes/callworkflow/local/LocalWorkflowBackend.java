@@ -98,29 +98,44 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
             @Override
             public LocalWorkflowBackend load(final URI uri) throws Exception {
                 File file = new File(uri);
-                WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(uri);
-                if (m == null) {
-                    WorkflowContext.Factory ctxFac = new WorkflowContext.Factory(file);
 
-                    LocalExplorerFileStore fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
-                    if (fs != null) {
-                        File mountpointRoot = fs.getContentProvider().getFileStore("/").toLocalFile();
-                        ctxFac.setMountpointRoot(mountpointRoot);
-                        ctxFac.setMountpointURI(fs.toURI());
-                    } else if (NodeContext.getContext() != null) {
-                        // use context from current workflow if available (if run headless no filesystem may be mounted)
-                        WorkflowContext tmp = NodeContext.getContext().getWorkflowManager().getContext();
-                        ctxFac.setMountpointRoot(tmp.getMountpointRoot());
+                if (Boolean.getBoolean("java.awt.headless")) {
+                    WorkflowContext.Factory ctxFac;
+                    if (NodeContext.getContext() != null) {
+                         ctxFac =
+                            new WorkflowContext.Factory(NodeContext.getContext().getWorkflowManager().getContext());
+                         ctxFac.setCurrentLocation(file);
+                    } else {
+                        ctxFac = new WorkflowContext.Factory(file);
                     }
-
                     WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
                         new WorkflowLoadHelper(ctxFac.createContext()));
-                    m = l.getWorkflowManager();
-                    ProjectWorkflowMap.putWorkflow(uri, m);
+                    return new LocalWorkflowBackend(uri, l.getWorkflowManager());
+                } else {
+                    WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(uri);
+                    if (m == null) {
+                        WorkflowContext.Factory ctxFac = new WorkflowContext.Factory(file);
+
+                        LocalExplorerFileStore fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
+                        if (fs != null) {
+                            File mountpointRoot = fs.getContentProvider().getFileStore("/").toLocalFile();
+                            ctxFac.setMountpointRoot(mountpointRoot);
+                            ctxFac.setMountpointURI(fs.toURI());
+                        } else if (NodeContext.getContext() != null) {
+                            // use context from current workflow if available
+                            WorkflowContext tmp = NodeContext.getContext().getWorkflowManager().getContext();
+                            ctxFac.setMountpointRoot(tmp.getMountpointRoot());
+                        }
+
+                        WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
+                            new WorkflowLoadHelper(ctxFac.createContext()));
+                        m = l.getWorkflowManager();
+                        ProjectWorkflowMap.putWorkflow(uri, m);
+                    }
+                    LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(uri, m);
+                    ProjectWorkflowMap.registerClientTo(uri, localWorkflowBackend);
+                    return localWorkflowBackend;
                 }
-                final LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(uri, m);
-                ProjectWorkflowMap.registerClientTo(uri, localWorkflowBackend);
-                return localWorkflowBackend;
             }
         });
 
@@ -315,8 +330,10 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
     }
 
     void discard() {
-        ProjectWorkflowMap.unregisterClientFrom(m_uri, this);
-        ProjectWorkflowMap.remove(m_uri);
+        if (!Boolean.getBoolean("java.awt.headless")) {
+            ProjectWorkflowMap.unregisterClientFrom(m_uri, this);
+            ProjectWorkflowMap.remove(m_uri);
+        }
         if (m_deleteAfterUse) {
             FileUtil.deleteRecursively(new File(m_uri));
         }
