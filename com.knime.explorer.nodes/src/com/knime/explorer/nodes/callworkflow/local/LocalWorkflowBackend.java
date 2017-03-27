@@ -25,6 +25,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
@@ -42,8 +43,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.json.JsonValue;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.birt.report.engine.api.EngineException;
+import org.eclipse.core.runtime.CoreException;
+import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
@@ -51,21 +55,22 @@ import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.workflow.NodeContainerState;
 import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.NodeMessage;
+import org.knime.core.node.workflow.UnsupportedWorkflowVersionException;
 import org.knime.core.node.workflow.WorkflowContext;
 import org.knime.core.node.workflow.WorkflowLoadHelper;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.node.workflow.WorkflowPersistor.WorkflowLoadResult;
 import org.knime.core.util.FileUtil;
 import org.knime.core.util.KNIMETimer;
+import org.knime.core.util.LockFailedException;
 import org.knime.core.util.Pair;
 import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.ExplorerURLStreamHandler;
 import org.knime.workbench.explorer.filesystem.LocalExplorerFileStore;
 import org.knime.workbench.ui.navigator.ProjectWorkflowMap;
 
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.knime.enterprise.reportexecutor.ReportExecutor;
@@ -82,7 +87,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
 
     private static final NodeLogger LOGGER = NodeLogger.getLogger(LocalWorkflowBackend.class);
 
-    private static final LoadingCache<URI, LocalWorkflowBackend> CACHE = CacheBuilder.newBuilder()
+    private static final Cache<URI, LocalWorkflowBackend> CACHE = CacheBuilder.newBuilder()
         .expireAfterAccess(1L, TimeUnit.MINUTES).maximumSize(5)
         .removalListener(new RemovalListener<URI, LocalWorkflowBackend>() {
             @Override
@@ -94,95 +99,127 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
                     value.discard();
                 }
             }
-        }).build(new CacheLoader<URI, LocalWorkflowBackend>() {
-            @Override
-            public LocalWorkflowBackend load(final URI uri) throws Exception {
-                File file = new File(uri);
-
-                if (Boolean.getBoolean("java.awt.headless")) {
-                    WorkflowContext.Factory ctxFac;
-                    if (NodeContext.getContext() != null) {
-                         ctxFac =
-                            new WorkflowContext.Factory(NodeContext.getContext().getWorkflowManager().getContext());
-                         ctxFac.setCurrentLocation(file);
-                    } else {
-                        ctxFac = new WorkflowContext.Factory(file);
-                    }
-                    WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
-                        new WorkflowLoadHelper(ctxFac.createContext()));
-                    return new LocalWorkflowBackend(uri, l.getWorkflowManager());
-                } else {
-                    WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(uri);
-                    if (m == null) {
-                        WorkflowContext.Factory ctxFac = new WorkflowContext.Factory(file);
-
-                        LocalExplorerFileStore fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
-                        if (fs != null) {
-                            File mountpointRoot = fs.getContentProvider().getFileStore("/").toLocalFile();
-                            ctxFac.setMountpointRoot(mountpointRoot);
-                            ctxFac.setMountpointURI(fs.toURI());
-                        } else if (NodeContext.getContext() != null) {
-                            // use context from current workflow if available
-                            WorkflowContext tmp = NodeContext.getContext().getWorkflowManager().getContext();
-                            ctxFac.setMountpointRoot(tmp.getMountpointRoot());
-                        }
-
-                        WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
-                            new WorkflowLoadHelper(ctxFac.createContext()));
-                        m = l.getWorkflowManager();
-                        ProjectWorkflowMap.putWorkflow(uri, m);
-                    }
-                    LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(uri, m);
-                    ProjectWorkflowMap.registerClientTo(uri, localWorkflowBackend);
-                    return localWorkflowBackend;
-                }
-            }
-        });
+        }).build();
 
     private static final Map<WorkflowManager, Set<URI>> CALLER_MAP = new WeakHashMap<>();
 
     static LocalWorkflowBackend newInstance(final String path, final WorkflowManager callingWorkflow) throws Exception {
         CACHE.cleanUp();
 
-        Path workflowDir;
-        URL resolvedUrl;
+        URL originalUrl;
         try {
-            resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(new URL(path));
-        } catch (IOException ex) {
-            // no URI, try mountpoint relative path instead
+            originalUrl = new URL(path);
+        } catch (MalformedURLException ex) {
+            // no URL, try mountpoint relative path instead; for backwards-compatibility only, new nodes always
+            // use a URL
             if (path.startsWith("/")) { // absolute path
-                workflowDir = callingWorkflow.getContext().getMountpointRoot().toPath().resolve(path).toRealPath();
+                originalUrl = new URL("knime", ExplorerURLStreamHandler.MOUNTPOINT_RELATIVE, path);
             } else {
-                workflowDir = callingWorkflow.getContext().getCurrentLocation().toPath().resolve(path).toRealPath();
+                originalUrl = new URL("knime", ExplorerURLStreamHandler.WORKFLOW_RELATIVE, path);
             }
-            resolvedUrl = workflowDir.toUri().toURL();
         }
 
+        // resolve relative URLs into absolute URLs, usually either file or http
+        URL resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(originalUrl);
+
+        Path workflowDir;
         if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
             workflowDir = FileUtil.resolveToPath(resolvedUrl);
         } else {
             assert resolvedUrl.getProtocol().startsWith("http") : "Expected http URL but not " + resolvedUrl;
-            workflowDir = downloadAndExtractRemoteWorkflow(new URL(path));
+            workflowDir = downloadAndExtractRemoteWorkflow(originalUrl);
         }
 
         if (!Files.isDirectory(workflowDir)) {
             throw new IOException("No such workflow: " + workflowDir);
         }
 
-        URI workflowUri = workflowDir.toUri();
-        final LocalWorkflowBackend localWorkflowBackend = CACHE.get(workflowUri);
+        URI localUri = workflowDir.toUri();
+        URL ou = originalUrl; // Just to make the compiler happy
+        final LocalWorkflowBackend localWorkflowBackend = CACHE.get(localUri, () -> loadWorkflow(localUri, ou));
         localWorkflowBackend.lock();
 
         if (!resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
-            // workflow downloaded from server
+            // workflow downloaded from server into temp directory, should be deleted after use
             localWorkflowBackend.m_deleteAfterUse = true;
         }
 
         synchronized (CALLER_MAP) {
-            CALLER_MAP.computeIfAbsent(callingWorkflow, k -> new HashSet<>()).add(workflowUri);
+            CALLER_MAP.computeIfAbsent(callingWorkflow, k -> new HashSet<>()).add(localUri);
         }
 
         return localWorkflowBackend;
+    }
+
+    /**
+     * Loads a workflow.
+     *
+     * @param localUri the physical location in the local file system; may be a temporary copy of the workflow
+     * @param originalUrl the original URL as configured by the user, e.g. knime://knime.workflow/../Called
+     * @return a new local backend
+     */
+    private static LocalWorkflowBackend loadWorkflow(final URI localUri, final URL originalUrl)
+        throws IOException, InvalidSettingsException, CanceledExecutionException, UnsupportedWorkflowVersionException,
+        LockFailedException, CoreException {
+        File file = new File(localUri);
+
+        if (Boolean.getBoolean("java.awt.headless")) {
+            // running as an executor on the server or as batch executor
+            WorkflowContext.Factory ctxFac;
+
+            if (NodeContext.getContext() != null) {
+                WorkflowContext callerContext = NodeContext.getContext().getWorkflowManager().getContext();
+                ctxFac = new WorkflowContext.Factory(callerContext);
+
+                // compute the new path in the server repository base on the caller's path and the URL type
+                if (callerContext.getRemoteRepositoryAddress().isPresent()
+                    && callerContext.getRelativeRemotePath().isPresent()) {
+                     String relPath;
+                     if (ExplorerURLStreamHandler.WORKFLOW_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
+                        relPath = callerContext.getRelativeRemotePath().get() + "/" + originalUrl.getPath();
+                     } else if (ExplorerURLStreamHandler.MOUNTPOINT_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
+                         relPath = originalUrl.getPath();
+                     } else {
+                         // this shouldn't happen
+                         relPath = originalUrl.getPath();
+                     }
+
+                    ctxFac.setRemoteAddress(callerContext.getRemoteRepositoryAddress().get(),
+                        FilenameUtils.normalize(relPath, true));
+                 }
+                 ctxFac.setCurrentLocation(file);
+            } else {
+                ctxFac = new WorkflowContext.Factory(file);
+            }
+            WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
+                new WorkflowLoadHelper(ctxFac.createContext()));
+            return new LocalWorkflowBackend(localUri, l.getWorkflowManager());
+        } else {
+            // running in GUI mode
+            WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(localUri);
+            if (m == null) {
+                WorkflowContext.Factory ctxFac = new WorkflowContext.Factory(file);
+
+                LocalExplorerFileStore fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
+                if (fs != null) {
+                    File mountpointRoot = fs.getContentProvider().getFileStore("/").toLocalFile();
+                    ctxFac.setMountpointRoot(mountpointRoot);
+                    ctxFac.setMountpointURI(fs.toURI());
+                } else if (NodeContext.getContext() != null) {
+                    // use context from current workflow if available
+                    WorkflowContext tmp = NodeContext.getContext().getWorkflowManager().getContext();
+                    ctxFac.setMountpointRoot(tmp.getMountpointRoot());
+                }
+
+                WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
+                    new WorkflowLoadHelper(ctxFac.createContext()));
+                m = l.getWorkflowManager();
+                ProjectWorkflowMap.putWorkflow(localUri, m);
+            }
+            LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(localUri, m);
+            ProjectWorkflowMap.registerClientTo(localUri, localWorkflowBackend);
+            return localWorkflowBackend;
+        }
     }
 
     private static Path downloadAndExtractRemoteWorkflow(final URL url) throws IOException {
