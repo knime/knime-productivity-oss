@@ -115,7 +115,7 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
             if (path.startsWith("/")) { // absolute path
                 originalUrl = new URL("knime", ExplorerURLStreamHandler.MOUNTPOINT_RELATIVE, path);
             } else {
-                originalUrl = new URL("knime", ExplorerURLStreamHandler.WORKFLOW_RELATIVE, path);
+                originalUrl = new URL("knime", ExplorerURLStreamHandler.WORKFLOW_RELATIVE, "/" + path);
             }
         }
 
