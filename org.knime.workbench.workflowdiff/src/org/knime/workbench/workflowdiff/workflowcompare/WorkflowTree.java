@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
+import org.knime.core.api.node.workflow.IConnectionContainer;
 import org.knime.core.node.workflow.ConnectionContainer;
 import org.knime.core.node.workflow.NodeContainer;
 import org.knime.core.node.workflow.NodeID;
@@ -249,10 +250,10 @@ public class WorkflowTree {
 				}
 				// Iterate over the outPorts
 				for (int i = 0; i < getNodeContainer().getNrOutPorts(); i++) {
-					Set<ConnectionContainer> ccs = getParent().getWorkflowManager()
+					Set<IConnectionContainer> ccs = getParent().getWorkflowManager()
 							.getOutgoingConnectionsFor(getNodeContainer().getID(), i);
 					// Look at all connections to an outPort
-					for (ConnectionContainer cc : ccs) {
+					for (IConnectionContainer cc : ccs) {
 						// Store the connections
 						outputs.get(i).add(root.getNode(cc.getDest()));
 						outPorts.get(i).put(root.getNode(cc.getDest()), cc.getDestPort());

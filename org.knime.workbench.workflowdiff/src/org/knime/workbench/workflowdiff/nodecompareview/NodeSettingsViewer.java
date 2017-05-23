@@ -53,6 +53,7 @@ import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.part.ViewPart;
+import org.knime.core.node.util.CastUtil;
 import org.knime.core.node.workflow.NodeContainer;
 import org.knime.workbench.editor2.WorkflowEditor;
 import org.knime.workbench.editor2.editparts.NodeContainerEditPart;
@@ -129,7 +130,8 @@ public class NodeSettingsViewer extends ViewPart {
 		m_editor = editor;
 		m_leftNCEP = leftNCEP;
 		m_rightNCEP = rightNCEP;
-		m_mergeViewer.setElements(leftNCEP.getNodeContainer(), rightNCEP.getNodeContainer());
+		m_mergeViewer.setElements(CastUtil.cast(leftNCEP.getNodeContainer(), NodeContainer.class),
+				CastUtil.cast(rightNCEP.getNodeContainer(), NodeContainer.class));
 		for (int i = 0; i < toolbarActions.length; i++) {
 			toolbarActions[i].setEnabled(true);
 		}
