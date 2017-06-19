@@ -4,7 +4,7 @@
 	<extension
 			point="org.eclipse.ui.handlers">
 		<handler
-				class="com.knime.workbench.workflowdiff.handlers.NodeCompareHandler"
+				class="org.knime.workbench.workflowdiff.handlers.NodeCompareHandler"
 				commandId="com.knime.workbench.workflowdiff.CompareNodesCommand">
 			<enabledWhen>
 				<with variable="selection">
@@ -16,7 +16,7 @@
 			</enabledWhen>
 		</handler>
 		<handler
-				class="com.knime.workbench.workflowdiff.handlers.WorkflowCompareHandler"
+				class="org.knime.workbench.workflowdiff.handlers.WorkflowCompareHandler"
 				commandId="com.knime.workbench.workflowdiff.CompareWorkflowsCommand">
 			<enabledWhen>
 				<with variable="selection">
@@ -99,7 +99,7 @@
 			point="org.eclipse.ui.views">
 		<view
 				category="org.knime.workbench.ui.category"
-				class="com.knime.workbench.workflowdiff.nodecompareview.NodeSettingsViewer"
+				class="org.knime.workbench.workflowdiff.nodecompareview.NodeSettingsViewer"
 				id="com.knime.workbench.workflowdiff.nodeSettingsView"
 				name="Node Comparison"
 				restorable="true"/>
