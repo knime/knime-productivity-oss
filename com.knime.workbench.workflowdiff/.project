@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>com.knime.workbench.workflowdiff</name>
+	<name>org.knime.workbench.workflowdiff</name>
 	<comment></comment>
 	<projects>
 	</projects>

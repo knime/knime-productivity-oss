@@ -76,7 +76,7 @@ public class NodeDiffFilterContribution extends ControlContribution implements K
      */
     public NodeDiffFilterContribution(final NodeDiffFilter filter,
         final IFilterableTreeViewer... viewer) {
-        super("com.knime.workflow.diff.nodesettingsviewerfiltercontribution");
+        super("org.knime.workflow.diff.nodesettingsviewerfiltercontribution");
         m_viewer = viewer;
         m_filter = filter;
         for (IFilterableTreeViewer v : m_viewer) {

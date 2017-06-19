@@ -74,7 +74,7 @@ public class StructDiffHideEqualNodesFilterButton extends ControlContribution {
      *
      */
     public StructDiffHideEqualNodesFilterButton(final StructureDiffFilter filter, Viewer...viewers) {
-        super("com.knime.workflow.diff.structdiffhideequalnodesfilterbutton");
+        super("org.knime.workflow.diff.structdiffhideequalnodesfilterbutton");
         m_filter = filter;
         if (viewers == null) {
         	m_viewer = new Viewer[0];

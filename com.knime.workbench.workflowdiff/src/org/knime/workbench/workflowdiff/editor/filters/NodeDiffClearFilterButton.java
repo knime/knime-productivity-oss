@@ -71,7 +71,7 @@ public class NodeDiffClearFilterButton extends ControlContribution {
      *
      */
     public NodeDiffClearFilterButton(final NodeDiffFilterContribution textField) {
-        super("com.knime.workflow.diff.nodesettingsviewerclearfilterbutton");
+        super("org.knime.workflow.diff.nodesettingsviewerclearfilterbutton");
         m_textField = textField;
     }
 

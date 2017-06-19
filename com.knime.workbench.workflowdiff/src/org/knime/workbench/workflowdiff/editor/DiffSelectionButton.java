@@ -66,7 +66,7 @@ public class DiffSelectionButton extends ControlContribution {
 	private final WorkflowStructureViewer2 m_viewer;
 
 	public DiffSelectionButton(WorkflowStructureViewer2 viewer) {
-		super("com.knime.workflow.diff.structdiffbutton");
+		super("org.knime.workflow.diff.structdiffbutton");
 		m_viewer = viewer;
 	}
 

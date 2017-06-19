@@ -74,7 +74,7 @@ public class StructDiffAdditionsOnlyFilterButton extends ControlContribution {
      *
      */
     public StructDiffAdditionsOnlyFilterButton(final StructureDiffFilter filter, Viewer...viewers) {
-        super("com.knime.workflow.diff.structdiffadditionsonlyfilterbutton");
+        super("org.knime.workflow.diff.structdiffadditionsonlyfilterbutton");
         m_filter = filter;
         if (viewers == null) {
         	m_viewer = new Viewer[0];
