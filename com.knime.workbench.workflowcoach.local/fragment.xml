@@ -5,7 +5,7 @@
          point="org.eclipse.ui.preferencePages">
       <page
             category="org.knime.workbench.workflowcoach"
-            class="com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferencePage"
+            class="org.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferencePage"
             id="com.knime.workbench.workflowcoach.local"
             name="Workspace Recommendations">
       </page>
@@ -13,13 +13,13 @@
    <extension
          point="org.eclipse.core.runtime.preferences">
       <initializer
-            class="com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferenceInitializer">
+            class="org.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferenceInitializer">
       </initializer>
    </extension>
    <extension
          point="org.knime.workbench.workflowcoach.nodetriples">
       <tripleprovider
-            factory-class="com.knime.workbench.workflowcoach.local.data.WorkspaceTripleProviderFactory">
+            factory-class="org.knime.workbench.workflowcoach.local.data.WorkspaceTripleProviderFactory">
       </tripleprovider>
    </extension>
 </plugin>

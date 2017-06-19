@@ -19,7 +19,7 @@
  * History
  *   Mar 17, 2016 (hornm): created
  */
-package com.knime.workbench.workflowcoach.local.data;
+package org.knime.workbench.workflowcoach.local.data;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,9 +37,8 @@ import org.knime.core.node.NodeFrequencies;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeTriple;
 import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
+import org.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferenceInitializer;
 import org.osgi.framework.FrameworkUtil;
-
-import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferenceInitializer;
 
 /**
  * Reads the node triples from a json file that was generated based on the local workspace.

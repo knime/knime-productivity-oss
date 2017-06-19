@@ -46,15 +46,14 @@
  * History
  *   27.05.2016 (thor): created
  */
-package com.knime.workbench.workflowcoach.local.data;
+package org.knime.workbench.workflowcoach.local.data;
 
 import java.util.Collections;
 import java.util.List;
 
 import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
 import org.knime.workbench.workflowcoach.data.NodeTripleProviderFactory;
-
-import com.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferencePage;
+import org.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferencePage;
 
 /**
  * Factory for {@link WorkspaceTripleProvider}s.

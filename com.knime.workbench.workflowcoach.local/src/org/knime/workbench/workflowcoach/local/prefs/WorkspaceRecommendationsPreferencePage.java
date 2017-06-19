@@ -16,7 +16,7 @@
  * email: contact@knime.com
  * ---------------------------------------------------------------------
  */
-package com.knime.workbench.workflowcoach.local.prefs;
+package org.knime.workbench.workflowcoach.local.prefs;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -54,9 +54,8 @@ import org.knime.core.node.NodeLogger;
 import org.knime.core.node.recommendation.WorkspaceAnalyzer;
 import org.knime.workbench.workflowcoach.NodeRecommendationManager;
 import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
+import org.knime.workbench.workflowcoach.local.data.WorkspaceTripleProvider;
 import org.osgi.framework.FrameworkUtil;
-
-import com.knime.workbench.workflowcoach.local.data.WorkspaceTripleProvider;
 
 /**
  * Preference page for the local workflow coache.
@@ -105,7 +104,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
     }
 
     /** The id of this preference page. */
-    public static final String ID = "com.knime.workbench.workflowcoach.local";
+    public static final String ID = "org.knime.workbench.workflowcoach.local";
 
     private Button m_checkWorkspaceProvider;
 
