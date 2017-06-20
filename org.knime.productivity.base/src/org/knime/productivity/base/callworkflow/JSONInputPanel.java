@@ -18,7 +18,7 @@
  * History
  *   Created on 21.07.2015 by thor
  */
-package com.knime.productivity.base.callworkflow;
+package org.knime.productivity.base.callworkflow;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;

@@ -92,6 +92,7 @@ import org.knime.core.util.FileUtil;
 import org.knime.core.util.KNIMETimer;
 import org.knime.core.util.LockFailedException;
 import org.knime.core.util.Pair;
+import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.ExplorerURLStreamHandler;
 import org.knime.workbench.explorer.filesystem.LocalExplorerFileStore;
@@ -104,7 +105,6 @@ import com.google.common.cache.RemovalNotification;
 import com.knime.enterprise.reportexecutor.ReportExecutor;
 import com.knime.enterprise.utility.oda.ReportingConstants;
 import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
-import com.knime.productivity.base.callworkflow.IWorkflowBackend;
 
 /**
  * A local workflow representation. Workflows are kept in a cache and re-used with exclusive locks.

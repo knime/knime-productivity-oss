@@ -52,10 +52,9 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.workflow.NodeContext;
-
-import com.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
-import com.knime.productivity.base.callworkflow.CallWorkflowNodeModel;
-import com.knime.productivity.base.callworkflow.IWorkflowBackend;
+import org.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
+import org.knime.productivity.base.callworkflow.CallWorkflowNodeModel;
+import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 
 /**
  * Model to node.

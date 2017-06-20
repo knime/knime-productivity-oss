@@ -18,7 +18,7 @@
  * History
  *   Created on Feb 16, 2015 by wiswedel
  */
-package com.knime.productivity.base.callworkflow;
+package org.knime.productivity.base.callworkflow;
 
 import java.io.IOException;
 import java.util.Collections;
