@@ -44,78 +44,102 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Created on Feb 16, 2015 by wiswedel
+ *   25.10.2011 (morent): created
  */
-package com.knime.explorer.nodes.callworkflow.local;
+
+package org.knime.explorer.nodes;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
-import org.knime.core.node.workflow.NodeContext;
-
-import com.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
-import com.knime.productivity.base.callworkflow.CallWorkflowNodeModel;
-import com.knime.productivity.base.callworkflow.IWorkflowBackend;
+import org.knime.workbench.explorer.filesystem.ExplorerFileSystem;
 
 /**
- * Model to node.
  *
- * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
+ * @author Dominik Morent, KNIME.com, Zurich, Switzerland
+ *
  */
-final class CallLocalWorkflowNodeModel extends CallWorkflowNodeModel {
-    private CallLocalWorkflowConfiguration m_configuration = new CallLocalWorkflowConfiguration();
+final class ExplorerWriterNodeSettings {
+    private String m_filePathVarName;
+    private String m_outputURL;
+    private boolean m_overwriteOK;
 
-    /** {@inheritDoc} */
-    @Override
-    protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_configuration.loadInModel(settings);
+    /**
+     * @return the filePath
+     */
+    public String getFilePathVariableName() {
+        return m_filePathVarName;
     }
 
     /**
-     * {@inheritDoc}
+     * @return the URL of the directory to save the file to
      */
-    @Override
-    protected IWorkflowBackend newBackend(final String workflowPath) throws Exception {
-        return LocalWorkflowBackend.newInstance(workflowPath, NodeContext.getContext().getWorkflowManager());
+    public String getOutputURL() {
+        return m_outputURL;
     }
 
     /**
-     * {@inheritDoc}
+     * @param filePathVarName the filePath to set
      */
-    @Override
-    protected CallWorkflowConfiguration getConfiguration() {
-        return m_configuration;
+    public void setFilePathVariableName(final String filePathVarName) {
+        m_filePathVarName = filePathVarName;
+    }
+    /**
+     * @param outputURL the outputURL to set
+     */
+    public void setOutputURL(final String outputURL) {
+        m_outputURL = outputURL;
+    }
+
+
+    /** Load config in model.
+     * @param settings To load from.
+     * @throws InvalidSettingsException If that fails for any reason.
+     */
+    public void loadSettingsInModel(final NodeSettingsRO settings)
+        throws InvalidSettingsException {
+        m_filePathVarName = settings.getString("filePathVarName");
+        String outputURL = settings.getString("outputURL");
+        try {
+            new URL(outputURL);
+        } catch (MalformedURLException e) {
+            throw new InvalidSettingsException("Invalid output URL \""
+                    + outputURL + "\" provided.", e);
+        }
+        m_outputURL = outputURL;
+        m_overwriteOK = settings.getBoolean("overwriteOK");
+    }
+
+    /** Load settings in dialog, init defaults if that fails.
+     * @param settings To load from.
+     */
+    public void loadSettingsInDialog(final NodeSettingsRO settings) {
+        m_filePathVarName = settings.getString("filePathVarName", "");
+        m_outputURL = settings.getString("outputURL",
+                ExplorerFileSystem.SCHEME + "://");
+        m_overwriteOK = settings.getBoolean("overwriteOK", false);
+    }
+
+    /** @param settings to save to. */
+    public void saveSettingsTo(final NodeSettingsWO settings) {
+        settings.addString("filePathVarName", m_filePathVarName);
+        settings.addString("outputURL", m_outputURL);
+        settings.addBoolean("overwriteOK", m_overwriteOK);
     }
 
     /**
-     * {@inheritDoc}
+     * @return true, if existing files should be overwritten, false otherwise
      */
-    @Override
-    protected void saveSettingsTo(final NodeSettingsWO settings) {
-        m_configuration.save(settings);
+    public boolean isOverwriteOK() {
+        return m_overwriteOK;
     }
-
     /**
-     * {@inheritDoc}
+     * @param overwriteOK set to true to overwrite existing files
      */
-    @Override
-    protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        new CallLocalWorkflowConfiguration().loadInModel(settings);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void reset() {
-        // nothing to do
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void onDispose() {
-        LocalWorkflowBackend.cleanCalledWorkflows(NodeContext.getContext().getWorkflowManager());
+    public void setOverwriteOK(final boolean overwriteOK) {
+        m_overwriteOK = overwriteOK;
     }
 }

@@ -44,61 +44,78 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   25.10.2011 (morent): created
+ *   Created on Feb 16, 2015 by wiswedel
  */
+package org.knime.explorer.nodes.callworkflow.local;
 
-package com.knime.explorer.nodes;
+import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeSettingsRO;
+import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.workflow.NodeContext;
 
-import org.knime.core.node.NodeDialogPane;
-import org.knime.core.node.NodeFactory;
-import org.knime.core.node.NodeView;
+import com.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
+import com.knime.productivity.base.callworkflow.CallWorkflowNodeModel;
+import com.knime.productivity.base.callworkflow.IWorkflowBackend;
 
 /**
- * @author Dominik Morent, KNIME.com AG, Zurich, Switzerland
+ * Model to node.
+ *
+ * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
-public class ExplorerBrowserNodeFactory
-        extends NodeFactory<ExplorerBrowserNodeModel> {
+final class CallLocalWorkflowNodeModel extends CallWorkflowNodeModel {
+    private CallLocalWorkflowConfiguration m_configuration = new CallLocalWorkflowConfiguration();
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
-    public ExplorerBrowserNodeModel createNodeModel() {
-        return new ExplorerBrowserNodeModel();
+    protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
+        m_configuration.loadInModel(settings);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int getNrNodeViews() {
-        return 0;
+    protected IWorkflowBackend newBackend(final String workflowPath) throws Exception {
+        return LocalWorkflowBackend.newInstance(workflowPath, NodeContext.getContext().getWorkflowManager());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public NodeView<ExplorerBrowserNodeModel> createNodeView(
-            final int viewIndex, final ExplorerBrowserNodeModel nodeModel) {
-        return null;
+    protected CallWorkflowConfiguration getConfiguration() {
+        return m_configuration;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean hasDialog() {
-        return true;
+    protected void saveSettingsTo(final NodeSettingsWO settings) {
+        m_configuration.save(settings);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public NodeDialogPane createNodeDialogPane() {
-        return new ExplorerBrowserNodeDialog();
+    protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
+        new CallLocalWorkflowConfiguration().loadInModel(settings);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void reset() {
+        // nothing to do
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onDispose() {
+        LocalWorkflowBackend.cleanCalledWorkflows(NodeContext.getContext().getWorkflowManager());
+    }
 }
-

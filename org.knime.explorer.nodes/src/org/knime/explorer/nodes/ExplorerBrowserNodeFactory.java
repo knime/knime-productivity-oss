@@ -44,16 +44,61 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Created on 21.07.2015 by thor
+ *   25.10.2011 (morent): created
  */
-package com.knime.explorer.nodes.callworkflow.local;
 
-import com.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
+package org.knime.explorer.nodes;
+
+import org.knime.core.node.NodeDialogPane;
+import org.knime.core.node.NodeFactory;
+import org.knime.core.node.NodeView;
 
 /**
- *
- * @author Thorsten Meinl, KNIME.com, Zurich, Switzerland
+ * @author Dominik Morent, KNIME.com AG, Zurich, Switzerland
  */
-public class CallLocalWorkflowConfiguration extends CallWorkflowConfiguration {
-    // Nothing to add yet
+public class ExplorerBrowserNodeFactory
+        extends NodeFactory<ExplorerBrowserNodeModel> {
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ExplorerBrowserNodeModel createNodeModel() {
+        return new ExplorerBrowserNodeModel();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getNrNodeViews() {
+        return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public NodeView<ExplorerBrowserNodeModel> createNodeView(
+            final int viewIndex, final ExplorerBrowserNodeModel nodeModel) {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean hasDialog() {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public NodeDialogPane createNodeDialogPane() {
+        return new ExplorerBrowserNodeDialog();
+    }
+
 }
+

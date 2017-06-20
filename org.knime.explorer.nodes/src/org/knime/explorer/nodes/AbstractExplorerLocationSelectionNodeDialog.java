@@ -48,7 +48,7 @@
  */
 
 
-package com.knime.explorer.nodes;
+package org.knime.explorer.nodes;
 
 import java.awt.GridBagConstraints;
 import java.awt.event.ActionEvent;

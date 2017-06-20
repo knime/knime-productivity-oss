@@ -47,7 +47,7 @@
  *   25.10.2011 (morent): created
  */
 
-package com.knime.explorer.nodes;
+package org.knime.explorer.nodes;
 
 import java.io.File;
 import java.io.FileInputStream;

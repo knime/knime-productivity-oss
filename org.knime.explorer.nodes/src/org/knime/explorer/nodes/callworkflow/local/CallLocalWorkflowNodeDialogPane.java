@@ -46,7 +46,7 @@
  * History
  *   Created on Feb 16, 2015 by wiswedel
  */
-package com.knime.explorer.nodes.callworkflow.local;
+package org.knime.explorer.nodes.callworkflow.local;
 
 import java.awt.Color;
 import java.awt.GridBagConstraints;

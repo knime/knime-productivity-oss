@@ -46,7 +46,7 @@
  * History
  *   25.10.2011 (morent): created
  */
-package com.knime.explorer.nodes;
+package org.knime.explorer.nodes;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;

@@ -44,46 +44,64 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Created on Feb 17, 2015 by wiswedel
+ *   25.10.2011 (morent): created
  */
-package com.knime.explorer.nodes.callworkflow.local;
+
+package org.knime.explorer.nodes;
 
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeFactory;
 import org.knime.core.node.NodeView;
 
 /**
- * Factory to node.
- * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
+ * <code>NodeFactory</code> for the "ExplorerWriter" Node.
+ * Allows to write to locations mounted in KNIME explorer
+ *
+ * @author Dominik Morent, KNIME.com AG, Zurich, Switzerland
  */
-public class CallLocalWorkflowNodeFactory extends NodeFactory<CallLocalWorkflowNodeModel> {
-    /** {@inheritDoc} */
+public class ExplorerWriterNodeFactory
+        extends NodeFactory<ExplorerWriterNodeModel> {
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public CallLocalWorkflowNodeModel createNodeModel() {
-        return new CallLocalWorkflowNodeModel();
+    public ExplorerWriterNodeModel createNodeModel() {
+        return new ExplorerWriterNodeModel();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    protected int getNrNodeViews() {
+    public int getNrNodeViews() {
         return 0;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public NodeView<CallLocalWorkflowNodeModel> createNodeView(final int viewIndex, final CallLocalWorkflowNodeModel nodeModel) {
+    public NodeView<ExplorerWriterNodeModel> createNodeView(final int viewIndex,
+            final ExplorerWriterNodeModel nodeModel) {
         return null;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    protected boolean hasDialog() {
+    public boolean hasDialog() {
         return true;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    protected NodeDialogPane createNodeDialogPane() {
-        return new CallLocalWorkflowNodeDialogPane();
+    public NodeDialogPane createNodeDialogPane() {
+        return new ExplorerWriterNodeDialog();
     }
+
 }
+

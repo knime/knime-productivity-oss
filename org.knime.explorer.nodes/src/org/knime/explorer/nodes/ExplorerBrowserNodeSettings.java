@@ -47,99 +47,113 @@
  *   25.10.2011 (morent): created
  */
 
-package com.knime.explorer.nodes;
+package org.knime.explorer.nodes;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
+import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.workbench.explorer.filesystem.ExplorerFileSystem;
+
+import com.google.common.net.UrlEscapers;
 
 /**
  *
  * @author Dominik Morent, KNIME.com, Zurich, Switzerland
  *
  */
-final class ExplorerWriterNodeSettings {
-    private String m_filePathVarName;
+final class ExplorerBrowserNodeSettings {
     private String m_outputURL;
-    private boolean m_overwriteOK;
-
-    /**
-     * @return the filePath
-     */
-    public String getFilePathVariableName() {
-        return m_filePathVarName;
-    }
+    private String m_filename;
 
     /**
      * @return the URL of the directory to save the file to
      */
-    public String getOutputURL() {
+    String getOutputURL() {
         return m_outputURL;
     }
 
     /**
-     * @param filePathVarName the filePath to set
-     */
-    public void setFilePathVariableName(final String filePathVarName) {
-        m_filePathVarName = filePathVarName;
-    }
-    /**
      * @param outputURL the outputURL to set
      */
-    public void setOutputURL(final String outputURL) {
+    void setOutputURL(final String outputURL) {
         m_outputURL = outputURL;
     }
 
+    /**
+     * @return the full path including the file name
+     * @throws InvalidSettingsException If no output url is set
+     */
+    String getFullOutputURL() throws InvalidSettingsException {
+        CheckUtils.checkSettingNotNull(m_outputURL, "No configuration available");
+        return getFullOutputURL(m_outputURL, m_filename);
+    }
+
+    private static String getFullOutputURL(final String rawOutputURL, final String rawFilename)
+            throws InvalidSettingsException {
+        String outputURL = StringUtils.removeEnd(StringUtils.defaultString(rawOutputURL), "/");
+        String filename = StringUtils.removeStart(StringUtils.defaultString(rawFilename), "/");
+        filename = UrlEscapers.urlPathSegmentEscaper().escape(filename);
+        return String.join("/", outputURL, filename);
+    }
+
+    static URI toURI(final String urlString) throws InvalidSettingsException {
+        try {
+            URL url = new URL(urlString);
+            return url.toURI();
+        } catch (URISyntaxException | MalformedURLException e) {
+            throw new InvalidSettingsException("Cannot compose URI object from URL string \""
+                    + urlString + "\": " + e.getMessage(), e);
+        }
+    }
 
     /** Load config in model.
      * @param settings To load from.
      * @throws InvalidSettingsException If that fails for any reason.
      */
-    public void loadSettingsInModel(final NodeSettingsRO settings)
-        throws InvalidSettingsException {
-        m_filePathVarName = settings.getString("filePathVarName");
-        String outputURL = settings.getString("outputURL");
-        try {
-            new URL(outputURL);
-        } catch (MalformedURLException e) {
-            throw new InvalidSettingsException("Invalid output URL \""
-                    + outputURL + "\" provided.", e);
-        }
-        m_outputURL = outputURL;
-        m_overwriteOK = settings.getBoolean("overwriteOK");
+    void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
+        m_outputURL = settings.getString("outputURL");
+        m_filename = settings.getString("outputFilename");
     }
+
+    void validateSetting(final NodeSettingsRO settings) throws InvalidSettingsException {
+        settings.getString("outputURL");
+        settings.getString("outputFilename");
+    }
+
 
     /** Load settings in dialog, init defaults if that fails.
      * @param settings To load from.
      */
-    public void loadSettingsInDialog(final NodeSettingsRO settings) {
-        m_filePathVarName = settings.getString("filePathVarName", "");
-        m_outputURL = settings.getString("outputURL",
-                ExplorerFileSystem.SCHEME + "://");
-        m_overwriteOK = settings.getBoolean("overwriteOK", false);
+    void loadSettingsInDialog(final NodeSettingsRO settings) {
+        m_outputURL = settings.getString("outputURL", ExplorerFileSystem.SCHEME + "://");
+        m_filename = settings.getString("outputFilename", "");
     }
 
     /** @param settings to save to. */
-    public void saveSettingsTo(final NodeSettingsWO settings) {
-        settings.addString("filePathVarName", m_filePathVarName);
+    void saveSettingsTo(final NodeSettingsWO settings) {
         settings.addString("outputURL", m_outputURL);
-        settings.addBoolean("overwriteOK", m_overwriteOK);
+        settings.addString("outputFilename", m_filename);
     }
 
     /**
-     * @return true, if existing files should be overwritten, false otherwise
+     * @return the filename
      */
-    public boolean isOverwriteOK() {
-        return m_overwriteOK;
+    String getFilename() {
+        return m_filename;
     }
     /**
-     * @param overwriteOK set to true to overwrite existing files
+     * @param filename the filename to set
      */
-    public void setOverwriteOK(final boolean overwriteOK) {
-        m_overwriteOK = overwriteOK;
+
+    void setFilename(final String filename) {
+        m_filename = filename;
     }
+
 }

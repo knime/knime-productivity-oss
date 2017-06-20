@@ -27,7 +27,7 @@ In case of any questions, please contact KNIME.com at contact@knime.com
    </license>
 
    <plugin
-         id="com.knime.explorer.nodes"
+         id="org.knime.explorer.nodes"
          download-size="0"
          install-size="0"
          version="0.0.0"/>
