@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
-      id="com.knime.features.personalproductivity"
+      id="org.knime.features.personalproductivity"
       label="KNIME Personal Productivity Tools"
       version="3.4.0.qualifier"
       provider-name="KNIME.com, Zurich, Switzerland">
