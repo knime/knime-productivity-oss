@@ -14,4 +14,10 @@
             category-path="/io/write" 
             factory-class="org.knime.explorer.nodes.writer.ExplorerWriterNodeFactory" />
     </extension>
+    <extension
+          point="org.knime.core.NodeFactoryClassMapper">
+       <NodeFactoryClassMapper
+             classMapper="org.knime.explorer.nodes.ExplorerNodeFactoryClassMapper">
+       </NodeFactoryClassMapper>
+    </extension>
 </plugin>
