@@ -105,10 +105,9 @@ import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.StringFormat;
 import org.knime.core.util.UniqueNameGenerator;
+import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.productivity.base.callworkflow.IWorkflowBackend.ReportGenerationException;
 import org.knime.productivity.base.callworkflow.IWorkflowBackend.WorkflowState;
-
-import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
 
 /**
  * Abstract class for nodes that call other workflows.

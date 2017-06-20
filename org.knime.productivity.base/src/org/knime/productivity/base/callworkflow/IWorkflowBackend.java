@@ -54,8 +54,7 @@ import javax.json.JsonValue;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
-
-import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
+import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 
 /**
  * Interface to access a workflow. Can be either a local workflow or a remote flow (via REST calls then).

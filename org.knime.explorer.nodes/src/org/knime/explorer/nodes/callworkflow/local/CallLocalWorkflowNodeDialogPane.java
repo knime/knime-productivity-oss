@@ -94,10 +94,9 @@ import org.knime.core.node.util.VerticalCollapsablePanels;
 import org.knime.core.node.util.ViewUtils;
 import org.knime.core.node.workflow.WorkflowPersistor;
 import org.knime.core.util.SwingWorkerWithContext;
+import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 import org.knime.productivity.base.callworkflow.JSONInputPanel;
-
-import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
 
 /**
  * Dialog to node.

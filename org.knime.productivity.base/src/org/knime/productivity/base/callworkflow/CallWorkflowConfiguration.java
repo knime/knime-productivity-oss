@@ -62,9 +62,8 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
+import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.json.util.JSONUtil;
-
-import com.knime.enterprise.utility.oda.ReportingConstants.RptOutputFormat;
 
 /**
  * Config object to node. Holds (remote) workflow URI and parameters.
