@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Shared components of different commercial extensions
-Bundle-SymbolicName: com.knime.productivity.base;singleton:=true
+Bundle-SymbolicName: org.knime.productivity.base;singleton:=true
 Bundle-Version: 3.4.0.qualifier
 Bundle-ClassPath: .
 Bundle-Vendor: KNIME.com, Zurich, Switzerland
