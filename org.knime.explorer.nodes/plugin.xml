@@ -9,9 +9,9 @@
        <node 
             after="_last_"
             category-path="/io/read" 
-            factory-class="org.knime.explorer.nodes.ExplorerBrowserNodeFactory" />
+            factory-class="org.knime.explorer.nodes.browser.ExplorerBrowserNodeFactory" />
        <node 
             category-path="/io/write" 
-            factory-class="org.knime.explorer.nodes.ExplorerWriterNodeFactory" />
+            factory-class="org.knime.explorer.nodes.writer.ExplorerWriterNodeFactory" />
     </extension>
 </plugin>

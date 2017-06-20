@@ -47,7 +47,7 @@
  *   25.10.2011 (morent): created
  */
 
-package org.knime.explorer.nodes;
+package org.knime.explorer.nodes.writer;
 
 import java.net.MalformedURLException;
 import java.net.URL;

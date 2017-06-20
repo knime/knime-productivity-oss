@@ -47,24 +47,27 @@
  *   25.10.2011 (morent): created
  */
 
-package org.knime.explorer.nodes;
+package org.knime.explorer.nodes.writer;
 
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeFactory;
 import org.knime.core.node.NodeView;
 
 /**
+ * <code>NodeFactory</code> for the "ExplorerWriter" Node.
+ * Allows to write to locations mounted in KNIME explorer
+ *
  * @author Dominik Morent, KNIME.com AG, Zurich, Switzerland
  */
-public class ExplorerBrowserNodeFactory
-        extends NodeFactory<ExplorerBrowserNodeModel> {
+public class ExplorerWriterNodeFactory
+        extends NodeFactory<ExplorerWriterNodeModel> {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ExplorerBrowserNodeModel createNodeModel() {
-        return new ExplorerBrowserNodeModel();
+    public ExplorerWriterNodeModel createNodeModel() {
+        return new ExplorerWriterNodeModel();
     }
 
     /**
@@ -79,8 +82,8 @@ public class ExplorerBrowserNodeFactory
      * {@inheritDoc}
      */
     @Override
-    public NodeView<ExplorerBrowserNodeModel> createNodeView(
-            final int viewIndex, final ExplorerBrowserNodeModel nodeModel) {
+    public NodeView<ExplorerWriterNodeModel> createNodeView(final int viewIndex,
+            final ExplorerWriterNodeModel nodeModel) {
         return null;
     }
 
@@ -97,7 +100,7 @@ public class ExplorerBrowserNodeFactory
      */
     @Override
     public NodeDialogPane createNodeDialogPane() {
-        return new ExplorerBrowserNodeDialog();
+        return new ExplorerWriterNodeDialog();
     }
 
 }

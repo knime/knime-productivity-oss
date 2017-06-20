@@ -42,66 +42,9 @@
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
  * ---------------------------------------------------------------------
- *
- * History
- *   25.10.2011 (morent): created
  */
-
-package org.knime.explorer.nodes;
-
-import org.knime.core.node.NodeDialogPane;
-import org.knime.core.node.NodeFactory;
-import org.knime.core.node.NodeView;
-
 /**
- * <code>NodeFactory</code> for the "ExplorerWriter" Node.
- * Allows to write to locations mounted in KNIME explorer
- *
- * @author Dominik Morent, KNIME.com AG, Zurich, Switzerland
+ * The "Explorer Writer" node.
+ * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
-public class ExplorerWriterNodeFactory
-        extends NodeFactory<ExplorerWriterNodeModel> {
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ExplorerWriterNodeModel createNodeModel() {
-        return new ExplorerWriterNodeModel();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getNrNodeViews() {
-        return 0;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NodeView<ExplorerWriterNodeModel> createNodeView(final int viewIndex,
-            final ExplorerWriterNodeModel nodeModel) {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean hasDialog() {
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NodeDialogPane createNodeDialogPane() {
-        return new ExplorerWriterNodeDialog();
-    }
-
-}
-
+package org.knime.explorer.nodes.writer;
