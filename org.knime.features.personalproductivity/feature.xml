@@ -3,7 +3,7 @@
       id="org.knime.features.personalproductivity"
       label="KNIME Personal Productivity Tools"
       version="3.4.0.qualifier"
-      provider-name="KNIME.com, Zurich, Switzerland">
+      provider-name="KNIME GmbH, Konstanz, Germany">
 
    <description>
       This feature contains the KNIME Personal Productivity Tools including
