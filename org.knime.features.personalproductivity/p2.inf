@@ -1,0 +1,2 @@
+update.matchExp = providedCapabilities.exists(pc | pc.namespace == 'org.eclipse.equinox.p2.iu' && (pc.name == 'org.knime.features.personalproductivity.feature.group' || pc.name == 'com.knime.features.personalproductivity.feature.group' || pc.name == 'com.knime.features.localautomation.feature.group') && pc.version < '3.4.0.v201704131225')
+update.severity = 1
