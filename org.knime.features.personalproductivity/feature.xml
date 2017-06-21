@@ -358,7 +358,7 @@ Public License instead of this License.
    </license>
 
    <plugin
-         id="com.knime.workbench.workflowdiff"
+         id="org.knime.workbench.workflowdiff"
          download-size="0"
          install-size="0"
          version="0.0.0"
@@ -373,7 +373,7 @@ Public License instead of this License.
          unpack="false"/>
 
    <plugin
-         id="com.knime.explorer.nodes"
+         id="org.knime.explorer.nodes"
          download-size="0"
          install-size="0"
          version="0.0.0"/>
