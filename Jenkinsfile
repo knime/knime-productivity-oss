@@ -1,4 +1,6 @@
-@Library('knime-pipeline@master') _
+#!groovy
+
+library "knime-pipeline@$BRANCH_NAME"
 
 def upstreamProject = 'org.knime.update.analytics-platform'
 
