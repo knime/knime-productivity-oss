@@ -162,7 +162,10 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
             throw new IOException("No such workflow: " + workflowDir);
         }
 
-        URI localUri = workflowDir.toUri();
+        // Converting the path directly to URI leads to key matching problems in the ProjectWorkflowMap as three
+        // slashes will be added after the scheme part of the URI, however the value will be accessed with only one slash
+        // after the scheme. Hence, convert to file first. See AP-7589.
+        URI localUri = workflowDir.toFile().toURI();
         URL ou = originalUrl; // Just to make the compiler happy
         final LocalWorkflowBackend localWorkflowBackend = CACHE.get(localUri, () -> loadWorkflow(localUri, ou));
         localWorkflowBackend.lock();
