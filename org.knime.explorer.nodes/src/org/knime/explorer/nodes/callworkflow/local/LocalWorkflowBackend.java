@@ -164,8 +164,8 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
 
         // Converting the path directly to URI leads to key matching problems in the ProjectWorkflowMap as three
         // slashes will be added after the scheme part of the URI, however the value will be accessed with only one slash
-        // after the scheme. Hence, convert to file first. See AP-7589.
-        URI localUri = workflowDir.toFile().toURI();
+        // after the scheme. Hence, convert to file first. Furthermore, keys will be accessed with normalized URIs. See AP-7589.
+        URI localUri = workflowDir.toFile().toURI().normalize();
         URL ou = originalUrl; // Just to make the compiler happy
         final LocalWorkflowBackend localWorkflowBackend = CACHE.get(localUri, () -> loadWorkflow(localUri, ou));
         localWorkflowBackend.lock();
