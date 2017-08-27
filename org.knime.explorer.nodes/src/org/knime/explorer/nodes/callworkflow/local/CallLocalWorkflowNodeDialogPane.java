@@ -82,7 +82,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
-import javax.swing.SwingWorker;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -97,7 +96,6 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.VerticalCollapsablePanels;
 import org.knime.core.node.util.ViewUtils;
-import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.WorkflowPersistor;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
@@ -122,11 +120,11 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
     private final JComboBox<RptOutputFormat> m_reportFormatCombo;
 
-    private final JProgressBar m_loadingAnnimation;
+    private final JProgressBar m_loadingAnimation;
 
     private final JLabel m_loadingMessage;
 
-    private AtomicBoolean m_localWorkflowCalled = new AtomicBoolean(false);
+    private final AtomicBoolean m_localWorkflowCalled = new AtomicBoolean(false);
 
     private DataTableSpec m_spec;
 
@@ -207,11 +205,11 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         m_loadingMessage = new JLabel();
         m_loadingMessage.setForeground(Color.RED.darker());
         m_loadingMessage.setAlignmentX(Component.CENTER_ALIGNMENT);
-        m_loadingAnnimation = new JProgressBar();
-        m_loadingAnnimation.setIndeterminate(true);
-        m_loadingAnnimation.setAlignmentX(Component.CENTER_ALIGNMENT);
+        m_loadingAnimation = new JProgressBar();
+        m_loadingAnimation.setIndeterminate(true);
+        m_loadingAnimation.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        loadingBox.add(m_loadingAnnimation);
+        loadingBox.add(m_loadingAnimation);
         loadingBox.add(m_loadingMessage);
 
         gbc.gridy += 1;
@@ -301,70 +299,62 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
         // Attempt to load the workflow only once, therefore we wait with the update
         // (and try to load the workflow again) until the SwingWorker is done.
-        if(m_localWorkflowCalled.compareAndSet(true, true)){
-            return;
-        }
+        if (m_localWorkflowCalled.compareAndSet(false, true)){
+            m_collapsablePanels.removeAll();
+            m_panelMap.clear();
+            m_errorLabel.setText(" ");
 
-        m_collapsablePanels.removeAll();
-        m_panelMap.clear();
-        m_errorLabel.setText(" ");
+            // Display this message by default until a workflow could be successfully loaded.
+            m_loadingMessage.setText("Can't access specified workflow (possibly executing)");
+            m_loadingAnimation.setVisible(true);
+            m_collapsablePanels.setVisible(false);
 
-        // Display this message by default until a workflow could be successfully loaded.
-        m_loadingMessage.setText("Can't access specified workflow (may be executing)");
-        m_loadingAnnimation.setVisible(true);
-        m_collapsablePanels.setVisible(false);
+            SwingWorkerWithContext<Void, Void> panelUpdater = new SwingWorkerWithContext<Void, Void>() {
+                @Override
+                protected Void doInBackgroundWithContext() throws Exception {
 
-        SwingWorker<Void, Void> panelUpdater = new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() throws Exception {
+                    if (StringUtils.isEmpty((CharSequence)m_workflowPath.getSelectedItem())) {
+                        m_errorLabel.setText("No workflow path provided");
+                    } else {
 
-                // Current context needs to be available in SwingWorker thread for
-                // KNIME URL resolution when the workflow is loaded.
-                NodeContext.pushContext(getNodeContext());
+                        m_localWorkflowCalled.set(true);
 
-                if (StringUtils.isEmpty((CharSequence)m_workflowPath.getSelectedItem())) {
-                    m_errorLabel.setText("No workflow path provided");
-                } else {
-
-                    m_localWorkflowCalled.set(true);
-
-                    try (IWorkflowBackend backend = newBackend()) {
-                        Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
-                        for (Map.Entry<String, ExternalNodeData> entry : inputNodes.entrySet()) {
-                            JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
-                            m_panelMap.put(entry.getKey(), p);
-                            m_collapsablePanels.addPanel(p, false, entry.getKey());
+                        try (IWorkflowBackend backend = newBackend()) {
+                            Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
+                            for (Map.Entry<String, ExternalNodeData> entry : inputNodes.entrySet()) {
+                                JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
+                                m_panelMap.put(entry.getKey(), p);
+                                m_collapsablePanels.addPanel(p, false, entry.getKey());
+                            }
+                        } catch (Exception e) {
+                            NodeLogger.getLogger(getClass()).debug(e.getMessage(), e);
+                            m_errorLabel.setText(e.getMessage());
                         }
-                    } catch (Exception e) {
-                        NodeLogger.getLogger(getClass()).debug(e.getMessage(), e);
-                        m_errorLabel.setText(e.getMessage());
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void doneWithContext() {
+                    m_localWorkflowCalled.set(false);
+                    m_loadingMessage.setText(" ");
+                    m_loadingAnimation.setVisible(false);
+                    m_collapsablePanels.setVisible(true);
+
+                    if(updateFromSavedSettings){
+                        JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
                     }
                 }
-                return null;
-            }
+            };
+            panelUpdater.execute();
 
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            protected void done() {
-                m_localWorkflowCalled.set(false);
-                m_loadingMessage.setText(" ");
-                m_loadingAnnimation.setVisible(false);
-                m_collapsablePanels.setVisible(true);
+            JPanel panel = getPanel();
+            // some weird sequence to force the UI to properly update, see AP-6191
+            panel.invalidate();
+            panel.revalidate();
+            panel.repaint();
+        }
 
-                if(updateFromSavedSettings){
-                    JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
-                }
-            }
-        };
-        panelUpdater.execute();
-
-        JPanel panel = getPanel();
-        // some weird sequence to force the UI to properly update, see AP-6191
-        panel.invalidate();
-        panel.revalidate();
-        panel.repaint();
     }
 
     private IWorkflowBackend newBackend() throws Exception {
