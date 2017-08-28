@@ -57,7 +57,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-import org.knime.core.api.node.workflow.IConnectionContainer;
+import org.knime.core.def.node.workflow.IConnectionContainer;
 import org.knime.core.node.workflow.ConnectionContainer;
 import org.knime.core.node.workflow.NodeContainer;
 import org.knime.core.node.workflow.NodeID;

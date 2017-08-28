@@ -61,7 +61,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
-import org.knime.core.api.node.workflow.WorkflowEvent;
+import org.knime.core.def.node.workflow.WorkflowEvent;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
