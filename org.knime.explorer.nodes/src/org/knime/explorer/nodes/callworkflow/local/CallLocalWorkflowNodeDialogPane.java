@@ -50,6 +50,7 @@ package org.knime.explorer.nodes.callworkflow.local;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -195,9 +196,9 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
         gbc.gridy += 1;
         gbc.fill = GridBagConstraints.BOTH;
-        gbc.weighty = 1.0;
-        p.add(ViewUtils.getInFlowLayout(m_createReportChecker, m_reportFormatCombo), gbc);
 
+        p.add(ViewUtils.getInFlowLayout(m_createReportChecker, m_reportFormatCombo), gbc);
+        gbc.weighty = 1.0;
 
         JPanel loadingBox = new JPanel();
         loadingBox.setLayout(new BoxLayout(loadingBox, BoxLayout.PAGE_AXIS));
@@ -218,6 +219,9 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
         gbc.fill = GridBagConstraints.BOTH;
         p.add(m_collapsablePanels, gbc);
+
+        // Default panel size to not show scroll bars at open
+        p.setPreferredSize(new Dimension(700, 300));
 
         addTab("Workflow", new JScrollPane(p));
     }
