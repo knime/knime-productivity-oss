@@ -73,7 +73,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -125,11 +124,11 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
     private final JLabel m_loadingMessage;
 
-    private final AtomicBoolean m_localWorkflowCalled = new AtomicBoolean(false);
-
     private DataTableSpec m_spec;
 
     private final CallLocalWorkflowConfiguration m_settings = new CallLocalWorkflowConfiguration();
+
+    private SwingWorkerWithContext<Void, Void> m_panelUpdater;
 
     CallLocalWorkflowNodeDialogPane() {
         final JPanel p = new JPanel(new GridBagLayout());
@@ -182,7 +181,11 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         b.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(final ActionEvent e) {
-                updatePanels(false);
+                if(m_panelUpdater.cancel(true) || m_panelUpdater.isDone()){
+                    updatePanels(false);
+                } else {
+                    m_errorLabel.setText("Failed to interrupt analysis of current workflow!");
+                }
             }
         });
         gbc.gridx++;
@@ -300,65 +303,56 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
      * @param updateFromSavedSettings whether to update the panels with saved settings
      */
     private void updatePanels(final boolean updateFromSavedSettings) {
+        m_collapsablePanels.removeAll();
+        m_panelMap.clear();
+        m_errorLabel.setText(" ");
 
-        // Attempt to load the workflow only once, therefore we wait with the update
-        // (and try to load the workflow again) until the SwingWorker is done.
-        if (m_localWorkflowCalled.compareAndSet(false, true)){
-            m_collapsablePanels.removeAll();
-            m_panelMap.clear();
-            m_errorLabel.setText(" ");
+        // Display this message by default until a workflow could be successfully loaded.
+        m_loadingMessage.setText("Can't access specified workflow (possibly executing)");
+        m_loadingAnimation.setVisible(true);
+        m_collapsablePanels.setVisible(false);
 
-            // Display this message by default until a workflow could be successfully loaded.
-            m_loadingMessage.setText("Can't access specified workflow (possibly executing)");
-            m_loadingAnimation.setVisible(true);
-            m_collapsablePanels.setVisible(false);
+        m_panelUpdater = new SwingWorkerWithContext<Void, Void>() {
+            @Override
+            protected Void doInBackgroundWithContext() throws Exception {
 
-            SwingWorkerWithContext<Void, Void> panelUpdater = new SwingWorkerWithContext<Void, Void>() {
-                @Override
-                protected Void doInBackgroundWithContext() throws Exception {
+                if (StringUtils.isEmpty((CharSequence)m_workflowPath.getSelectedItem())) {
+                    m_errorLabel.setText("No workflow path provided");
+                } else {
 
-                    if (StringUtils.isEmpty((CharSequence)m_workflowPath.getSelectedItem())) {
-                        m_errorLabel.setText("No workflow path provided");
-                    } else {
-
-                        m_localWorkflowCalled.set(true);
-
-                        try (IWorkflowBackend backend = newBackend()) {
-                            Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
-                            for (Map.Entry<String, ExternalNodeData> entry : inputNodes.entrySet()) {
-                                JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
-                                m_panelMap.put(entry.getKey(), p);
-                                m_collapsablePanels.addPanel(p, false, entry.getKey());
-                            }
-                        } catch (Exception e) {
-                            NodeLogger.getLogger(getClass()).debug(e.getMessage(), e);
-                            m_errorLabel.setText(e.getMessage());
+                    try (IWorkflowBackend backend = newBackend()) {
+                        Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
+                        for (Map.Entry<String, ExternalNodeData> entry : inputNodes.entrySet()) {
+                            JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
+                            m_panelMap.put(entry.getKey(), p);
+                            m_collapsablePanels.addPanel(p, false, entry.getKey());
                         }
-                    }
-                    return null;
-                }
-
-                @Override
-                protected void doneWithContext() {
-                    m_localWorkflowCalled.set(false);
-                    m_loadingMessage.setText(" ");
-                    m_loadingAnimation.setVisible(false);
-                    m_collapsablePanels.setVisible(true);
-
-                    if(updateFromSavedSettings){
-                        JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
+                    } catch (Exception e) {
+                        NodeLogger.getLogger(getClass()).debug(e.getMessage(), e);
+                        m_errorLabel.setText(e.getMessage());
                     }
                 }
-            };
-            panelUpdater.execute();
+                return null;
+            }
 
-            JPanel panel = getPanel();
-            // some weird sequence to force the UI to properly update, see AP-6191
-            panel.invalidate();
-            panel.revalidate();
-            panel.repaint();
-        }
+            @Override
+            protected void doneWithContext() {
+                m_loadingMessage.setText(" ");
+                m_loadingAnimation.setVisible(false);
+                m_collapsablePanels.setVisible(true);
 
+                if(updateFromSavedSettings){
+                    JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
+                }
+            }
+        };
+        m_panelUpdater.execute();
+
+        JPanel panel = getPanel();
+        // some weird sequence to force the UI to properly update, see AP-6191
+        panel.invalidate();
+        panel.revalidate();
+        panel.repaint();
     }
 
     private IWorkflowBackend newBackend() throws Exception {
