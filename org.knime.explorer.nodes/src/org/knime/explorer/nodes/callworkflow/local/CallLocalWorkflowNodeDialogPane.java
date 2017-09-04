@@ -82,6 +82,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -94,6 +95,7 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.VerticalCollapsablePanels;
 import org.knime.core.node.util.ViewUtils;
 import org.knime.core.node.workflow.WorkflowPersistor;
@@ -108,6 +110,9 @@ import org.knime.productivity.base.callworkflow.JSONInputPanel;
  * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
  */
 final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
+
+    private static final NodeLogger LOGGER = NodeLogger.getLogger(CallLocalWorkflowNodeDialogPane.class);
+
     private final JComboBox<String> m_workflowPath;
 
     private final JLabel m_errorLabel;
@@ -181,7 +186,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         b.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(final ActionEvent e) {
-                if(m_panelUpdater.cancel(true) || m_panelUpdater.isDone()){
+                if (m_panelUpdater == null || m_panelUpdater.isDone() || m_panelUpdater.cancel(true)) {
                     updatePanels(false);
                 } else {
                     m_errorLabel.setText("Failed to interrupt analysis of current workflow!");
@@ -252,7 +257,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                     Throwable cause = (ex.getCause() != null) ? ExceptionUtils.getRootCause(ex) : ex;
                     String message = "Could not list workflows: " + cause.getMessage();
                     m_errorLabel.setText(message);
-                    NodeLogger.getLogger(CallLocalWorkflowNodeDialogPane.class).error(message, cause);
+                    LOGGER.error(message, cause);
                 } catch (InterruptedException ex) {
                     // do nothing
                 }
@@ -265,6 +270,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     /** {@inheritDoc} */
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
+        CheckUtils.checkSetting(m_panelUpdater == null, "Can't apply configuration while analysis is ongoing");
         m_settings.setWorkflowPath((String) m_workflowPath.getSelectedItem());
 
         RptOutputFormat reportFormatOrNull;
@@ -303,6 +309,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
      * @param updateFromSavedSettings whether to update the panels with saved settings
      */
     private void updatePanels(final boolean updateFromSavedSettings) {
+        CheckUtils.checkState(SwingUtilities.isEventDispatchThread(), "Not in EDT");
         m_collapsablePanels.removeAll();
         m_panelMap.clear();
         m_errorLabel.setText(" ");
@@ -319,7 +326,6 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                 if (StringUtils.isEmpty((CharSequence)m_workflowPath.getSelectedItem())) {
                     m_errorLabel.setText("No workflow path provided");
                 } else {
-
                     try (IWorkflowBackend backend = newBackend()) {
                         Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
                         for (Map.Entry<String, ExternalNodeData> entry : inputNodes.entrySet()) {
@@ -328,7 +334,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                             m_collapsablePanels.addPanel(p, false, entry.getKey());
                         }
                     } catch (Exception e) {
-                        NodeLogger.getLogger(getClass()).debug(e.getMessage(), e);
+                        LOGGER.debug(e.getMessage(), e);
                         m_errorLabel.setText(e.getMessage());
                     }
                 }
@@ -337,19 +343,29 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
             @Override
             protected void doneWithContext() {
-                m_loadingMessage.setText(" ");
-                m_loadingAnimation.setVisible(false);
-                m_collapsablePanels.setVisible(true);
+                if (!isCancelled()) {
+                    m_loadingMessage.setText(" ");
+                    m_loadingAnimation.setVisible(false);
+                    m_collapsablePanels.setVisible(true);
 
-                if(updateFromSavedSettings){
-                    JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
+                    if (updateFromSavedSettings){
+                        JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
+                    }
+                    revalidatePanel();
                 }
+                m_panelUpdater = null;
             }
         };
         m_panelUpdater.execute();
 
+        revalidatePanel();
+    }
+
+    /**
+     * Calls some weird sequence to force the UI to properly update, see AP-6191
+     */
+    private void revalidatePanel() {
         JPanel panel = getPanel();
-        // some weird sequence to force the UI to properly update, see AP-6191
         panel.invalidate();
         panel.revalidate();
         panel.repaint();
