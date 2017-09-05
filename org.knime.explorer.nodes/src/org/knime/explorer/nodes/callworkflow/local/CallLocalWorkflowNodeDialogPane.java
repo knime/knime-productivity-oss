@@ -136,8 +136,11 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
     private SwingWorkerWithContext<Void, Void> m_panelUpdater;
 
+    // TODO David: This should be a real javadoc comment (**) so that it is shown in the tooltip when you hover over references
     /* Lock to synchronize SwingWorkers. Filling the workflow list triggers clearing of the input panel.
      * Therefore, we need to make sure that the panelUpdater will run after the workflow list is filled. */
+    // TODO David: This shouldn't be a ReentrantLock but just a boolean -- it must only be set in EDT
+    // TODO David: We could even add a little inner class that assert that any lock/unlock is called in EDT
     private final ReentrantLock m_lock = new ReentrantLock();
 
     CallLocalWorkflowNodeDialogPane() {
@@ -250,6 +253,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                 try {
                     wfs = listWorkflows();
                 } catch (Exception e) {
+                    // TODO David: This is unlocking not in EDT ... assuming this exception is thrown, the lock is released and the "donewithContext" will result in an exception, see below
                     m_lock.unlock();
                     LOGGER.error("Could not list workflows!", e);
                 }
@@ -275,6 +279,9 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                 } catch (InterruptedException ex) {
                     // do nothing
                 } finally {
+                    // TODO David: See above, this would cause an  (unhandled) exception if the lock is released as part of the error handling in "doInBackground"
+                    // you can even debug it and will see that an exception is thrown
+                    // If we remove the unlock from the "doInBackground" then this should be safe.
                     m_lock.unlock();
                 }
             }
@@ -341,6 +348,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         m_loadingMessage.setText("Can't access specified workflow (possibly executing)");
         m_loadingAnimation.setVisible(true);
         m_collapsablePanels.setVisible(false);
+        // TODO David: This should set the lock (the boolean, not the SwingWorker)
 
         m_panelUpdater = new SwingWorkerWithContext<Void, Void>() {
             @Override
@@ -350,6 +358,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                     m_errorLabel.setText("No workflow path provided");
                 } else {
                     try (IWorkflowBackend backend = newBackend()) {
+                        // TODO David: assume this not to run, e.g. "newBackend()" gets interrupted...
                         m_lock.lock();
 
                         Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
@@ -364,6 +373,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                         LOGGER.debug(e.getMessage(), e);
                         m_errorLabel.setText(e.getMessage());
                     } finally {
+                        // TODO David: This will again fail if the lock is not acquired (you won't notice the exception as it's not handled in the "doneWithContext" -- if you wanted to see it, call #get()
                         m_lock.unlock();
                     }
                 }
@@ -383,6 +393,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                     revalidatePanel();
                 }
                 m_panelUpdater = null;
+                // TODO David This should really unlock (the boolean ;-) )
             }
         };
         m_panelUpdater.execute();
