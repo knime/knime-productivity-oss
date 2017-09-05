@@ -73,6 +73,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -134,6 +135,10 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     private final CallLocalWorkflowConfiguration m_settings = new CallLocalWorkflowConfiguration();
 
     private SwingWorkerWithContext<Void, Void> m_panelUpdater;
+
+    /* Lock to synchronize SwingWorkers. Filling the workflow list triggers clearing of the input panel.
+     * Therefore, we need to make sure that the panelUpdater will run after the workflow list is filled. */
+    private final ReentrantLock m_lock = new ReentrantLock();
 
     CallLocalWorkflowNodeDialogPane() {
         final JPanel p = new JPanel(new GridBagLayout());
@@ -235,11 +240,20 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     }
 
     private void fillWorkflowList() {
+        m_lock.lock();
+
         m_errorLabel.setText("");
         SwingWorkerWithContext<List<String>, Void> worker = new SwingWorkerWithContext<List<String>, Void>() {
             @Override
             protected List<String> doInBackgroundWithContext() throws Exception {
-                return listWorkflows();
+                List<String> wfs = new ArrayList<>();
+                try {
+                    wfs = listWorkflows();
+                } catch (Exception e) {
+                    m_lock.unlock();
+                    LOGGER.error("Could not list workflows!", e);
+                }
+                return wfs;
             }
 
             /**
@@ -260,6 +274,8 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                     LOGGER.error(message, cause);
                 } catch (InterruptedException ex) {
                     // do nothing
+                } finally {
+                    m_lock.unlock();
                 }
             }
 
@@ -327,15 +343,21 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                     m_errorLabel.setText("No workflow path provided");
                 } else {
                     try (IWorkflowBackend backend = newBackend()) {
+                        m_lock.lock();
+
                         Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
                         for (Map.Entry<String, ExternalNodeData> entry : inputNodes.entrySet()) {
                             JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
                             m_panelMap.put(entry.getKey(), p);
                             m_collapsablePanels.addPanel(p, false, entry.getKey());
                         }
+                    } catch (InterruptedException e) {
+                        // do nothing
                     } catch (Exception e) {
                         LOGGER.debug(e.getMessage(), e);
                         m_errorLabel.setText(e.getMessage());
+                    } finally {
+                        m_lock.unlock();
                     }
                 }
                 return null;
