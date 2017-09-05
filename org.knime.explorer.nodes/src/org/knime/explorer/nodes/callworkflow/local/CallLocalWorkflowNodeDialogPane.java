@@ -315,6 +315,13 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         m_reportFormatCombo.setSelectedItem(reportFormatOrNull != null
                 ? reportFormatOrNull : m_reportFormatCombo.getModel().getElementAt(0));
 
+        // If we open the dialog a second time and an panelUpdater is currently running (probably waiting
+        // for the workflow lock because the wf to call is already executing) we need to cancel it to avoid
+        // filling the panelMap twice
+        if(m_panelUpdater != null && !m_panelUpdater.isDone()){
+            m_panelUpdater.cancel(true);
+        }
+
         updatePanels(true);
     }
 
