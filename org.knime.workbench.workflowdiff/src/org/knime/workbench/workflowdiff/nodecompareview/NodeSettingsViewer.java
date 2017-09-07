@@ -46,6 +46,8 @@
  */
 package org.knime.workbench.workflowdiff.nodecompareview;
 
+import static org.knime.core.ui.wrapper.Wrapper.unwrapNC;
+
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.swt.SWT;
@@ -53,8 +55,8 @@ import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.part.ViewPart;
-import org.knime.core.node.util.CastUtil;
 import org.knime.core.node.workflow.NodeContainer;
+import org.knime.core.ui.wrapper.Wrapper;
 import org.knime.workbench.editor2.WorkflowEditor;
 import org.knime.workbench.editor2.editparts.NodeContainerEditPart;
 import org.knime.workbench.workflowdiff.editor.filters.NodeDiffClearFilterButton;
@@ -130,8 +132,7 @@ public class NodeSettingsViewer extends ViewPart {
 		m_editor = editor;
 		m_leftNCEP = leftNCEP;
 		m_rightNCEP = rightNCEP;
-		m_mergeViewer.setElements(CastUtil.cast(leftNCEP.getNodeContainer(), NodeContainer.class),
-				CastUtil.cast(rightNCEP.getNodeContainer(), NodeContainer.class));
+		m_mergeViewer.setElements(unwrapNC(leftNCEP.getNodeContainer()), unwrapNC(rightNCEP.getNodeContainer()));
 		for (int i = 0; i < toolbarActions.length; i++) {
 			toolbarActions[i].setEnabled(true);
 		}
