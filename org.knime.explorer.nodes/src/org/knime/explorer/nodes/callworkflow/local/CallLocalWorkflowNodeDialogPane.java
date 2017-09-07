@@ -410,7 +410,6 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
     private void clearInputPanel(final JPanel p) {
         m_collapsablePanels.removeAll();
         m_panelMap.clear();
-        m_errorLabel.setText(" ");
         m_collapsablePanels.revalidate();
         p.revalidate();
         getPanel().repaint();
