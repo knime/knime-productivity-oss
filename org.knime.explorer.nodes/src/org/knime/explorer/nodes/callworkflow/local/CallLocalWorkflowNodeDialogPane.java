@@ -72,7 +72,10 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -133,7 +136,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
     private final CallLocalWorkflowConfiguration m_settings = new CallLocalWorkflowConfiguration();
 
-    private SwingWorkerWithContext<Void, Void> m_panelUpdater;
+    private SwingWorkerWithContext<Map<String, ExternalNodeData>, Void> m_panelUpdater;
 
     CallLocalWorkflowNodeDialogPane() {
         final JPanel p = new JPanel(new GridBagLayout());
@@ -247,10 +250,11 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
              */
             @Override
             protected void doneWithContext() {
+                // this usually is an empty list as this method is called from the constructor, though asynchronously
+                Set<String> previousItems = IntStream.range(0, m_workflowPath.getItemCount())
+                        .mapToObj(i -> m_workflowPath.getItemAt(i)).collect(Collectors.toSet());
                 try {
-                    for (String s : get()) {
-                        m_workflowPath.addItem(s);
-                    }
+                    get().stream().filter(s -> !previousItems.contains(s)).forEach(s -> m_workflowPath.addItem(s));
                     m_workflowPath.setSelectedItem(m_settings.getWorkflowPath());
                 } catch (ExecutionException ex) {
                     Throwable cause = (ex.getCause() != null) ? ExceptionUtils.getRootCause(ex) : ex;
@@ -301,7 +305,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         // If we open the dialog a second time and an panelUpdater is currently running (probably waiting
         // for the workflow lock because the wf to call is already executing) we need to cancel it to avoid
         // filling the panelMap twice
-        if(m_panelUpdater != null && !m_panelUpdater.isDone()){
+        if (m_panelUpdater != null && !m_panelUpdater.isDone()) {
             if (!m_panelUpdater.cancel(true)) {
                 m_errorLabel.setText("Failed to interrupt analysis of current workflow!");
             }
@@ -326,24 +330,14 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         m_loadingAnimation.setVisible(true);
         m_collapsablePanels.setVisible(false);
 
-        m_panelUpdater = new SwingWorkerWithContext<Void, Void>() {
+        m_panelUpdater = new SwingWorkerWithContext<Map<String, ExternalNodeData>, Void>() {
             @Override
-            protected Void doInBackgroundWithContext() throws Exception {
+            protected Map<String, ExternalNodeData> doInBackgroundWithContext() throws Exception {
                 if (StringUtils.isEmpty((CharSequence)m_workflowPath.getSelectedItem())) {
                     m_errorLabel.setText("No workflow path provided");
                 } else {
                     try (IWorkflowBackend backend = newBackend()) {
-                        Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
-                        for (Map.Entry<String, ExternalNodeData> entry : inputNodes.entrySet()) {
-                            JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
-                            m_panelMap.put(entry.getKey(), p);
-                            m_collapsablePanels.addPanel(p, false, entry.getKey());
-                        }
-                    } catch (InterruptedException e) {
-                        // do nothing
-                    } catch (Exception e) {
-                        LOGGER.debug(e.getMessage(), e);
-                        m_errorLabel.setText(e.getMessage());
+                        return backend.getInputNodes();
                     }
                 }
                 return null;
@@ -352,13 +346,24 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
             @Override
             protected void doneWithContext() {
                 if (!isCancelled()) {
-                    m_loadingMessage.setText(" ");
-                    m_loadingAnimation.setVisible(false);
-                    m_collapsablePanels.setVisible(true);
+                    try {
+                        for (Map.Entry<String, ExternalNodeData> entry : get().entrySet()) {
+                            JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
+                            m_panelMap.put(entry.getKey(), p);
+                            m_collapsablePanels.addPanel(p, false, entry.getKey());
+                        }
+                        m_loadingMessage.setText(" ");
+                        m_loadingAnimation.setVisible(false);
+                        m_collapsablePanels.setVisible(true);
 
-                    if (updateFromSavedSettings){
-                        JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
+                        if (updateFromSavedSettings){
+                            JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
+                        }
+                    } catch (Exception e) {
+                        LOGGER.debug(e.getMessage(), e);
+                        m_errorLabel.setText(e.getMessage());
                     }
+
                     revalidatePanel();
                 }
                 m_panelUpdater = null;
