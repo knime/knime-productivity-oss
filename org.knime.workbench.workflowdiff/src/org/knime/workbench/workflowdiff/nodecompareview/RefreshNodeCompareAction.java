@@ -49,6 +49,7 @@ package org.knime.workbench.workflowdiff.nodecompareview;
 import org.eclipse.jface.action.Action;
 import org.knime.core.node.workflow.NodeID;
 import org.knime.core.node.workflow.WorkflowManager;
+import org.knime.core.ui.wrapper.Wrapper;
 import org.knime.workbench.core.util.ImageRepository;
 import org.knime.workbench.core.util.ImageRepository.SharedImages;
 
@@ -67,7 +68,7 @@ public class RefreshNodeCompareAction extends Action {
 
 	@Override
 	public void run() {
-		WorkflowManager manager = m_viewer.getEditor().getWorkflowManager();
+		WorkflowManager manager = m_viewer.getEditor().getWorkflowManager().get();
 		NodeID left = m_viewer.getLeftNCEP().getNodeContainer().getID();
 		NodeID right = m_viewer.getRightNCEP().getNodeContainer().getID();
 		if (manager.containsNodeContainer(left) && manager.containsNodeContainer(right)) {
@@ -78,7 +79,7 @@ public class RefreshNodeCompareAction extends Action {
 
 	@Override
 	public boolean isEnabled() {
-		if(m_viewer.getEditor()!=null){
+		if(m_viewer.getEditor()!=null && m_viewer.getEditor().getWorkflowManager().isPresent()){
 			return true;
 		}
 		return false;
