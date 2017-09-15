@@ -335,22 +335,25 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
             protected Map<String, ExternalNodeData> doInBackgroundWithContext() throws Exception {
                 if (StringUtils.isEmpty((CharSequence)m_workflowPath.getSelectedItem())) {
                     m_errorLabel.setText("No workflow path provided");
+                    return null;
                 } else {
                     try (IWorkflowBackend backend = newBackend()) {
                         return backend.getInputNodes();
                     }
                 }
-                return null;
             }
 
             @Override
             protected void doneWithContext() {
                 if (!isCancelled()) {
                     try {
-                        for (Map.Entry<String, ExternalNodeData> entry : get().entrySet()) {
-                            JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
-                            m_panelMap.put(entry.getKey(), p);
-                            m_collapsablePanels.addPanel(p, false, entry.getKey());
+                        Map<String, ExternalNodeData> nodeDataMap = get();
+                        if (nodeDataMap != null) {
+                            for (Map.Entry<String, ExternalNodeData> entry : nodeDataMap.entrySet()) {
+                                JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
+                                m_panelMap.put(entry.getKey(), p);
+                                m_collapsablePanels.addPanel(p, false, entry.getKey());
+                            }
                         }
                         m_loadingMessage.setText(" ");
                         m_loadingAnimation.setVisible(false);
