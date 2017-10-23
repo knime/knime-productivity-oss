@@ -30,6 +30,18 @@
             to write the report as BLOB into a database. Failures to generate the report 
             (for instance, because no report is attached to the workflow) will result in a missing cell. 
         </option>
+		<option name="Use Fully Qualified Name for Input and Output Parameters">If checked, use the full parameter name
+			to select the input and output. The parameter names are
+			defined by the user in the configuration dialog
+			of each of the parameters (like JSON In/Output node), e.g. "timeout",
+			"count", etc. Using these 'simple names'
+			may lead to duplicates, hence a 'fully qualified name' is constructed by
+			appending a suffix, e.g. "timeout-1" or "count-5:6".
+			While these suffixes guarantee unique parameter names across one workflow they may cause
+			names not to match in case you
+			call out to different workflows (e.g. in a loop). It's good practice to (manually) ensure that parameter
+			names in the called workflow are unique and hence often the 'simple name' is sufficient (= do not check the box).
+		</option>
         <option name="Inputs">After you have loaded the input format you will see an input block for every input node in
         the called workflow. You can select if you want to use a static value or the value of a column for the respective
         input field or use the default value (that is the value that is set up in the workflow being called).

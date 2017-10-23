@@ -69,12 +69,15 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import javax.json.JsonValue;
 
@@ -152,12 +155,21 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         throws Exception {
         // If there are too many Call Local Workflow nodes pointing to the same called workflow then all threads may
         // be in use and the called workflow cannot be executed. Therefore the calling node runs invisible.
-        return KNIMEConstants.GLOBAL_THREAD_POOL.runInvisible(new Callable<BufferedDataTable[]>() {
-            @Override
-            public BufferedDataTable[] call() throws Exception {
-                return executeInternal(inData, exec);
+        try {
+            return KNIMEConstants.GLOBAL_THREAD_POOL.runInvisible(new Callable<BufferedDataTable[]>() {
+                @Override
+                public BufferedDataTable[] call() throws Exception {
+                    return executeInternal(inData, exec);
+                }
+            });
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof Exception) {
+                throw (Exception)cause;
+            } else {
+                throw e;
             }
-        });
+        }
     }
 
     private BufferedDataTable[] executeInternal(final BufferedDataTable[] inData, final ExecutionContext exec)
@@ -172,10 +184,14 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             backend.setInputNodes(getConfiguration().getParameterToJsonConfigMap());
 
             // create container based on the output nodes
-            List<String> outputNodeKeys = new ArrayList<>(backend.getOutputValues().keySet());
+            Collection<String> outputKeysSet = backend.getOutputValues().keySet();
+            if (!getConfiguration().isUseQualifiedParameterNames()) {
+                outputKeysSet = IWorkflowBackend.getFullyQualifiedToSimpleIDMap(outputKeysSet).values();
+            }
+            List<String> outputNodeKeys = new ArrayList<>(outputKeysSet);
             Collections.sort(outputNodeKeys);
-            BufferedDataContainer container =
-                createDataContainer(inData[0].getDataTableSpec(), exec, reportFormatOrNull, outputNodeKeys, outputColIndexMap);
+            BufferedDataContainer container = createDataContainer(inData[0].getDataTableSpec(), exec,
+                reportFormatOrNull, outputNodeKeys, outputColIndexMap);
 
             final long rowCount = inData[0].size();
             final int columnCount = container.getTableSpec().getNumColumns();
@@ -224,7 +240,16 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
             Arrays.fill(cells, DataType.getMissingCell());
             cells[cells.length - 1] = new StringCell("Completed in " + StringFormat.formatElapsedTime(delay));
 
-            Map<String, JsonValue> outputNodes = backend.getOutputValues();
+            final Map<String, JsonValue> outputNodesFullyQualified = backend.getOutputValues();
+            final Map<String, JsonValue> outputNodes;
+            if (getConfiguration().isUseQualifiedParameterNames()) {
+                outputNodes = outputNodesFullyQualified;
+            } else {
+                Map<String, String> fullyQualifiedToSimpleIDMap =
+                        IWorkflowBackend.getFullyQualifiedToSimpleIDMap(outputNodesFullyQualified.keySet());
+                outputNodes = fullyQualifiedToSimpleIDMap.entrySet().stream().collect(Collectors.toMap(
+                    entry -> entry.getValue(), entry -> outputNodesFullyQualified.get(entry.getKey())));
+            }
             for (Map.Entry<String, Integer> outputColIndexEntry : outputColIndexMap.entrySet()) {
                 JsonValue o = outputNodes.get(outputColIndexEntry.getKey());
                 if (o != null) {

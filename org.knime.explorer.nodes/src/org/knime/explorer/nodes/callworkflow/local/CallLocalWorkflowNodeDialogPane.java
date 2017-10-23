@@ -128,6 +128,8 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
     private final JComboBox<RptOutputFormat> m_reportFormatCombo;
 
+    private final JCheckBox m_useFullyQualifiedParameterNamesChecker;
+
     private final JProgressBar m_loadingAnimation;
 
     private final JLabel m_loadingMessage;
@@ -171,8 +173,15 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
         m_collapsablePanels = new VerticalCollapsablePanels();
         m_panelMap = new LinkedHashMap<>();
-        gbc.insets = new Insets(5, 5, 5, 5);
 
+        m_useFullyQualifiedParameterNamesChecker =
+                new JCheckBox("Use Fully Qualified Name for Input and Output Parameters");
+        m_useFullyQualifiedParameterNamesChecker.addItemListener(l -> {
+            final boolean isUseFullyQualifiedID = m_useFullyQualifiedParameterNamesChecker.isSelected();
+            m_panelMap.values().stream().forEach(panel -> panel.setUseFullyqualifiedID(isUseFullyQualifiedID));
+        });
+
+        gbc.insets = new Insets(5, 5, 5, 5);
         gbc.weightx = 1.0;
         gbc.gridx = gbc.gridy = 0;
         gbc.weighty = 0.0;
@@ -207,9 +216,8 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
         gbc.gridy += 1;
         gbc.fill = GridBagConstraints.BOTH;
-
-        p.add(ViewUtils.getInFlowLayout(m_createReportChecker, m_reportFormatCombo), gbc);
-        gbc.weighty = 1.0;
+        p.add(ViewUtils.getInFlowLayout(m_createReportChecker, m_reportFormatCombo, new JLabel("   "),
+            m_useFullyQualifiedParameterNamesChecker), gbc);
 
         JPanel loadingBox = new JPanel();
         loadingBox.setLayout(new BoxLayout(loadingBox, BoxLayout.PAGE_AXIS));
@@ -226,6 +234,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
         gbc.gridy += 1;
         gbc.fill = GridBagConstraints.NONE;
+        gbc.weighty = 1.0;
         p.add(loadingBox, gbc);
 
         gbc.fill = GridBagConstraints.BOTH;
@@ -282,7 +291,9 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         } else {
             reportFormatOrNull = null;
         }
-        JSONInputPanel.saveSettingsTo(m_settings, m_panelMap.entrySet());
+        final boolean isUseFullyQualifiedIDs = m_useFullyQualifiedParameterNamesChecker.isSelected();
+        m_settings.setUseQualifiedParameterNames(isUseFullyQualifiedIDs);
+        JSONInputPanel.saveSettingsTo(m_settings, isUseFullyQualifiedIDs, m_panelMap.values());
         m_settings.setReportFormatOrNull(reportFormatOrNull);
         m_settings.save(settings);
     }
@@ -301,6 +312,7 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
         }
         m_reportFormatCombo.setSelectedItem(reportFormatOrNull != null
                 ? reportFormatOrNull : m_reportFormatCombo.getModel().getElementAt(0));
+        m_useFullyQualifiedParameterNamesChecker.setSelected(m_settings.isUseQualifiedParameterNames());
 
         // If we open the dialog a second time and an panelUpdater is currently running (probably waiting
         // for the workflow lock because the wf to call is already executing) we need to cancel it to avoid
@@ -349,15 +361,18 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                     try {
                         Map<String, ExternalNodeData> nodeDataMap = get();
                         if (nodeDataMap != null) {
+                            Map<String, String> fullyQualifiedToSimpleIDMap = IWorkflowBackend.getFullyQualifiedToSimpleIDMap(nodeDataMap.keySet());
+
                             for (Map.Entry<String, ExternalNodeData> entry : nodeDataMap.entrySet()) {
-                                JSONInputPanel p = new JSONInputPanel(entry.getValue().getJSONValue(), m_spec);
+                                String fullyQualifiedID = entry.getKey();
+                                String simpleID = fullyQualifiedToSimpleIDMap.get(fullyQualifiedID);
+                                JSONInputPanel p = new JSONInputPanel(simpleID, fullyQualifiedID,
+                                    entry.getValue().getJSONValue(), m_spec);
+                                p.setUseFullyqualifiedID(m_useFullyQualifiedParameterNamesChecker.isSelected());
                                 m_panelMap.put(entry.getKey(), p);
-                                m_collapsablePanels.addPanel(p, false, entry.getKey());
+                                m_collapsablePanels.addPanel(p, false);
                             }
                         }
-                        m_loadingMessage.setText(" ");
-                        m_loadingAnimation.setVisible(false);
-                        m_collapsablePanels.setVisible(true);
 
                         if (updateFromSavedSettings){
                             JSONInputPanel.loadSettingsFrom(m_settings, m_panelMap, m_spec);
@@ -367,6 +382,9 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
                         m_errorLabel.setText(e.getMessage());
                     }
 
+                    m_loadingMessage.setText(" ");
+                    m_loadingAnimation.setVisible(false);
+                    m_collapsablePanels.setVisible(true);
                     revalidatePanel();
                 }
                 m_panelUpdater = null;

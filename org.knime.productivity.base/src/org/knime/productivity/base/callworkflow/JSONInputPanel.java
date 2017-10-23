@@ -72,15 +72,20 @@ import org.knime.core.data.json.JSONValue;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.ColumnSelectionPanel;
 import org.knime.json.util.JSONUtil;
 
 /**
- * A panel that given a json parameter
+ * A panel for a single REST parameter. It allows the user to switch between using a hard-coded JSON value,
+ * the column driven value or the default.
  *
- * @author wiswedel
+ * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  */
 public final class JSONInputPanel extends JPanel {
+
+    private final String m_parameterIDSimple;
+    private final String m_parameterIDFullyQualified;
     private final JRadioButton m_useColumnChecker;
     private final JRadioButton m_useEditorChecker;
     private final JRadioButton m_useDefaultChecker;
@@ -88,7 +93,11 @@ public final class JSONInputPanel extends JPanel {
     private final ColumnSelectionPanel m_jsonColumnSelector;
     private final JPanel m_hostPanel;
 
-    public JSONInputPanel(final JsonValue currentJSONValueOrNull, final DataTableSpec spec) {
+    public JSONInputPanel(final String parameterIDSimple, final String parameterIDFullyQualified,
+        final JsonValue currentJSONValueOrNull, final DataTableSpec spec) {
+        setName(parameterIDSimple);
+        m_parameterIDSimple = CheckUtils.checkArgumentNotNull(parameterIDSimple);
+        m_parameterIDFullyQualified = CheckUtils.checkArgumentNotNull(parameterIDFullyQualified);
         m_hostPanel = new JPanel(new GridBagLayout());
 
         m_textEditArea = new RSyntaxTextArea(currentJSONValueOrNull == null
@@ -119,7 +128,14 @@ public final class JSONInputPanel extends JPanel {
         createLayout();
     }
 
-    void update(final DataTableSpec spec, final Parameter parameter) {
+    void update(final DataTableSpec spec, final boolean isUseFullyQualifiedID,
+        final Map<String, Parameter> parameterMap) {
+
+        Parameter parameter = parameterMap.get(m_parameterIDFullyQualified);
+        if (parameter == null) {
+            parameter = parameterMap.getOrDefault(m_parameterIDSimple, Parameter.DEFAULT);
+        }
+
         final Optional<JsonValue> jsonOptional = parameter.getJsonValue();
         final Optional<String> jsonColumnOptional = parameter.getJsonColumn();
         try {
@@ -136,6 +152,29 @@ public final class JSONInputPanel extends JPanel {
         } else {
             m_useDefaultChecker.doClick();
         }
+    }
+
+    /**
+     * Update the panel name, which is then reflected in the collapsible panel label.
+     *
+     * @param value If true use fully qualified name, other wise the short name (whatever that is set to).
+     */
+    public void setUseFullyqualifiedID(final boolean value) {
+        setName(value ? m_parameterIDFullyQualified : m_parameterIDSimple);
+    }
+
+    /**
+     * @return the parameterIDFullyQualified
+     */
+    String getParameterIDFullyQualified() {
+        return m_parameterIDFullyQualified;
+    }
+
+    /**
+     * @return the parameterIDSimple
+     */
+    String getParameterIDSimple() {
+        return m_parameterIDSimple;
     }
 
     private Optional<String> getJSONColumn() {
@@ -204,18 +243,18 @@ public final class JSONInputPanel extends JPanel {
 
     /** Called by the individual nodes to save the configs in a list of panels into the final configuration.
      * @param config To save to.
+     * @param isSaveIDsFullyQualified TODO
      * @param panels The list (map) of panels
      * @throws InvalidSettingsException On invalid format.
      */
     public static void saveSettingsTo(final CallWorkflowConfiguration config,
-        final Iterable<Map.Entry<String, JSONInputPanel>> panels) throws InvalidSettingsException {
+        final boolean isSaveIDsFullyQualified, final Iterable<JSONInputPanel> panels) throws InvalidSettingsException {
         Map<String, String> parameterToJsonColumnMap = new LinkedHashMap<>();
         Map<String, ExternalNodeData> parameterToJsonConfigMap = new LinkedHashMap<>();
-        for (Map.Entry<String, JSONInputPanel> entry : panels) {
-            final String key = entry.getKey();
-            final JSONInputPanel p = entry.getValue();
-            final Optional<String> jsonColumn = p.getJSONColumn();
-            final Optional<String> jsonConfig = p.getJSONConfig();
+        for (JSONInputPanel panel : panels) {
+            final String key = isSaveIDsFullyQualified ? panel.m_parameterIDFullyQualified : panel.m_parameterIDSimple;
+            final Optional<String> jsonColumn = panel.getJSONColumn();
+            final Optional<String> jsonConfig = panel.getJSONConfig();
             if (jsonColumn.isPresent()) {
                 parameterToJsonColumnMap.put(key, jsonColumn.get());
             } else if (jsonConfig.isPresent()) {
@@ -234,7 +273,8 @@ public final class JSONInputPanel extends JPanel {
     }
 
     /**
-     * Counterpart to {@link #saveSettingsTo(CallWorkflowConfiguration, Iterable)}.
+     * Counterpart to {@link #saveSettingsTo(CallWorkflowConfiguration, boolean, Iterable)}.
+     *
      * @param config To load from.
      * @param panelMap The map of panels to load into.
      * @param spec The data spec (for column list)
@@ -251,11 +291,8 @@ public final class JSONInputPanel extends JPanel {
         for (Map.Entry<String, String> entry : config.getParameterToJsonColumnMap().entrySet()) {
             parameterMapFromConfig.put(entry.getKey(), new Parameter(entry.getValue()));
         }
-
-        for (Map.Entry<String, JSONInputPanel> entry : panelMap.entrySet()) {
-            Parameter parameter = parameterMapFromConfig.getOrDefault(entry.getKey(), Parameter.DEFAULT);
-            entry.getValue().update(spec, parameter);
-        }
+        panelMap.values().stream()
+            .forEach(panel -> panel.update(spec, config.isUseQualifiedParameterNames(), parameterMapFromConfig));
     }
 
     /** Helper to remember what sort of mapping we have for a parameter: column driven, static

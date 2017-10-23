@@ -48,7 +48,10 @@
  */
 package org.knime.productivity.base.callworkflow;
 
+import java.util.Collection;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.json.JsonValue;
 
@@ -125,4 +128,26 @@ public interface IWorkflowBackend extends AutoCloseable {
         }
 
     }
+
+    /** For all parameters in the collection get the simple ID if applicable, other the full id. For instance,
+     * if the argument is [string-input-1, string-input-2, int-input-3], the result will be:
+     * <ul>
+     * <li>string-input-1 -> string-input-1
+     * <li>string-input-2 -> string-input-2
+     * <li>int-input-3 -> int-input
+     * </ul>
+     * @param fullyQualfiedIDs non-null collection with all parameters, fully qualified
+     * @return the map as describe above
+     */
+    public static Map<String, String> getFullyQualifiedToSimpleIDMap(final Collection<String> fullyQualfiedIDs) {
+        Map<String, Long> collisionMap = fullyQualfiedIDs.stream()
+                .collect(Collectors.groupingBy(ExternalNodeData::getSimpleIDFrom, Collectors.counting()));
+        collisionMap.values().removeIf(l -> l.longValue() > 1L);
+
+        return fullyQualfiedIDs.stream().collect(Collectors.toMap(Function.identity(), name -> {
+            String simpleID = ExternalNodeData.getSimpleIDFrom(name);
+            return collisionMap.containsKey(simpleID) ? simpleID : name;
+        }));
+    }
+
 }

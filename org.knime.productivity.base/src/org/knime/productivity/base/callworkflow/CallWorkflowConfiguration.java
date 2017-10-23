@@ -79,6 +79,8 @@ public abstract class CallWorkflowConfiguration {
 
     private RptOutputFormat m_reportFormatOrNull;
 
+    private boolean m_useQualifiedParameterNames;
+
     /** @return the parameterToJsonConfigMap */
     public Map<String, ExternalNodeData> getParameterToJsonConfigMap() {
         return m_parameterToJsonConfigMap;
@@ -113,6 +115,24 @@ public abstract class CallWorkflowConfiguration {
         return this;
     }
 
+    /** If set <code>true</code> it will use fully qualified parameter names. Such as "string-input-7" instead
+     * of "string-input". Names will be fully qualified when they short name would be ambiguous.
+     * @param value  the value. Default is false as of KNIME 3.5.
+     * @return this
+     * @since 3.5
+     */
+    public CallWorkflowConfiguration setUseQualifiedParameterNames(final boolean value) {
+        m_useQualifiedParameterNames = value;
+        return this;
+    }
+
+    /** @return see {@link #setUseQualifiedParameterNames(boolean)}
+     * @since 3.5
+     */
+    public boolean isUseQualifiedParameterNames() {
+        return m_useQualifiedParameterNames;
+    }
+
     /** @return the reportFormatOrNull ... */
     public RptOutputFormat getReportFormatOrNull() {
         return m_reportFormatOrNull;
@@ -131,6 +151,7 @@ public abstract class CallWorkflowConfiguration {
     public CallWorkflowConfiguration save(final NodeSettingsWO settings) {
         settings.addString("workflow", m_workflowPath);
         settings.addString("reportFormatOrNull", Objects.toString(m_reportFormatOrNull, null));
+        settings.addBoolean("useFullyQualifiedParameterNames", m_useQualifiedParameterNames);
         NodeSettingsWO settings2 = settings.addNodeSettings("parameterToJsonConfigMap");
         for (Map.Entry<String, ExternalNodeData> entry : m_parameterToJsonConfigMap.entrySet()) {
             NodeSettingsWO childSettings = settings2.addNodeSettings(entry.getKey());
@@ -157,6 +178,7 @@ public abstract class CallWorkflowConfiguration {
                 throw new InvalidSettingsException("Unsupported report format '" + reportString + "'", e);
             }
         }
+        m_useQualifiedParameterNames = settings.getBoolean("useFullyQualifiedParameterNames", true);
         NodeSettingsRO settings2 = settings.getNodeSettings("parameterToJsonConfigMap");
         m_parameterToJsonConfigMap = new LinkedHashMap<>();
         for (String s : settings2.keySet()) {
@@ -192,6 +214,7 @@ public abstract class CallWorkflowConfiguration {
                 m_reportFormatOrNull = null;
             }
         }
+        m_useQualifiedParameterNames = settings.getBoolean("useFullyQualifiedParameterNames", false);
         m_parameterToJsonConfigMap = new LinkedHashMap<>();
         m_parameterToJsonColumnMap = new LinkedHashMap<>();
         NodeSettingsRO settings2;
