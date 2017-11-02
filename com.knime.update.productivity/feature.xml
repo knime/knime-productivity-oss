@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
       id="com.knime.update.productivity"
-      label="KNIME.com Productivity Extension Update Site"
+      label="KNIME Productivity Extension Update Site"
       version="3.4.0.qualifier">
 
    <includes

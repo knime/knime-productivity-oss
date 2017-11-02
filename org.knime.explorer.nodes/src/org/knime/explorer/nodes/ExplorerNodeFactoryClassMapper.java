@@ -2,7 +2,7 @@
  * This source code, its documentation and all appendant files
  * are protected by copyright law. All rights reserved.
  *
- * Copyright by KNIME.com, Zurich, Switzerland
+ * Copyright by KNIME AG, Zurich, Switzerland
  *
  * You may not modify, publish, transmit, transfer or sell, reproduce,
  * create derivative works from, distribute, perform, display, or in
@@ -29,7 +29,7 @@ import org.knime.explorer.nodes.writer.ExplorerWriterNodeFactory;
 
 /**
  * Maps old class names "com.knime.explorer.nodes.*" to new open source class names (new package suffix included).
- * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
+ * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  */
 public final class ExplorerNodeFactoryClassMapper extends NodeFactoryClassMapper {
 

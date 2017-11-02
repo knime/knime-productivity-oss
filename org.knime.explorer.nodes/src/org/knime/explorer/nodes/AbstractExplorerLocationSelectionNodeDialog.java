@@ -1,7 +1,7 @@
 /*
  * ------------------------------------------------------------------------
  *
- *  Copyright by KNIME GmbH, Konstanz, Germany
+ *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -75,7 +75,7 @@ import org.knime.workbench.explorer.view.AbstractContentProvider;
 
 /**
  *
- * @author Dominik Morent, KNIME.com, Zurich, Switzerland
+ * @author Dominik Morent, KNIME AG, Zurich, Switzerland
  *
  */
 public abstract class AbstractExplorerLocationSelectionNodeDialog extends
@@ -176,7 +176,7 @@ public abstract class AbstractExplorerLocationSelectionNodeDialog extends
     /**
      * Allows only to select workflow groups in the {@link SpaceResourceSelectionDialog}.
      *
-     * @author Dominik Morent, KNIME.com, Zurich, Switzerland
+     * @author Dominik Morent, KNIME AG, Zurich, Switzerland
      *
      */
     protected final static class WorkflowGroupSelectionValidator extends Validator {

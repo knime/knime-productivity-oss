@@ -1,7 +1,7 @@
 /*
  * ------------------------------------------------------------------------
  *
- *  Copyright by KNIME GmbH, Konstanz, Germany
+ *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -76,7 +76,7 @@ import org.knime.core.util.pathresolve.ResolverUtil;
  * Allows to browse the locations mounted in KNIME explorer and exposes the
  * result as URL and absolute file path.
  *
- * @author Dominik Morent, KNIME.com AG, Zurich, Switzerland
+ * @author Dominik Morent, KNIME AG, Zurich, Switzerland
  */
 public class ExplorerBrowserNodeModel extends NodeModel {
 

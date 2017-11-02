@@ -3,7 +3,7 @@
       id="org.knime.features.personalproductivity"
       label="KNIME Personal Productivity Tools"
       version="3.5.0.qualifier"
-      provider-name="KNIME GmbH, Konstanz, Germany">
+      provider-name="KNIME AG, Zurich, Switzerland">
 
    <description>
       This feature contains the KNIME Personal Productivity Tools including
@@ -12,7 +12,7 @@ Viewer, and a &quot;Call Local Workflow&quot; node.
    </description>
 
    <copyright>
-      Copyright by KNIME GmbH, Konstanz, Germany
+      Copyright by KNIME AG, Zurich, Switzerland
    </copyright>
 
    <license url="">

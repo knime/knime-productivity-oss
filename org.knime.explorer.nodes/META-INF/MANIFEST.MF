@@ -4,7 +4,7 @@ Bundle-Name: KNIME Nodes for the KNIME Explorer
 Bundle-SymbolicName: org.knime.explorer.nodes;singleton:=true
 Bundle-Version: 3.5.0.qualifier
 Bundle-ClassPath: explorer-nodes.jar
-Bundle-Vendor: KNIME GmbH, Konstanz, Germany
+Bundle-Vendor: KNIME AG, Zurich, Switzerland
 Require-Bundle: org.knime.base;bundle-version="[3.4.0,4.0.0)",
  org.knime.workbench.explorer.view;bundle-version="[8.0.0,9.0.0)",
  org.eclipse.ui;bundle-version="[3.6.1,4.0.0)",

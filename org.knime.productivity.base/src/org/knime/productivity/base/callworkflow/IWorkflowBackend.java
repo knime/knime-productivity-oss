@@ -1,7 +1,7 @@
 /*
  * ------------------------------------------------------------------------
  *
- *  Copyright by KNIME GmbH, Konstanz, Germany
+ *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -59,7 +59,7 @@ import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 /**
  * Interface to access a workflow. Can be either a local workflow or a remote flow (via REST calls then).
  *
- * @author Bernd Wiswedel, KNIME.com, Zurich, Switzerland
+ * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  */
 public interface IWorkflowBackend extends AutoCloseable {
     /** Wraps the workflow state - either translates to node container state (local) or the REST version. */

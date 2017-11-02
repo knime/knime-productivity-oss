@@ -230,7 +230,7 @@ Example for the WelcomePage IntroText:
          <meta.section type="copyright"/>
       </appinfo>
       <documentation>
-         (C) KNIME GmbH, Konstanz, Germany.
+         KNIME AG, Zurich, Switzerland
       </documentation>
    </annotation>
 

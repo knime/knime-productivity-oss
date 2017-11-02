@@ -1,7 +1,7 @@
 /*
  * ------------------------------------------------------------------------
  *
- *  Copyright by KNIME GmbH, Konstanz, Germany
+ *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -85,7 +85,7 @@ import org.knime.core.util.FileUtil;
  * This is the model implementation of ExplorerWriter.
  * Allows to write to locations mounted in KNIME explorer
  *
- * @author Dominik Morent, KNIME.com AG, Zurich, Switzerland
+ * @author Dominik Morent, KNIME AG, Zurich, Switzerland
  */
 public class ExplorerWriterNodeModel extends NodeModel {
 
