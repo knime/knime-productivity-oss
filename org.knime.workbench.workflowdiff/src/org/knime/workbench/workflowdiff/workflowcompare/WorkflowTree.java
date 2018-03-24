@@ -53,13 +53,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Stack;
 
 import org.knime.core.node.workflow.ConnectionContainer;
 import org.knime.core.node.workflow.NodeContainer;
 import org.knime.core.node.workflow.NodeID;
+import org.knime.core.node.workflow.SubNodeContainer;
 import org.knime.core.node.workflow.WorkflowManager;
 
 /**
@@ -578,6 +581,11 @@ public class WorkflowTree {
 			return false;
 		}
 
+		@Override
+		public int hashCode() {
+			return (this.nc.getName() + this.nc.getID().getIndex()).hashCode();
+		}
+
 		public double getMatchQuality(Node that) {
 			final double TYPEWEIGHT = 1;
 			final double IDWEIGHT = 1;
@@ -587,6 +595,61 @@ public class WorkflowTree {
 			final double TYPEIDWEIGHT = 5;
 			ArrayList<Double> qualities = new ArrayList<Double>();
 			ArrayList<Double> weights = new ArrayList<Double>();
+
+			if (this.nc instanceof SubNodeContainer && that.nc instanceof SubNodeContainer) {
+				SubNodeContainer thisSNC = (SubNodeContainer) this.nc;
+				SubNodeContainer thatSNC = (SubNodeContainer) that.nc;
+				Collection<NodeContainer> theseContainers = thisSNC.getWorkflowManager().getNodeContainers();
+				Collection<NodeContainer> thoseContainers = thatSNC.getWorkflowManager().getNodeContainers();
+				if (theseContainers.size() != thoseContainers.size()) {
+					return 0;
+				}
+				Iterator<List<Node>> theseSequences = new WorkflowTree(thisSNC.getWorkflowManager()).toSequences()
+						.iterator();
+				Iterator<List<Node>> thoseSequences = new WorkflowTree(thatSNC.getWorkflowManager()).toSequences()
+						.iterator();
+				while (theseSequences.hasNext()) {
+					if (!thoseSequences.hasNext()) {
+						return 0;
+					}
+					Iterator<Node> thisSequence = theseSequences.next().iterator();
+					Iterator<Node> thatSequence = thoseSequences.next().iterator();
+					while (thisSequence.hasNext()) {
+						if (!thatSequence.hasNext()) {
+							return 0;
+						}
+						Node thisNode = thisSequence.next();
+						Node thatNode = thatSequence.next();
+						if (!thisNode.equals(thatNode)) {
+							return 0;
+						}
+						if (thisNode.inputs.length != thatNode.inputs.length) {
+							return 0;
+						}
+						for (int i = 0; i < thisNode.inputs.length; i++) {
+							if (!Objects.equals(thisNode.inputs[i], thatNode.inputs[i])) {
+								return 0;
+							}
+						}
+						if (thisNode.outputs.size() != thatNode.outputs.size()) {
+							return 0;
+						}
+						for (int i = 0; i < thisNode.outputs.size(); i++) {
+							if (thisNode.outputs.get(i).size() != thatNode.outputs.get(i).size()) {
+								return 0;
+							}
+							for (Node n : thisNode.outputs.get(i)) {
+								if (!thatNode.outputs.get(i).contains(n)) {
+									return 0;
+								}
+							}
+						}
+						if (!thisNode.nc.getNodeSettings().equals(thatNode.nc.getNodeSettings())) {
+							return 0;
+						}
+					}
+				}
+			}
 
 			// TYPE
 			qualities.add(this.getTypeMatchQuality(that));
