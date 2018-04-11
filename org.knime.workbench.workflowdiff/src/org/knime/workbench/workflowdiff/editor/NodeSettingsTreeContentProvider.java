@@ -47,7 +47,10 @@
 package org.knime.workbench.workflowdiff.editor;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.stream.Collectors;
 
 import javax.swing.tree.TreeNode;
 
@@ -59,6 +62,7 @@ import org.knime.core.node.NodeSettings;
 import org.knime.core.node.config.Config;
 import org.knime.core.node.config.base.AbstractConfigEntry;
 import org.knime.core.node.workflow.NodeContainer;
+import org.knime.core.node.workflow.SubNodeContainer;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.workbench.workflowdiff.editor.FlowStructureCreator.FlowNode;
 
@@ -110,6 +114,10 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
                 SettingsItem jobMgrItem = new SettingsItem("Job Manager Settings", "", "");
                 addAllConfigValues(jobMgrItem, jobMgrSettings);
                 input.add(jobMgrItem);
+            }
+            if (nc instanceof SubNodeContainer) {
+                int hash = getContentHash((SubNodeContainer) nc);
+                input.add(new SettingsItem("Content-Structure", "", Integer.toString(hash)));
             }
             m_settings = input.toArray(new SettingsItem[input.size()]);
         } else {
@@ -182,5 +190,16 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
         for (int i = 0; i < newSettings.length; i++) {
             m_settings[i] = (SettingsItem) newSettings[i];
         }
+    }
+
+    static int getContentHash(SubNodeContainer nc) {
+        SubNodeContainer snc = (SubNodeContainer) nc;
+        Collection<NodeContainer> nodeContainers = snc.getNodeContainers();
+        ArrayList<String> nodes = new ArrayList<String>();
+        for (NodeContainer nc2 : nodeContainers) {
+            nodes.add(nc2.getName() + nc2.getID().getIndex());
+        }
+        Collections.sort(nodes);
+        return nodes.stream().collect(Collectors.joining(";")).hashCode();
     }
 }
