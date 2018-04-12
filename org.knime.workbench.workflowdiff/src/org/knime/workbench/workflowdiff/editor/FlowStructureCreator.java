@@ -283,8 +283,10 @@ public class FlowStructureCreator implements IStructureCreator {
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                 settings.saveToXML(byteArrayOutputStream);
                 if (node instanceof SubNodeContainer) {
-                    int hash = NodeSettingsTreeContentProvider.getContentHash((SubNodeContainer) node);
-                    byteArrayOutputStream.write(Integer.toString(hash).getBytes());
+                    int contentHash = NodeSettingsTreeContentProvider.getContentHash((SubNodeContainer) node);
+                    byteArrayOutputStream.write(Integer.toString(contentHash).getBytes());
+                    int settingsHash = NodeSettingsTreeContentProvider.getSettingsHash(node);
+                    byteArrayOutputStream.write(Integer.toString(settingsHash).getBytes());
                 }
                 m_xmlSettings = byteArrayOutputStream.toByteArray();
             } catch (InvalidSettingsException e1) {

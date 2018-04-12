@@ -46,7 +46,10 @@
  */
 package org.knime.workbench.workflowdiff.editor;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -116,8 +119,10 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
                 input.add(jobMgrItem);
             }
             if (nc instanceof SubNodeContainer) {
-                int hash = getContentHash((SubNodeContainer) nc);
-                input.add(new SettingsItem("Content-Structure", "", Integer.toString(hash)));
+                int contentHash = getContentHash((SubNodeContainer) nc);
+                input.add(new SettingsItem("Content-Structure", "", Integer.toString(contentHash)));
+                int settingsHash = getSettingsHash(nc);
+                input.add(new SettingsItem("Inner Node Settings", "", Integer.toString(settingsHash)));
             }
             m_settings = input.toArray(new SettingsItem[input.size()]);
         } else {
@@ -193,13 +198,79 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
     }
 
     static int getContentHash(SubNodeContainer nc) {
-        SubNodeContainer snc = (SubNodeContainer) nc;
-        Collection<NodeContainer> nodeContainers = snc.getNodeContainers();
+        return getContentString(nc).hashCode();
+    }
+
+    private static String getContentString(NodeContainer nc) {
+        Collection<NodeContainer> nodeContainers = null;
         ArrayList<String> nodes = new ArrayList<String>();
+        if (nc instanceof WorkflowManager) {
+            nodeContainers = ((WorkflowManager) nc).getNodeContainers();
+        } else if (nc instanceof SubNodeContainer) {
+            nodeContainers = ((SubNodeContainer) nc).getNodeContainers();
+        } else {
+            return nc.getName() + nc.getID().getIndex();
+        }
         for (NodeContainer nc2 : nodeContainers) {
-            nodes.add(nc2.getName() + nc2.getID().getIndex());
+            nodes.add(getContentString(nc2));
         }
         Collections.sort(nodes);
-        return nodes.stream().collect(Collectors.joining(";")).hashCode();
+        nodes.add(0, nc.getName() + nc.getID().getIndex());
+        nodes.add(";;;");
+        return nodes.stream().collect(Collectors.joining(";"));
+    }
+
+    static int getSettingsHash(NodeContainer nc) {
+        return Arrays.hashCode(getAllSettingsArray(nc));
+    }
+
+    private static byte[] getAllSettingsArray(NodeContainer nc) {
+        Collection<NodeContainer> nodeContainers = null;
+        ArrayList<NodeContainer> nodes = new ArrayList<>();
+        if (nc instanceof WorkflowManager) {
+            nodeContainers = ((WorkflowManager) nc).getNodeContainers();
+        } else if (nc instanceof SubNodeContainer) {
+            nodeContainers = ((SubNodeContainer) nc).getNodeContainers();
+        } else {
+            return getSingleSettingsArray(nc);
+        }
+        for (NodeContainer nc2 : nodeContainers) {
+            nodes.add(nc2);
+        }
+        Collections.sort(nodes, (node1, node2) -> {
+            return (node1.getName() + node1.getID().getIndex()).compareTo(node2.getName() + node2.getID().getIndex());
+        });
+        byte[] byteArray;
+        try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
+            for (int i = 0; i < nodes.size(); i++) {
+                stream.write(getAllSettingsArray(nodes.get(i)));
+            }
+            byteArray = stream.toByteArray();
+        } catch (IOException e) {
+            byteArray = e.getMessage().getBytes();
+        }
+        return byteArray;
+    }
+
+    private static byte[] getSingleSettingsArray(NodeContainer nc) {
+        byte[] settingsArray;
+        NodeSettings settings = new NodeSettings("tmp");
+        try {
+            nc.getParent().saveNodeSettings(nc.getID(), settings);
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            settings.saveToXML(byteArrayOutputStream);
+            if (nc instanceof SubNodeContainer) {
+                int hash = NodeSettingsTreeContentProvider.getContentHash((SubNodeContainer) nc);
+                byteArrayOutputStream.write(Integer.toString(hash).getBytes());
+            }
+            settingsArray = byteArrayOutputStream.toByteArray();
+        } catch (InvalidSettingsException e1) {
+            String msg = "Invalid or no user settings: " + nc.getNameWithID() + "(" + e1.getMessage() + ")";
+            settingsArray = msg.getBytes();
+        } catch (IOException e) {
+            String msg = "Error while storing node settings: " + e.getMessage();
+            settingsArray = msg.getBytes();
+        }
+        return settingsArray;
     }
 }
