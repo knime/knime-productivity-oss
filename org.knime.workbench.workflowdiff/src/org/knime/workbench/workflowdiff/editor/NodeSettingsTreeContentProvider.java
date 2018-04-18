@@ -49,7 +49,6 @@ package org.knime.workbench.workflowdiff.editor;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -57,6 +56,7 @@ import java.util.stream.Collectors;
 
 import javax.swing.tree.TreeNode;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 import org.knime.core.node.InvalidSettingsException;
@@ -119,10 +119,10 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
                 input.add(jobMgrItem);
             }
             if (nc instanceof SubNodeContainer) {
-                int contentHash = getContentHash((SubNodeContainer) nc);
-                input.add(new SettingsItem("Content-Structure", "", Integer.toString(contentHash)));
-                int settingsHash = getSettingsHash(nc);
-                input.add(new SettingsItem("Inner Node Settings", "", Integer.toString(settingsHash)));
+                String contentHash = getContentSha1Hash((SubNodeContainer) nc);
+                input.add(new SettingsItem("Content-Structure", "SHA-1 hash", contentHash));
+                String settingsHash = getSettingsSha1Hash(nc);
+                input.add(new SettingsItem("Inner Node Settings", "SHA-1 hash", settingsHash));
             }
             m_settings = input.toArray(new SettingsItem[input.size()]);
         } else {
@@ -197,8 +197,9 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
         }
     }
 
-    static int getContentHash(SubNodeContainer nc) {
-        return getContentString(nc).hashCode();
+    static String getContentSha1Hash(SubNodeContainer nc) {
+        // first 8 chars -- similar to git hashes
+        return DigestUtils.sha1Hex(getContentString(nc).getBytes()).substring(0, 7);
     }
 
     private static String getContentString(NodeContainer nc) {
@@ -220,8 +221,9 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
         return nodes.stream().collect(Collectors.joining(";"));
     }
 
-    static int getSettingsHash(NodeContainer nc) {
-        return Arrays.hashCode(getAllSettingsArray(nc));
+    static String getSettingsSha1Hash(NodeContainer nc) {
+        // first 8 chars -- similar to git hashes
+        return DigestUtils.sha1Hex(getAllSettingsArray(nc)).substring(0, 7);
     }
 
     private static byte[] getAllSettingsArray(NodeContainer nc) {
@@ -260,8 +262,8 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             settings.saveToXML(byteArrayOutputStream);
             if (nc instanceof SubNodeContainer) {
-                int hash = NodeSettingsTreeContentProvider.getContentHash((SubNodeContainer) nc);
-                byteArrayOutputStream.write(Integer.toString(hash).getBytes());
+                String hash = NodeSettingsTreeContentProvider.getContentSha1Hash((SubNodeContainer) nc);
+                byteArrayOutputStream.write(hash.getBytes());
             }
             settingsArray = byteArrayOutputStream.toByteArray();
         } catch (InvalidSettingsException e1) {
