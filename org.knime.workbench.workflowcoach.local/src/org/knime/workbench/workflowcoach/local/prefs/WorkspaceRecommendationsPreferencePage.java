@@ -120,7 +120,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
             } finally {
                 Display.getDefault().asyncExec(() -> {
                     if (!m_analyseButton.isDisposed()) {
-                        m_analyseButton.setEnabled(true);
+                        m_analyseButton.setEnabled(m_checkWorkspaceProvider.getSelection());
                         m_analyseButton.setText("    Analyse    ");
                         m_lastUpdate.setText("Analysis finished!");
                     }
@@ -196,6 +196,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
     private void initializeValues() {
         m_checkWorkspaceProvider.setSelection(getPreferenceStore()
             .getBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER));
+        m_analyseButton.setEnabled(m_checkWorkspaceProvider.getSelection());
 
         Optional<Optional<LocalDateTime>> lastUpdate = NodeRecommendationManager.getInstance().getNodeTripleProviders()
                 .stream().filter(p -> p instanceof WorkspaceTripleProvider)
@@ -263,6 +264,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
             @Override
             public void widgetSelected(final SelectionEvent e) {
                 setValid(isValid());
+                m_analyseButton.setEnabled(m_checkWorkspaceProvider.getSelection());
             }
 
             @Override
