@@ -120,9 +120,9 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
             }
             if (nc instanceof SubNodeContainer) {
                 String contentHash = getContentSha1Hash((SubNodeContainer) nc);
-                input.add(new SettingsItem("Content-Structure", "SHA-1 hash", contentHash));
+                input.add(new SettingsItem("Wrapped Metanode Content Hash", "SHA-1", contentHash));
                 String settingsHash = getSettingsSha1Hash(nc);
-                input.add(new SettingsItem("Inner Node Settings", "SHA-1 hash", settingsHash));
+                input.add(new SettingsItem("Wrapped Metanode Internal Settings Hash", "SHA-1", settingsHash));
             }
             m_settings = input.toArray(new SettingsItem[input.size()]);
         } else {
