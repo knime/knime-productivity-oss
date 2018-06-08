@@ -111,7 +111,7 @@ import com.google.common.cache.RemovalNotification;
  *
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  */
-final class LocalWorkflowBackend implements IWorkflowBackend {
+public final class LocalWorkflowBackend implements IWorkflowBackend {
 
     private static final NodeLogger LOGGER = NodeLogger.getLogger(LocalWorkflowBackend.class);
 
@@ -131,7 +131,15 @@ final class LocalWorkflowBackend implements IWorkflowBackend {
 
     private static final Map<WorkflowManager, Set<URI>> CALLER_MAP = new WeakHashMap<>();
 
-    static LocalWorkflowBackend newInstance(final String path, final WorkflowManager callingWorkflow) throws Exception {
+    /**
+     * Creates a new local workflow backend.
+     *
+     * @param path path to the workflow
+     * @param callingWorkflow the calling workflow
+     * @return a new local workflow backend
+     * @throws Exception if the path does not point to a workflow
+     */
+    public static LocalWorkflowBackend newInstance(final String path, final WorkflowManager callingWorkflow) throws Exception {
         CACHE.cleanUp();
 
         URL originalUrl;
