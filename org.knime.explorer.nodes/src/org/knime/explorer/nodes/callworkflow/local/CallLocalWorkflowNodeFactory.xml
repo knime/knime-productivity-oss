@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <knimeNode icon="./callworkflow.png" type="Other" xmlns="http://knime.org/node/v2.10" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://knime.org/node/v2.10 http://knime.org/node/v2.10.xsd">
-    <name>Call Local Workflow</name>
+    <name>Call Local Workflow (Row Based)</name>
     
     <shortDescription>
         Calls other local workflows.
@@ -8,8 +8,8 @@
     
     <fullDescription>
         <intro>This node can be used to call other workflows in in your local workspace. Input data can be passed to
-        Quickform Input nodes (only the new input nodes) in the other workflow and results can likewise be read back as
-        a JSON value from JSON Output nodes.
+        Quickform Input nodes (only the new input nodes, e.g <i>Container Input (JSON)</i>) in the other workflow and results can likewise be read back as
+        a JSON value from JSON Output nodes(e.g <i>Container Output (JSON)</i>).
         The input can either be a static JSON values provided via the dialog (which itself can be overridden by a flow
         variable) or from a JSON column in the input table. The node will call the other workflow with every row
         of the input table and append the results of the call to it.<br />
