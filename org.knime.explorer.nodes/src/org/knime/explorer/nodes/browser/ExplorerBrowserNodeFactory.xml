@@ -11,7 +11,7 @@
     <fullDescription>
         <intro>Allows browsing the locations mounted in KNIME explorer and 
             exposing the result as URL and absolute file path. The resulting
-            file path and URL are exposed as flow variables and can be used be
+            file path and URL are exposed as flow variables and can be used
             in writer nodes to write to. </intro>
         <option name="Filename">The output filename.</option>
         <option name="Target Location">
