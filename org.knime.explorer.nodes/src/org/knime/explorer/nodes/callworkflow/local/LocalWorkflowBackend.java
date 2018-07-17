@@ -280,7 +280,12 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         return tempDir.listFiles()[0].toPath();
     }
 
-    static void cleanCalledWorkflows(final WorkflowManager callingWorkflow) {
+    /**
+     * Cleans all called workflows.
+     *
+     * @param callingWorkflow the workflow manager that has called the workflows
+     */
+    public static void cleanCalledWorkflows(final WorkflowManager callingWorkflow) {
         synchronized (CALLER_MAP) {
             Set<URI> workflowsUsedBy = CALLER_MAP.remove(callingWorkflow);
             if (workflowsUsedBy != null) {
