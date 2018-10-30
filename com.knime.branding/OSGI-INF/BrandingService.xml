@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="com.knime.branding">
-   <implementation class="com.knime.branding.BrandingService"/>
-   <service>
-      <provide interface="org.knime.product.branding.IBrandingService"/>
-   </service>
-</scr:component>
