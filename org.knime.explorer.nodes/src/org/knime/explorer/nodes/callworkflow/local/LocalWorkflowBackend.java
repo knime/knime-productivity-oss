@@ -208,7 +208,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
 
             if (NodeContext.getContext() != null) {
                 WorkflowContext callerContext = NodeContext.getContext().getWorkflowManager().getContext();
-                ctxFac = new WorkflowContext.Factory(callerContext);
+                ctxFac = callerContext.createCopy();
 
                 // compute the new path in the server repository base on the caller's path and the URL type
                 if (callerContext.getRemoteRepositoryAddress().isPresent()
