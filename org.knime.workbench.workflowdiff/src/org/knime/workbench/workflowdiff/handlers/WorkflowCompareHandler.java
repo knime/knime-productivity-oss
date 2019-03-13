@@ -82,6 +82,10 @@ public class WorkflowCompareHandler extends AbstractHandler {
                 AbstractExplorerFileStore file2;
                 if (element instanceof IFileStoreProvider) {
                     file1 = ((IFileStoreProvider) element).getFileStore();
+                    if (file1.fetchInfo().isReservedSystemItem()) {
+                        deletedWorkflowPopup();
+                        return null;
+                    }
                     file2 = file1;
                 } else if (element instanceof AbstractExplorerFileStore) {
                     file1 = (AbstractExplorerFileStore) element;
@@ -95,6 +99,10 @@ public class WorkflowCompareHandler extends AbstractHandler {
                     element = iterator.next();
                     if (element instanceof IFileStoreProvider) {
                         file2 = ((IFileStoreProvider) element).getFileStore();
+                        if (file1.fetchInfo().isReservedSystemItem()) {
+                            deletedWorkflowPopup();
+                            return null;
+                        }
                     } else if (element instanceof AbstractExplorerFileStore) {
                         file2 = (AbstractExplorerFileStore) element;
                     } else {
@@ -124,5 +132,11 @@ public class WorkflowCompareHandler extends AbstractHandler {
         }
         return null;
     }
-
+    
+    private static void deletedWorkflowPopup() {
+        MessageBox box = new MessageBox(Display.getCurrent().getActiveShell(), SWT.ICON_WARNING | SWT.OK);
+        box.setMessage("Cannot compare with a deleted workflow.");
+        box.setText("Workflow diff not available");
+        box.open();
+    }
 }
