@@ -82,10 +82,6 @@ public class WorkflowCompareHandler extends AbstractHandler {
                 AbstractExplorerFileStore file2;
                 if (element instanceof IFileStoreProvider) {
                     file1 = ((IFileStoreProvider) element).getFileStore();
-                    if (file1.fetchInfo().isReservedSystemItem()) {
-                        deletedWorkflowPopup();
-                        return null;
-                    }
                     file2 = file1;
                 } else if (element instanceof AbstractExplorerFileStore) {
                     file1 = (AbstractExplorerFileStore) element;
@@ -99,10 +95,6 @@ public class WorkflowCompareHandler extends AbstractHandler {
                     element = iterator.next();
                     if (element instanceof IFileStoreProvider) {
                         file2 = ((IFileStoreProvider) element).getFileStore();
-                        if (file1.fetchInfo().isReservedSystemItem()) {
-                            deletedWorkflowPopup();
-                            return null;
-                        }
                     } else if (element instanceof AbstractExplorerFileStore) {
                         file2 = (AbstractExplorerFileStore) element;
                     } else {
@@ -111,6 +103,10 @@ public class WorkflowCompareHandler extends AbstractHandler {
                     }
                 }
                 AbstractExplorerFileInfo fileInfo2 = file2.fetchInfo();
+                if (fileInfo1.isReservedSystemItem() || fileInfo2.isReservedSystemItem()) {
+                    deletedWorkflowPopup();
+                    return null;
+                }
                 boolean file1Valid = fileInfo1.isWorkflow() || fileInfo1.isWorkflowTemplate() || fileInfo1.isMetaNode()
                     || fileInfo1.isSnapshot();
                 boolean file2Valid = fileInfo2.isWorkflow() || fileInfo2.isWorkflowTemplate() || fileInfo2.isMetaNode()
