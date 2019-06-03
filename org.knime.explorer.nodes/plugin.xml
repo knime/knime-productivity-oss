@@ -4,7 +4,7 @@
 <plugin>
     <extension point="org.knime.workbench.repository.nodes">
        <node
-            category-path="/flowcontrol/automation"
+            category-path="/flowabstraction/container"
             factory-class="org.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory"/>
        <node 
             after="_last_"
