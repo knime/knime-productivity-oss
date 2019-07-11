@@ -3,3 +3,6 @@
 */build/
 /com.knime.product.reportbatch/src/xmlbeans/org
 /com.knime.product.reportbatch/lib/schemas.jar
+.flattened-pom.xml
+**/*.flattened-pom.xml
+org.knime.explorer.nodes/explorer-nodes.jar
