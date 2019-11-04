@@ -20,8 +20,11 @@
  */
 package org.knime.explorer.nodes;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.knime.core.node.MapNodeFactoryClassMapper;
 import org.knime.core.node.NodeFactory;
-import org.knime.core.node.NodeFactoryClassMapper;
 import org.knime.core.node.NodeModel;
 import org.knime.explorer.nodes.browser.ExplorerBrowserNodeFactory;
 import org.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory;
@@ -31,20 +34,18 @@ import org.knime.explorer.nodes.writer.ExplorerWriterNodeFactory;
  * Maps old class names "com.knime.explorer.nodes.*" to new open source class names (new package suffix included).
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  */
-public final class ExplorerNodeFactoryClassMapper extends NodeFactoryClassMapper {
+public final class ExplorerNodeFactoryClassMapper extends MapNodeFactoryClassMapper {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public NodeFactory<? extends NodeModel> mapFactoryClassName(final String factoryClassName) {
-        switch (factoryClassName) {
-            case "com.knime.explorer.nodes.ExplorerBrowserNodeFactory":
-                return new ExplorerBrowserNodeFactory();
-            case "com.knime.explorer.nodes.ExplorerWriterNodeFactory":
-                return new ExplorerWriterNodeFactory();
-            case "com.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory":
-                return new CallLocalWorkflowNodeFactory();
-            default:
-                return null;
-        }
+    protected Map<String, Class<? extends NodeFactory<? extends NodeModel>>> getMapInternal() {
+        final Map<String, Class<? extends NodeFactory<? extends NodeModel>>> map = new HashMap<>(3);
+        map.put("com.knime.explorer.nodes.ExplorerBrowserNodeFactory", ExplorerBrowserNodeFactory.class);
+        map.put("com.knime.explorer.nodes.ExplorerWriterNodeFactory", ExplorerWriterNodeFactory.class);
+        map.put("com.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory",
+            CallLocalWorkflowNodeFactory.class);
+        return map;
     }
-
 }
