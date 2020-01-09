@@ -241,7 +241,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
 
                 LocalExplorerFileStore fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
                 if (fs != null) {
-                    File mountpointRoot = fs.getContentProvider().getFileStore("/").toLocalFile();
+                    File mountpointRoot = fs.getContentProvider().getRootStore().toLocalFile();
                     ctxFac.setMountpointRoot(mountpointRoot);
                     ctxFac.setMountpointURI(fs.toURI());
                 } else if (NodeContext.getContext() != null) {
