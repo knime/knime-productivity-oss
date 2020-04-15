@@ -15,16 +15,16 @@ properties([
 try {
 	knimetools.defaultTychoBuild('org.knime.update.personalproductivity')
 
-	// workflowTests.runTests(
-	// 	"org.knime.features.personalproductivity.feature.group",
-	// 	false,
-	// 	["knime-core", "knime-shared", "knime-tp", "knime-js-core", "knime-js-base"],
-	// )
+	workflowTests.runTests(
+		dependencies: [
+			repositories: [ "knime-productivity-oss", "knime-json", "knime-javasnippet", "knime-reporting", "knime-jep", "knime-filehandling", "knime-excel", "knime-ensembles" ]
+		]
+	)
 
-	// stage('Sonarqube analysis') {
-	// 	env.lastStage = env.STAGE_NAME
-	// 	workflowTests.runSonar()
-	// }
+	stage('Sonarqube analysis') {
+		env.lastStage = env.STAGE_NAME
+	 	workflowTests.runSonar()
+	}
  } catch (ex) {
 	 currentBuild.result = 'FAILED'
 	 throw ex
