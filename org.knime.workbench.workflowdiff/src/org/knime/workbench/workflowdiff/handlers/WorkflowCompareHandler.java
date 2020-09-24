@@ -91,14 +91,14 @@ public class WorkflowCompareHandler extends AbstractHandler {
                     return null;
                 }
                 AbstractExplorerFileInfo fileInfo1 = file1.fetchInfo();
-                if (strucSelection.size() == 2) {
-                    element = iterator.next();
+                if (strucSelection.size() == 2 || fileInfo1.isSnapshot()) {
+                    element = strucSelection.size() == 2 ? iterator.next() : file1.getParent();
                     if (element instanceof IFileStoreProvider) {
-                        file2 = ((IFileStoreProvider) element).getFileStore();
+                        file2 = ((IFileStoreProvider)element).getFileStore();
                     } else if (element instanceof AbstractExplorerFileStore) {
-                        file2 = (AbstractExplorerFileStore) element;
+                        file2 = (AbstractExplorerFileStore)element;
                     } else {
-                    	LOGGER.coding("Invalid object type in selection, not able to perform diff");
+                        LOGGER.coding("Invalid object type in selection, not able to perform diff");
                         return null;
                     }
                 }
