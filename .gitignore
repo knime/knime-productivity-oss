@@ -5,3 +5,4 @@
 /com.knime.product.reportbatch/lib/schemas.jar
 **/.flattened-pom.xml
 */*.jar
+**/CHANGELOG.md
