@@ -90,6 +90,7 @@ import javax.swing.SwingUtilities;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.eclipse.core.runtime.Platform;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
@@ -461,7 +462,11 @@ final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {
 
                 if (Files.exists(workflowFile)) {
                     if (!Files.exists(templateFile)) {
-                        workflows.add("/" + root.relativize(dir).toString());
+                        String workflowPath = "/" + root.relativize(dir).toString();
+                        if (Platform.getOS().equals(Platform.OS_WIN32)) {
+                            workflowPath = workflowPath.replace('\\', '/');
+                        }
+                        workflows.add(workflowPath);
                     }
                     return FileVisitResult.SKIP_SUBTREE;
                 } else {
