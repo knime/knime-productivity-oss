@@ -411,7 +411,9 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
     }
 
     void discard() {
-        if (!Boolean.getBoolean("java.awt.headless")) {
+        if (Boolean.getBoolean("java.awt.headless")) {
+            m_manager.getParent().removeProject(m_manager.getID());
+        } else {
             ProjectWorkflowMap.unregisterClientFrom(m_uri, this);
             ProjectWorkflowMap.remove(m_uri);
         }
