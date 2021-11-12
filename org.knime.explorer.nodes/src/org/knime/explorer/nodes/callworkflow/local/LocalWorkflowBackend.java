@@ -60,6 +60,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -330,8 +331,45 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                 map.put(e.getKey(), json);
             }
         }
-
         return map;
+    }
+
+    @Override
+    public Map<String, ResourceContentType> getInputResourceDescription() {
+        return filterResourceBasedExternalNodeData(m_manager.getInputNodes());
+    }
+
+    @Override
+    public Map<String, ResourceContentType> getOutputResourceDescription() {
+        return filterResourceBasedExternalNodeData(m_manager.getExternalOutputs());
+    }
+
+    private static Map<String, ResourceContentType>
+        filterResourceBasedExternalNodeData(final Map<String, ExternalNodeData> values) {
+        var result = new LinkedHashMap<String, ResourceContentType>();
+        for (var entry : values.entrySet()) {
+            var externalNodeData = entry.getValue();
+            var contentType = externalNodeData.getContentType()//
+                .map(ResourceContentType::of)//
+                .filter(ResourceContentType::isKNIMEPortType);
+            if (contentType.isPresent()) {
+                result.put(entry.getKey(), contentType.get());
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public InputStream openOutputResource(final String name) throws IOException {
+        var externalNodeData = m_manager.getExternalOutputs().get(name);
+        if (externalNodeData == null) {
+            throw new IOException(String.format("No output with identifier %s", name));
+        }
+        var resource = externalNodeData.getResource();
+        if (resource == null) {
+            throw new IOException(String.format("No output resource for output with identifier %s", name));
+        }
+        return resource.toURL().openStream();
     }
 
     /** {@inheritDoc} */

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<knimeNode icon="./subworkflow.png" type="Container" 
+	xmlns="http://knime.org/node/v4.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://knime.org/node/v4.1 http://knime.org/node/v4.1.xsd">
+	
+	<name>Workflow Input</name>
+
+	<shortDescription>
+		Receives an input from an external KNIME workflow.
+		For use in workflows that are called from other workflows.
+    </shortDescription>
+
+	<fullDescription>
+		<intro>
+			Receives a table or any other port object from a KNIME workflow that
+			calls this workflow using the Subworkflow node.
+		</intro>
+	</fullDescription>
+
+	<ports>
+		<outPort index="0" name="Callee Workflow Input">
+            Abitrary input provided by a workflow calling this workflow, e.g, using the Call Workflow node.
+            The port can be configured to match the type of data that is to be received on this Workflow Input node.  
+        </outPort>
+ 	</ports>  
+</knimeNode>

@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
-      id="org.knime.features.personalproductivity"
-      label="KNIME Personal Productivity Tools"
+      id="org.knime.features.workflowservices"
+      label="KNIME Workflow Services"
       version="4.5.0.qualifier"
       provider-name="KNIME AG, Zurich, Switzerland">
 
    <description>
-      This feature contains the KNIME Personal Productivity Tools including
-features such as MetaNode and WrappedNode sharing, Workflow Difference
-Viewer, and a &quot;Call Local Workflow&quot; node.
+      Contains KNIME Labs nodes to build and use workflows as native KNIME service.
    </description>
 
    <copyright>
@@ -362,34 +360,7 @@ Public License instead of this License.
    </requires>
 
    <plugin
-         id="org.knime.workbench.workflowdiff"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.knime.workbench.workflowcoach.local"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         fragment="true"
-         unpack="false"/>
-
-   <plugin
-         id="org.knime.explorer.nodes"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"/>
-
-   <plugin
-         id="org.knime.productivity.base"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"/>
-
-   <plugin
-         id="org.knime.workflowservices"
+         id="org.knime.workflowservices.labs"
          download-size="0"
          install-size="0"
          version="0.0.0"

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<knimeNode icon="./subworkflow.png" type="Container" 
+	xmlns="http://knime.org/node/v4.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://knime.org/node/v4.1 http://knime.org/node/v4.1.xsd">
+	
+	<name>Workflow Output</name>
+	
+	<shortDescription>
+		Sends back data to an external KNIME workflow.
+		For use in workflows that are called from other workflows.
+    </shortDescription>
+
+	<fullDescription>
+		<intro>
+			Sends a table or any other port object to a KNIME workflow that
+			calls this workflow using the Subworkflow node.
+		</intro>
+	</fullDescription>
+
+	<ports>
+		<inPort index="0" name="Callee Workflow Output">
+            Output provided by this workflow to a workflow calling this workflow, e.g, using the Call Workflow node.
+            The port can be configured to match the type of data that is to be received by the calling workflow.  
+        </inPort>
+	</ports>  
+</knimeNode>

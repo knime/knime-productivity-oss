@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<knimeNode icon="./callworkflow.png" type="Container"
+	xmlns="http://knime.org/node/v4.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://knime.org/node/v4.1 http://knime.org/node/v4.1.xsd">
+	
+	<name>Call Workflow</name>
+
+	<shortDescription>
+		Executes another workflow and obtains the results for further processing.
+	</shortDescription>
+
+	<fullDescription>
+		<intro>Executes another workflow and obtains the results for further processing in this workflow.</intro>
+	</fullDescription>
+
+	<ports>
+        <inPort index="0" name="KNIME server connection">
+        	Connection to a KNIME server
+       	</inPort>
+		<dynInPort insert-before="1" name="Workflow inputs"
+			group-identifier="Inputs">
+			The inputs for the execution. Number and types of
+			the ports must
+			exactly match the inputs of the workflow provided at
+			the workflow
+			port.
+		</dynInPort>
+		<dynOutPort insert-before="0" name="Workflow outputs"
+			group-identifier="Outputs">The outputs of the execution. Number and types of
+			the ports must exactly match the outputs of the workflow provided at
+			the workflow port.
+		</dynOutPort>
+	</ports>
+</knimeNode>

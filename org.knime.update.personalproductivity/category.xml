@@ -2,4 +2,6 @@
 <site>
    <feature id="org.knime.features.personalproductivity" version="0.0.0"/>
    <feature id="org.knime.features.personalproductivity.source" version="0.0.0"/>
+   <feature id="org.knime.features.workflowservices" version="0.0.0"/>
+   <feature id="org.knime.features.workflowservices.source" version="0.0.0"/>
 </site>

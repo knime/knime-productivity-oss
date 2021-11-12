@@ -48,6 +48,8 @@
  */
 package org.knime.productivity.base.callworkflow;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
@@ -57,6 +59,9 @@ import javax.json.JsonValue;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
+import org.knime.core.node.port.PortType;
+import org.knime.core.node.port.PortTypeRegistry;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 
 /**
@@ -92,6 +97,12 @@ public interface IWorkflowBackend extends AutoCloseable {
      * @return a map between IDs and values
      */
     Map<String, JsonValue> getOutputValues();
+
+    Map<String, ResourceContentType> getInputResourceDescription() throws InvalidSettingsException;
+
+    Map<String, ResourceContentType> getOutputResourceDescription() throws InvalidSettingsException;
+
+    InputStream openOutputResource(final String name) throws IOException;
 
     /**
      * Executes the workflow and returns the state after execution. The map doesn't need to contain all input values
@@ -148,6 +159,56 @@ public interface IWorkflowBackend extends AutoCloseable {
             String simpleID = ExternalNodeData.getSimpleIDFrom(name);
             return collisionMap.containsKey(simpleID) ? simpleID : name;
         }));
+    }
+
+    // TODO javadoc
+    public class ResourceContentType {
+
+        /** The content type of in/output node's {@link ExternalNodeData} starts with this and is followed by the fully
+         * qualified class name of the port type, e.g. <pre>knime-port/org.knime.core.node.port.pmml.PMMLPortObject</pre>.
+         */
+        public static final String CONTENT_TYPE_DEF_PREFIX = "knime-port/";
+
+        private final String m_contentType;
+
+        /**
+         *
+         */
+        private ResourceContentType(final String contentType) {
+            m_contentType = CheckUtils.checkNotNull(contentType);
+        }
+
+        public String asString() {
+            return m_contentType;
+        }
+
+        @Override
+        public String toString() {
+            return asString();
+        }
+
+        public boolean isKNIMEPortType() {
+            return m_contentType.startsWith(CONTENT_TYPE_DEF_PREFIX);
+        }
+
+        public PortType toPortType() throws InvalidSettingsException {
+            CheckUtils.checkSetting(isKNIMEPortType(), "content type does not represent a KNIME port type: %s",
+                m_contentType);
+            var className = m_contentType.substring(CONTENT_TYPE_DEF_PREFIX.length());
+            return PortTypeRegistry.getInstance().availablePortTypes().stream() //
+                .filter(p -> p.getPortObjectClass().getName().equals(className)) //
+                .findFirst().orElseThrow(() -> new InvalidSettingsException(
+                    String.format("Can not instantiate port object for class %s - class not found.", className)));
+        }
+
+        public static ResourceContentType of(final PortType portType) {
+            return new ResourceContentType(CONTENT_TYPE_DEF_PREFIX + portType.getPortObjectClass().getName());
+        }
+
+        public static ResourceContentType of(final String contentType) {
+            return new ResourceContentType(contentType);
+        }
+
     }
 
 }
