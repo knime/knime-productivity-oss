@@ -115,8 +115,17 @@ public final class CalleeWorkflowData {
     /** {@link #getPortType()} */
     private final PortType m_portType;
 
+    /**
+     * TODO port type might as well be a ResourceContentType
+     *
+     * @param parameterName parameter name chosen by the user, e.g., input-parameter (as entered in the Workflow Service
+     *            Input or Output dialog) or as modified by the framework (to make non-unique parameter names unique),
+     *            e.g., input-parameter-1
+     * @param portType the port type of the Workflow Input or Output node
+     * @throws InvalidSettingsException if the port type is null or the parameter name is invalid
+     */
     public CalleeWorkflowData(final String parameterName, final PortType portType) throws InvalidSettingsException {
-        m_parameterName = validateParameterName(parameterName);
+        m_parameterName = parameterName;
         m_portType = CheckUtils.checkSettingNotNull(portType, "PortType must not be null");
     }
 
@@ -157,6 +166,7 @@ public final class CalleeWorkflowData {
         var parameterName = settings.getString(CFG_PARAMETER_NAME);
         var portSettings = settings.getNodeSettings(CFG_PORT_TYPE);
         var portType = PortType.load(portSettings);
+        // doesn't validate parameter names here (they might have been changed by the framework to make them unique)
         return new CalleeWorkflowData(parameterName, portType);
     }
 
