@@ -89,8 +89,6 @@ final class ParameterUpdateWorker extends SwingWorkerWithContext<CalleeWorkflowP
             if (backend != null) {
                 var inputResourceDescription = backend.getInputResourceDescription();
                 var outputResourceDescription = backend.getOutputResourceDescription();
-                // The input nodes needs to be set to make sure the output values are present
-
                 return new CalleeWorkflowProperties(inputResourceDescription, outputResourceDescription);
             } else {
                 return null;

@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<knimeNode icon="./callworkflow.png" type="Container"
+<knimeNode icon="./callworkflow.png" type="Other"
 	xmlns="http://knime.org/node/v4.1"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://knime.org/node/v4.1 http://knime.org/node/v4.1.xsd">
 	
-	<name>Call Workflow</name>
+	<name>Call Workflow Service</name>
 
 	<shortDescription>
 		Executes another workflow and obtains the results for further processing.
 	</shortDescription>
 
 	<fullDescription>
-		<intro>Executes another workflow and obtains the results for further processing in this workflow.</intro>
+		<intro>Executes another workflow and obtains the results for further processing in this workflow.
+		Select a workflow to be executed in the configuration dialog to configure the ports of the node.
+		The connected inputs are sent to the selected workflow and the execution results are available at this node's output ports.
+		</intro>
 	</fullDescription>
 
 	<ports>

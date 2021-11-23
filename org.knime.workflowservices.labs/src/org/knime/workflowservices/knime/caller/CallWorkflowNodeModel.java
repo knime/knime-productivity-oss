@@ -70,6 +70,7 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
 
         return runInBackground(() -> {
             try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(m_configuration)) {
+                // TODO check freshness of callee signature (similar to ParameterUpdateWorker)
                 CheckUtils.checkArgument(backend != null,
                     "Internal error: No backend available to execute callee workflow.");
 

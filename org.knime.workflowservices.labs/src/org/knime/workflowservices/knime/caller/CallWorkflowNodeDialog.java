@@ -65,6 +65,8 @@ import org.knime.workflowservices.knime.CalleeWorkflowData;
 
 /**
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
+ *
+ * TODO when exchanging callees with different signatures things blow up (out of bounds exception, needs proper handling)
  */
 public class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeDialog {
 
@@ -80,7 +82,7 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
 
         m_nodeCreationConfig = (ModifiableNodeCreationConfiguration)creationConfig;
 
-        // TODO everything below is copied from
+        // TODO everything below is copied from (fix after finalizing this dialog)
         // org.knime.productivity.callworkflow.table.AbstractCallWorkflowTableNodeDialogPane
 
         final JPanel panel = new JPanel(new GridBagLayout());

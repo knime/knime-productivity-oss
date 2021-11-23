@@ -72,6 +72,7 @@ public final class WorkflowBoundaryConfiguration {
      */
     static final PortType DEFAULT_PORT_TYPE = BufferedDataTable.TYPE;
 
+    // always fresh, because after installing extensions, a restart is necessary
     static final PortType[] ALL_PORT_TYPES = PortTypeRegistry.getInstance()//
         .availablePortTypes()//
         .toArray(PortType[]::new);

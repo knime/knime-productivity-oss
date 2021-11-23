@@ -107,6 +107,9 @@ class CalleeWorkflowProperties {
             .map(e -> {
                 CalleeWorkflowData desc = null;
                 try {
+                    // doesn't validate the parameter name, because it might be changed by the framework if not unique
+                    // in the callee (e.g., from input-parameter to input-parameter-<node id> which isn't a valid
+                    // parameter name for a user to choose
                     desc = new CalleeWorkflowData(e.getKey(), e.getValue().toPortType());
                 } catch (InvalidSettingsException ise) {
                     // TODO better error handling (in dialog) e.g. missing port type in submit client
