@@ -20,16 +20,21 @@
  */
 package org.knime.workflowservices.knime.util;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettings;
+import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
@@ -37,7 +42,9 @@ import org.knime.core.node.port.flowvariable.FlowVariablePortObjectSpec;
 import org.knime.core.node.workflow.CredentialsStore;
 import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.node.workflow.ICredentials;
+import org.knime.core.node.workflow.IllegalFlowVariableNameException;
 import org.knime.core.node.workflow.VariableType;
+import org.knime.core.util.FileUtil;
 
 /**
  *
@@ -45,10 +52,12 @@ import org.knime.core.node.workflow.VariableType;
  */
 final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
 
-    static final String CFG_PLAIN_VARIABLES = "variables";
-    static final String CFG_PASSWORDS = "passwords";
+    private static final String CFG_PLAIN_VARIABLES = "variables";
+    private static final String CFG_PASSWORDS = "passwords";
 
-    static final String WEAK_ENCRYPT_PASS = "1u4#/5c2";
+    /** Passwords are stored in temp files before they are sent to the receiving side. Since these files live on disc
+     * we do the best to obfuscate the content by (weakly) encrypting the password using this key. */
+    private static final String WEAK_ENCRYPT_PASS = "1u4#/5c2";
 
     private final List<FlowVariable> m_flowVariables;
 
@@ -99,6 +108,55 @@ final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
         // though it is a map). Reverse to insert top of stack last.
         Collections.reverse(flowVariables);
         return new FlowVariablesCallWorkflowPayload(Collections.unmodifiableList(flowVariables));
+    }
+
+    /**
+     * TODO a similar check must be done somewhere else already, compare When sending flow variables from or to a callee
+     * workflow, include only those that can be instantiated on the other side. For instance the flow variable with the
+     * name "knime.workspace" is a reserved variable and can not be loaded using
+     * {@link FlowVariable#load(NodeSettingsRO)} (which won't accept flow variables with reserved names).
+     *
+     * @param variable the flow variable to test for inclusion
+     * @return whether the flow variable can be re-instantiated on the receiving side (the callee for a Workflow Input
+     *         node, the caller for a Workflow Output node).
+     */
+    private static boolean isSendableFlowVariable(final FlowVariable variable) {
+        try {
+            FlowVariable.Scope.Flow.verifyName(variable.getName());
+            return true;
+        } catch (IllegalFlowVariableNameException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Implementation of {@link CallWorkflowUtil#writeFlowVariables(Collection)}.
+     */
+    static File writeFlowVariables(final Collection<FlowVariable> flowVariables) throws IOException {
+        List<FlowVariable> list = flowVariables.stream()//
+            .filter(FlowVariablesCallWorkflowPayload::isSendableFlowVariable)//
+            .collect(Collectors.toList());
+
+        // flow variable port objects don't contain information, they just serve as a means to connect nodes
+        // take the flow variables from the workflow manager's stack and write them to XML via NodeSettings
+        var variables = new NodeSettings("flow-variables");
+        var variablesSettings = variables.addNodeSettings(FlowVariablesCallWorkflowPayload.CFG_PLAIN_VARIABLES);
+        var passwordSettings = variables.addNodeSettings(FlowVariablesCallWorkflowPayload.CFG_PASSWORDS);
+        for (var i = 0; i < list.size(); i++) {
+            var flowVariable = list.get(i);
+            String key = "Var_" + i;
+            flowVariable.save(variablesSettings.addNodeSettings(key));
+            if (flowVariable.getVariableType().equals(VariableType.CredentialsType.INSTANCE)) {
+                ICredentials c = flowVariable.getValue(VariableType.CredentialsType.INSTANCE);
+                passwordSettings.addPassword(flowVariable.getName(), FlowVariablesCallWorkflowPayload.WEAK_ENCRYPT_PASS,
+                    c.getPassword());
+            }
+        }
+        var tempFile = FileUtil.createTempFile("external-node-flow-variables-", ".xml", false);
+        try (var out = new FileOutputStream(tempFile)) {
+            variables.saveToXML(out);
+        }
+        return tempFile;
     }
 
 }

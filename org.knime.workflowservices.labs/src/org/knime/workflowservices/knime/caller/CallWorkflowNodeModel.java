@@ -4,11 +4,11 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.ExecutionContext;
@@ -117,26 +117,23 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
         exec.setMessage("Receiving results from callee workflow.");
         var outputNodes = calleeWorkflowProperties.getOutputNodes();
         var outputPOs = new PortObject[outputNodes.size()];
+        // there might be multiple flow variable outputs in the callee (which is useless and a badly designed workflow)
+        // map guarantees that flow vars are added only once
+        var flowVarMap = new LinkedHashMap<String, FlowVariable>();
         for (var i = 0; i < outputNodes.size(); i++) {
             CalleeWorkflowData output = outputNodes.get(i);
             try (InputStream in = new BufferedInputStream(backend.openOutputResource(output.getParameterName()));
                     var payload = CallWorkflowPayload.createFrom(in, getOutPortType(i))) {
-                outputPOs[i] = payload.onExecute(exec, this::pushFlowVariableInternal);
+                outputPOs[i] = payload.onExecute(exec, fv -> flowVarMap.put(fv.getName(), fv));
             }
         }
+        flowVarMap.values().stream().forEach(variable -> {;
+            VariableType expectedType = variable.getVariableType(); // NOSONAR must be declared as raw type
+            pushFlowVariable(variable.getName(), expectedType, variable.getValue(expectedType));
+        });
         return outputPOs;
     }
 
-
-    /**
-     * Push the given flow variable on this node's flow variable stack. Convenience method to pass to
-     * {@link #readFlowVariables(InputStream, Consumer)}.
-     */
-    @SuppressWarnings("rawtypes")
-    private void pushFlowVariableInternal(final FlowVariable variable) {
-        VariableType expectedType = variable.getVariableType(); // NOSONAR must be declared as raw type
-        pushFlowVariable(variable.getName(), expectedType, variable.getValue(expectedType));
-    }
 
     @Override
     protected void reset() {

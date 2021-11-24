@@ -20,16 +20,20 @@
  */
 package org.knime.workflowservices.knime.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Consumer;
 
 import org.knime.core.data.container.ContainerTable;
 import org.knime.core.data.container.DataContainer;
+import org.knime.core.node.BufferedDataTable;
+import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.FlowVariable;
+import org.knime.core.util.FileUtil;
 
 /**
  *
@@ -61,6 +65,17 @@ final class TableCallWorkflowPayload implements CallWorkflowPayload {
     @SuppressWarnings("resource")
     static final TableCallWorkflowPayload createFrom(final InputStream input) throws IOException {
         return new TableCallWorkflowPayload(DataContainer.readFromStream(input));
+    }
+
+    /**
+     * Implementation of {@link CallWorkflowUtil#writePortObject(ExecutionContext, PortObject)} for non-table ports.
+     */
+    static File writeTable(final ExecutionContext exec, final BufferedDataTable table)
+        throws IOException, CanceledExecutionException {
+        // BufferedDataTables are historically not port objects and have their own methods for persistence
+        var tempFile = FileUtil.createTempFile("external-node-input-", ".table", false);
+        DataContainer.writeToZip(table, tempFile, exec);
+        return tempFile;
     }
 
 }

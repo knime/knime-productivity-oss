@@ -21,29 +21,19 @@
 package org.knime.workflowservices.knime.util;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import org.knime.core.data.container.DataContainer;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
-import org.knime.core.node.NodeSettings;
-import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObject;
-import org.knime.core.node.port.PortUtil;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.FlowVariable;
-import org.knime.core.node.workflow.ICredentials;
-import org.knime.core.node.workflow.IllegalFlowVariableNameException;
-import org.knime.core.node.workflow.VariableType;
-import org.knime.core.util.FileUtil;
 import org.knime.workflowservices.knime.CalleeWorkflowData;
 import org.knime.workflowservices.knime.callee.WorkflowInputNodeModel;
 
@@ -54,25 +44,6 @@ import org.knime.workflowservices.knime.callee.WorkflowInputNodeModel;
 public final class CallWorkflowUtil {
 
     private CallWorkflowUtil() {
-    }
-
-    /**
-     * TODO a similar check must be done somewhere else already, compare When sending flow variables from or to a callee
-     * workflow, include only those that can be instantiated on the other side. For instance the flow variable with the
-     * name "knime.workspace" is a reserved variable and can not be loaded using
-     * {@link FlowVariable#load(NodeSettingsRO)} (which won't accept flow variables with reserved names).
-     *
-     * @param variable the flow variable to test for inclusion
-     * @return whether the flow variable can be re-instantiated on the receiving side (the callee for a Workflow Input
-     *         node, the caller for a Workflow Output node).
-     */
-    private static boolean isSendableFlowVariable(final FlowVariable variable) {
-        try {
-            FlowVariable.Scope.Flow.verifyName(variable.getName());
-            return true;
-        } catch (IllegalFlowVariableNameException e) {
-            return false;
-        }
     }
 
     /**
@@ -138,8 +109,6 @@ public final class CallWorkflowUtil {
             workflowInput.put(key, externalNodeData);
         }
 
-        // TODO flow credentials: see AbstractCallWorkflowTableNodeModel#createFlowCredentialsNodeData
-
         return workflowInput;
     }
 
@@ -156,19 +125,11 @@ public final class CallWorkflowUtil {
      */
     public static File writePortObject(final ExecutionContext exec, final PortObject portObject)
         throws IOException, CanceledExecutionException {
-
-        File tempFile;
-
         if (portObject instanceof BufferedDataTable) {
-            // BufferedDataTables are historically not port objects and have their own methods for persistence
-            tempFile = FileUtil.createTempFile("external-node-input-", ".table", false);
-            DataContainer.writeToZip((BufferedDataTable)portObject, tempFile, exec);
+            return TableCallWorkflowPayload.writeTable(exec, (BufferedDataTable)portObject);
         } else {
-            // all other port objects can be written with PortUtil
-            tempFile = FileUtil.createTempFile("external-node-input-", ".portobject", false);
-            PortUtil.writeObjectToFile(portObject, tempFile, exec);
+            return PortObjectCallWorkflowPayload.writePortObject(exec, portObject);
         }
-        return tempFile;
     }
 
     /**
@@ -179,31 +140,7 @@ public final class CallWorkflowUtil {
      * @throws IOException
      */
     public static File writeFlowVariables(final Collection<FlowVariable> flowVariables) throws IOException {
-
-        List<FlowVariable> list = flowVariables.stream()//
-            .filter(CallWorkflowUtil::isSendableFlowVariable)//
-            .collect(Collectors.toList());
-
-        // flow variable port objects don't contain information, they just serve as a means to connect nodes
-        // take the flow variables from the workflow manager's stack and write them to XML via NodeSettings
-        var variables = new NodeSettings("flow-variables");
-        var variablesSettings = variables.addNodeSettings(FlowVariablesCallWorkflowPayload.CFG_PLAIN_VARIABLES);
-        var passwordSettings = variables.addNodeSettings(FlowVariablesCallWorkflowPayload.CFG_PASSWORDS);
-        for (var i = 0; i < list.size(); i++) {
-            var flowVariable = list.get(i);
-            String key = "Var_" + i;
-            flowVariable.save(variablesSettings.addNodeSettings(key));
-            if (flowVariable.getVariableType().equals(VariableType.CredentialsType.INSTANCE)) {
-                ICredentials c = flowVariable.getValue(VariableType.CredentialsType.INSTANCE);
-                passwordSettings.addPassword(flowVariable.getName(), FlowVariablesCallWorkflowPayload.WEAK_ENCRYPT_PASS,
-                    c.getPassword());
-            }
-        }
-        var tempFile = FileUtil.createTempFile("external-node-flow-variables-", ".xml", false);
-        try (var out = new FileOutputStream(tempFile)) {
-            variables.saveToXML(out);
-        }
-        return tempFile;
+        return FlowVariablesCallWorkflowPayload.writeFlowVariables(flowVariables);
     }
 
 }

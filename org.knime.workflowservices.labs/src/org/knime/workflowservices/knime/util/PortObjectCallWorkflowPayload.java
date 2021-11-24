@@ -21,6 +21,7 @@
 package org.knime.workflowservices.knime.util;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Consumer;
@@ -33,6 +34,7 @@ import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortUtil;
 import org.knime.core.node.workflow.FlowVariable;
+import org.knime.core.util.FileUtil;
 
 /**
  *
@@ -74,5 +76,16 @@ final class PortObjectCallWorkflowPayload implements CallWorkflowPayload {
             throw new InvalidSettingsException("Reading port object canceled", e);
         }
     }
+
+    /**
+     * Implementation of {@link CallWorkflowUtil#writePortObject(ExecutionContext, PortObject)} for non-table ports.
+     */
+    static File writePortObject(final ExecutionContext exec, final PortObject portObject)
+        throws IOException, CanceledExecutionException {
+        var tempFile = FileUtil.createTempFile("external-node-input-", ".portobject", false);
+        PortUtil.writeObjectToFile(portObject, tempFile, exec);
+        return tempFile;
+    }
+
 
 }
