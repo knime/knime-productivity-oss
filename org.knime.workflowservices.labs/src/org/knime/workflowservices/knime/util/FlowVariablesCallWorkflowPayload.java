@@ -34,13 +34,21 @@ import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObjectSpec;
+import org.knime.core.node.workflow.CredentialsStore;
 import org.knime.core.node.workflow.FlowVariable;
+import org.knime.core.node.workflow.ICredentials;
+import org.knime.core.node.workflow.VariableType;
 
 /**
  *
  * @author wiswedel
  */
 final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
+
+    static final String CFG_PLAIN_VARIABLES = "variables";
+    static final String CFG_PASSWORDS = "passwords";
+
+    static final String WEAK_ENCRYPT_PASS = "1u4#/5c2";
 
     private final List<FlowVariable> m_flowVariables;
 
@@ -73,9 +81,18 @@ final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
     static final FlowVariablesCallWorkflowPayload createFrom(final InputStream stream)
         throws IOException, InvalidSettingsException {
         List<FlowVariable> flowVariables = new ArrayList<>();
-        var wfmVarSub = NodeSettings.loadFromXML(stream);
-        for (String key : wfmVarSub.keySet()) {
-            flowVariables.add(FlowVariable.load(wfmVarSub.getNodeSettings(key)));
+        var variablesParentSettings = NodeSettings.loadFromXML(stream);
+        var variablesSettings = variablesParentSettings.getNodeSettings(CFG_PLAIN_VARIABLES);
+        var passwordSettings = variablesParentSettings.getNodeSettings(CFG_PASSWORDS);
+        for (String key : variablesSettings.keySet()) {
+            var flowVar = FlowVariable.load(variablesSettings.getNodeSettings(key));
+            if (flowVar.getVariableType().equals(VariableType.CredentialsType.INSTANCE)) {
+                ICredentials credVar = flowVar.getValue(VariableType.CredentialsType.INSTANCE);
+                var password = passwordSettings.getPassword(flowVar.getName(), WEAK_ENCRYPT_PASS);
+                flowVar = CredentialsStore.newCredentialsFlowVariable(credVar.getName(), credVar.getLogin(), password,
+                    false, false);
+            }
+            flowVariables.add(flowVar);
         }
 
         // when retrieving flow variables via NodeModel#getAvailableFlowVariables it returns top of stack first (even

@@ -20,39 +20,30 @@
  */
 package org.knime.workflowservices.knime.util;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.knime.core.data.container.ContainerTable;
 import org.knime.core.data.container.DataContainer;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
-import org.knime.core.node.ExecutionMonitor;
-import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettings;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObject;
-import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortUtil;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.FlowVariable;
+import org.knime.core.node.workflow.ICredentials;
 import org.knime.core.node.workflow.IllegalFlowVariableNameException;
+import org.knime.core.node.workflow.VariableType;
 import org.knime.core.util.FileUtil;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 import org.knime.workflowservices.knime.CalleeWorkflowData;
 import org.knime.workflowservices.knime.callee.WorkflowInputNodeModel;
 
@@ -153,41 +144,6 @@ public final class CallWorkflowUtil {
     }
 
     /**
-     * Restore the results from the callee workflow to output at this node. All port objects except flow variables are
-     * restored using {@link #readPortObject(ExecutionContext, InputStream, PortType)}. Flow variables are restored using
-     * {@link #readFlowVariables(File)}.
-     *
-     * @param outputDescriptions descriptions of the callee's Workflow Output nodes. They are ordered such that the i-th
-     *            description describes the output of the i-th output port of this node.
-     * @param backend will call {@link IWorkflowBackend#openOutputResource(String)} to read the actual result
-     * @param exec the {@link ExecutionMonitor} passed to {@link #execute(PortObject[], ExecutionContext)}
-     * @param pushTo Consumer where to push flow variables to (NodeModel#pushFlowVar)
-     * @return
-     * @throws IOException Possibly if the callee workflow's output can not be accessed
-     * @throws InvalidSettingsException
-     * @throws CanceledExecutionException
-     */
-    public static PortObject[] unpackOutputValues(final List<CalleeWorkflowData> outputDescriptions,
-        final IWorkflowBackend backend, final ExecutionContext exec, final Consumer<FlowVariable> pushTo)
-        throws IOException, InvalidSettingsException, CanceledExecutionException {
-
-        var results = new PortObject[outputDescriptions.size()];
-
-        var outputPortIdx = 0;
-        for (CalleeWorkflowData outputNode : outputDescriptions) {
-            var parameterName = outputNode.getParameterName();
-            try (var stream = backend.openOutputResource(outputNode.getParameterName())) {
-                results[outputPortIdx] = read(stream, outputNode.getPortType(), exec, pushTo);
-                outputPortIdx++;
-            } catch (IOException ioe) {
-                throw new IllegalStateException(
-                    "Unable to read output resource for parameter " + parameterName, ioe);
-            }
-        }
-        return results;
-    }
-
-    /**
      * Serialize a {@link PortObject} to a file. The written file can be uploaded to a server for remote workflow
      * execution. This method will be called once for every input port, except for {@link FlowVariablePortObject}, see
      * {@link #writeFlowVariables(Collection)}.
@@ -231,103 +187,23 @@ public final class CallWorkflowUtil {
         // flow variable port objects don't contain information, they just serve as a means to connect nodes
         // take the flow variables from the workflow manager's stack and write them to XML via NodeSettings
         var variables = new NodeSettings("flow-variables");
+        var variablesSettings = variables.addNodeSettings(FlowVariablesCallWorkflowPayload.CFG_PLAIN_VARIABLES);
+        var passwordSettings = variables.addNodeSettings(FlowVariablesCallWorkflowPayload.CFG_PASSWORDS);
         for (var i = 0; i < list.size(); i++) {
             var flowVariable = list.get(i);
             String key = "Var_" + i;
-            flowVariable.save(variables.addNodeSettings(key));
+            flowVariable.save(variablesSettings.addNodeSettings(key));
+            if (flowVariable.getVariableType().equals(VariableType.CredentialsType.INSTANCE)) {
+                ICredentials c = flowVariable.getValue(VariableType.CredentialsType.INSTANCE);
+                passwordSettings.addPassword(flowVariable.getName(), FlowVariablesCallWorkflowPayload.WEAK_ENCRYPT_PASS,
+                    c.getPassword());
+            }
         }
         var tempFile = FileUtil.createTempFile("external-node-flow-variables-", ".xml", false);
         try (var out = new FileOutputStream(tempFile)) {
             variables.saveToXML(out);
         }
         return tempFile;
-    }
-
-    /**
-     * Either restores flow variables or other port objects from a file, depending on the given port type. If the file
-     * contains flow variables, the returned {@link PortObject} will contain nothing but the flow variables are fed to
-     * the given consumer instead. If the file contains a regular port object, the restored contents will be returned
-     * instead.
-     *
-     * @param stream a file written with {@link #writeFlowVariables(Collection)} or
-     *            {@link #writePortObject(ExecutionContext, PortObject)}
-     * @param portType the type of port object that was serialized into the given file
-     * @param exec execution context passed to {@link #execute(PortObject[], ExecutionContext)}
-     * @param pushTo in case the file contains flow variables, a consumer that will push those variables to a flow
-     *            variable stack (either the this node's stack or a callee workflow input node's stack).
-     * @return the port object restored from the given file.
-     * @throws InvalidSettingsException should only happen in case of a coding error
-     * @throws IOException should only happen in case of a coding error
-     * @throws CanceledExecutionException
-     */
-    public static PortObject read(final InputStream stream, final PortType portType, final ExecutionContext exec,
-        final Consumer<FlowVariable> pushTo) throws IOException, InvalidSettingsException, CanceledExecutionException {
-        if (FlowVariablePortObject.TYPE.equals(portType)) {
-            readFlowVariables(stream, pushTo);
-            return FlowVariablePortObject.INSTANCE;
-        } else {
-            return readPortObject(exec, stream, portType);
-        }
-    }
-
-    /**
-     * Restore a port object written by {@link #writePortObject(ExecutionContext, PortObject)}.
-     *
-     * @param exec an execution monitor for creating data tables and reporting progress
-     * @param stream the file that contains a serialized port object
-     * @param fileContentType the port type of the object that was written to the file
-     * @return the deserialized contents of the input file
-     * @throws CanceledExecutionException
-     * @throws InvalidSettingsException
-     * @throws IOException
-     */
-    private static PortObject readPortObject(final ExecutionContext exec, final InputStream stream,
-        final PortType fileContentType) throws CanceledExecutionException, InvalidSettingsException, IOException {
-        if (BufferedDataTable.TYPE.equals(fileContentType)) {
-            try {
-                // PERFORMANCE buffer size?
-                try (var bis = new BufferedInputStream(stream);
-                        ContainerTable table = DataContainer.readFromStream(bis)) {
-                    return exec.createBufferedDataTable(table, exec.createSubProgress(1.));
-                }
-
-            } catch (IOException e) {
-                throw new InvalidSettingsException(e);
-            }
-        } else {
-            return PortUtil.readObjectFromStream(stream, exec);
-        }
-    }
-
-    /**
-     * Load flow variables from file and pass them to a consumer.
-     *
-     * @param stream stream set by external caller (and as written by {@link #writeFlowVariables(List)})
-     * @param push a method that adds the flow variable back to a node model
-     *
-     * @throws IOException should only happen in case of a coding error
-     * @throws FileNotFoundException should only happen in case of a coding error
-     * @throws InvalidSettingsException should only happen in case of a coding error (the settings have not been
-     *             correctly written)
-     */
-    private static void readFlowVariables(final InputStream stream, final Consumer<FlowVariable> push)
-        throws IOException, InvalidSettingsException {
-
-        List<FlowVariable> flowVariables = new ArrayList<>();
-        var wfmVarSub = NodeSettings.loadFromXML(stream);
-        for (String key : wfmVarSub.keySet()) {
-            flowVariables.add(FlowVariable.load(wfmVarSub.getNodeSettings(key)));
-        }
-
-        // when retrieving flow variables via NodeModel#getAvailableFlowVariables it returns top of stack first (even
-        // though it is a map). Reverse to insert top of stack last.
-        Collections.reverse(flowVariables);
-
-        for (FlowVariable variable : flowVariables) {
-            // this should be typed to the type of the variable value
-            push.accept(variable);
-        }
-
     }
 
 }

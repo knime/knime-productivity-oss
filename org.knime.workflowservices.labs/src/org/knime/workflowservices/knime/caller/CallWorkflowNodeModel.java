@@ -1,5 +1,6 @@
 package org.knime.workflowservices.knime.caller;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
@@ -10,7 +11,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
-import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.KNIMEConstants;
@@ -31,6 +31,8 @@ import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 import org.knime.productivity.base.callworkflow.IWorkflowBackend.WorkflowState;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
+import org.knime.workflowservices.knime.CalleeWorkflowData;
+import org.knime.workflowservices.knime.util.CallWorkflowPayload;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
@@ -93,7 +95,7 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
      */
     private PortObject[] executeWorkflow(final IWorkflowBackend backend, final PortObject[] portObjects,
         final CalleeWorkflowProperties calleeWorkflowProperties, final ExecutionContext exec)
-        throws CanceledExecutionException, IOException, InvalidSettingsException {
+        throws Exception {
 
         // TODO credentials?
 
@@ -106,20 +108,23 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
         Map<String, ExternalNodeData> workflowInput = CallWorkflowUtil
             .createWorkflowInput(calleeWorkflowProperties.getInputNodes(), portObjects, flowVariables, exec);
 
-        try {
-            // execute and check success
-            exec.setMessage("Executing callee workflow.");
-            WorkflowState state = backend.execute(workflowInput);
-            CheckUtils.checkArgument(state == WorkflowState.EXECUTED, workflowExecutionFailureMessage(backend, state));
+        // execute and check success
+        exec.setMessage("Executing callee workflow.");
+        WorkflowState state = backend.execute(workflowInput);
+        CheckUtils.checkArgument(state == WorkflowState.EXECUTED, workflowExecutionFailureMessage(backend, state));
 
-            // retrieve and restored callee workflow outputs
-            exec.setMessage("Receiving results from callee workflow.");
-            return CallWorkflowUtil.unpackOutputValues(calleeWorkflowProperties.getOutputNodes(), backend, exec,
-                this::pushFlowVariableInternal);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
+        // retrieve and restored callee workflow outputs
+        exec.setMessage("Receiving results from callee workflow.");
+        var outputNodes = calleeWorkflowProperties.getOutputNodes();
+        var outputPOs = new PortObject[outputNodes.size()];
+        for (var i = 0; i < outputNodes.size(); i++) {
+            CalleeWorkflowData output = outputNodes.get(i);
+            try (InputStream in = new BufferedInputStream(backend.openOutputResource(output.getParameterName()));
+                    var payload = CallWorkflowPayload.createFrom(in, getOutPortType(i))) {
+                outputPOs[i] = payload.onExecute(exec, this::pushFlowVariableInternal);
+            }
         }
-
+        return outputPOs;
     }
 
 
