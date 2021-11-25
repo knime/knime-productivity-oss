@@ -13,17 +13,23 @@
 	<fullDescription>
 		<intro>
 			Receives a table or any other port object from a KNIME workflow that
-			calls this workflow using the Call Workflow Service node.
+			calls this workflow using the <i>Call Workflow Service</i> node.
 		</intro>
+		<option name="Parameter name">
+            The parameter name is supposed to be unique, but this is not enforced.
+			In case multiple <i>Workflow Service Input</i> nodes define the same parameter name, 
+			KNIME will make them unique by appending the node's node ID, e.g., "input-table" becomes "input-table-7".
+        </option>
 	</fullDescription>
 
 	<ports>
 		<inPort index="0" name="Default Input">
-            In case no input is provided by the calling workflow, the provided input is used instead.  
+            In case no input is provided by the calling workflow, the provided input is used instead.
+            This is also helpful to configure the downstream nodes of the <i>Workflow Service Input</i> node.
         </inPort>
 		<outPort index="0" name="Workflow Service Input">
-            Input provided by a workflow calling this workflow, e.g, using the Call Workflow node.
-            The port can be configured to match the type of data that is to be received on this Workflow Input node.  
+            Input provided by a workflow calling this workflow using the <i>Call Workflow Service</i> node.
+            The port can be configured to match the type of data that is to be received by this node.  
         </outPort>
  	</ports>  
 </knimeNode>

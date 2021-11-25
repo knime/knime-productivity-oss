@@ -11,28 +11,94 @@
 	</shortDescription>
 
 	<fullDescription>
-		<intro>Executes another workflow and obtains the results for further processing in this workflow.
-		Select a workflow to be executed in the configuration dialog to configure the ports of the node.
-		The connected inputs are sent to the selected workflow and the execution results are available at this node's output ports.
+		<intro>
+		<p>
+		Calls another workflow and obtains the results for further processing in this workflow.
+		The workflow can receive inputs via <i>Workflow Service Input</i> nodes and return outputs using
+		<i>Workflow Service Output</i> nodes.
+		</p>
+		<p>
+		Each <i>Workflow Service Input</i> node in the workflow to be called will create an input port on this node
+		when finishing the configuration of the <i>Call Workflow Service</i> node.
+		Similarly, each <i>Workflow Service Output</i> node will create an output port on the node.
+		</p>
+		<p>
+		The called workflow can be located on a KNIME Server or in the Local Workspace.
+		If the workflow is located on a KNIME Server, the execution will take place on the server. 
+		In contrast, when using the <i>Workflow Executor</i> node, the execution will always be performed
+		in the workflow containing the <i>Workflow Executor</i> node.
+		</p>
+		<p>
+		The difference between this node and the <i>Call Workflow (Table Based)</i> node is the set of supported 
+		workflow input and output nodes.
+		This node supports the <i>Workflow Service Input</i> and <i>Workflow Service Output</i> nodes, which support
+		arbitrary port types and are more efficient than the various <i>Container Input</i> and <i>Container Output</i> nodes.
+		The container input and output nodes on the other hand expect and produce data in a format that can easily be 
+		produced by third-party software, whereas <i>Workflow Service Input</i> and <i>Workflow Service Output</i> nodes
+		are designed exclusively to be used by other KNIME workflows.
+		</p>
+		<p>
+		In order to define which <i>Workflow Service Input</i> node receives data from which of this node's input ports,
+		each input node defines a <b>parameter identifier.</b>
+		The parameter identifier is supposed to be unique, but a badly designed workflow might have multiple input nodes
+		defining the same parameter name. In this case, KNIME will make the parameter names unique by appending the input
+		node's node ID to the parameter name, e.g., "input-table" becomes "input-table-7". 
+		</p>
 		</intro>
+		
+		<tab name="Workflow">
+
+			<option name="Server address (only when connected to a KNIME Server)">Displays the address of the connected server.</option>
+
+			<option name="Short duration (only applies to execution on a KNIME Server)">
+				Choose this if the called workflow is expected to finish within ten seconds. When selected, the invocation
+				of the workflow will not poll its status, but wait until the job completes (or fails). This removes the
+				polling overhead and makes this option quicker for short running workflows. Choosing this option
+				for long running workflows (&gt; a minute) will cause timeout problems.
+			</option>
+
+			<option name="Long duration (only applies to execution on a KNIME Server)">
+				Choose this if the called workflow is expected to run for more than ten seconds. When selected, the
+				invocation of the workflow will poll its status repeatedly until the job completes (or fails). 
+				The polling is implemented so that for the first few seconds there will be frequent status checks 
+				(poll interval 100ms or 500ms), whereas jobs that run minutes or hours will be checked only every few seconds.
+			</option>
+
+			<option name="Retain job on failure (only applies to execution on a KNIME Server)">
+			When selected, failing jobs of the called workflow will be kept on the server. This can be
+			useful for debugging purposes. When not selected, the failing jobs will be discarded.</option>
+
+			<option name="Discard job on successful execution (only applies to execution on a KNIME Server)">
+			When selected, successful jobs of the called workflow will be discarded from the server. When not selected, the
+			successful jobs will be kept.
+			</option>
+
+			<option name="Workflow path">The path of the workflow you want to call. If connected to a server, the path must be an absolute 
+			path (i.e., a path starting with "/") in the server's repository. 
+			If calling a workflow in the Local Workspace, the path may be absolute or relative (i.e., a path starting with "../"). 
+			You can either enter the path by hand, or click on <i>Browse Workflows</i> and then select one of the available workflows.<br/>
+
+			</option>
+
+			<option name="Load timeout">
+				The maximum amount of time the client will wait for the server to load the called workflow. 
+				Specified in seconds. A value of 0 means that no timeout will be used.
+			</option>
+		</tab>
 	</fullDescription>
 
 	<ports>
         <inPort index="0" name="KNIME server connection">
-        	Connection to a KNIME server
+        	Optional connection to a KNIME Server where the workflow to be executed is located.
+        	If connected, the execution of the workflow will be performed on that server. 
        	</inPort>
-		<dynInPort insert-before="1" name="Workflow inputs"
-			group-identifier="Inputs">
-			The inputs for the execution. Number and types of
-			the ports must
-			exactly match the inputs of the workflow provided at
-			the workflow
-			port.
+		<dynInPort insert-before="1" name="Workflow inputs" group-identifier="Inputs">
+			One output port for each <i>Workflow Service Input</i> node in the workflow to be executed. 
+			The ports are automatically created when finishing the configuration of the node.   
 		</dynInPort>
-		<dynOutPort insert-before="0" name="Workflow outputs"
-			group-identifier="Outputs">The outputs of the execution. Number and types of
-			the ports must exactly match the outputs of the workflow provided at
-			the workflow port.
+		<dynOutPort insert-before="0" name="Workflow outputs" group-identifier="Outputs">
+			One output port for each <i>Workflow Service Output</i> node in the workflow to be executed. 
+			The ports are automatically created when finishing the configuration of the node.   
 		</dynOutPort>
 	</ports>
 </knimeNode>
