@@ -20,7 +20,8 @@ try {
         dependencies: [
             repositories: [
                 "knime-productivity-oss", "knime-json", "knime-javasnippet", "knime-reporting", "knime-jep", 'knime-kerberos',
-                "knime-filehandling", "knime-excel", "knime-ensembles", "knime-distance", "knime-js-core", "knime-js-base"
+                "knime-filehandling", "knime-excel", "knime-ensembles", "knime-distance", "knime-js-core", "knime-js-base",
+                "knime-server-client", "knime-com-shared"
             ]
         ]
     )
