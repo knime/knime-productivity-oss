@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.KNIMEConstants;
 import org.knime.core.node.NodeSettings;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.port.PortObject;
@@ -111,20 +112,18 @@ final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
     }
 
     /**
-     * TODO a similar check must be done somewhere else already, compare When sending flow variables from or to a callee
-     * workflow, include only those that can be instantiated on the other side. For instance the flow variable with the
-     * name "knime.workspace" is a reserved variable and can not be loaded using
+     * For instance the flow variable with the name "knime.workspace" is a reserved variable and can not be loaded using
      * {@link FlowVariable#load(NodeSettingsRO)} (which won't accept flow variables with reserved names).
      *
      * @param variable the flow variable to test for inclusion
-     * @return whether the flow variable can be re-instantiated on the receiving side (the callee for a Workflow Input
-     *         node, the caller for a Workflow Output node).
+     * @return whether the flow variable can be re-instantiated on the receiving side (the callee for a Workflow Service
+     *         Input node, the caller for a Workflow Service Output node).
      */
     private static boolean isSendableFlowVariable(final FlowVariable variable) {
         try {
             FlowVariable.Scope.Flow.verifyName(variable.getName());
             return true;
-        } catch (IllegalFlowVariableNameException e) {
+        } catch (IllegalFlowVariableNameException e) { // NOSONAR
             return false;
         }
     }
@@ -144,8 +143,15 @@ final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
         var passwordSettings = variables.addNodeSettings(FlowVariablesCallWorkflowPayload.CFG_PASSWORDS);
         for (var i = 0; i < list.size(); i++) {
             var flowVariable = list.get(i);
+
+            if (flowVariable.getVariableType().equals(VariableType.CredentialsType.INSTANCE)
+                && Boolean.getBoolean(KNIMEConstants.PROPERTY_WEAK_PASSWORDS_IN_SETTINGS_FORBIDDEN)) {
+                continue;
+            }
+
             String key = "Var_" + i;
             flowVariable.save(variablesSettings.addNodeSettings(key));
+
             if (flowVariable.getVariableType().equals(VariableType.CredentialsType.INSTANCE)) {
                 ICredentials c = flowVariable.getValue(VariableType.CredentialsType.INSTANCE);
                 passwordSettings.addPassword(flowVariable.getName(), FlowVariablesCallWorkflowPayload.WEAK_ENCRYPT_PASS,
