@@ -77,7 +77,7 @@ public final class WorkflowOutputNodeFactory extends ConfigurableNodeFactory<Wor
      */
     public WorkflowOutputNodeFactory(final PortType type) {
         m_portsConfigurationBuilder = new PortsConfigurationBuilder();
-        m_portsConfigurationBuilder.addExchangeableOutputPortGroup(INPUT_PORT_GROUP, type,
+        m_portsConfigurationBuilder.addExchangeablePortGroup(INPUT_PORT_GROUP, type,
             WorkflowBoundaryConfiguration.ALL_PORT_TYPES);
     }
 
@@ -89,11 +89,7 @@ public final class WorkflowOutputNodeFactory extends ConfigurableNodeFactory<Wor
 
     @Override
     protected Optional<PortsConfigurationBuilder> createPortsConfigBuilder() {
-        final var b = new PortsConfigurationBuilder();
-        b.addExchangeablePortGroup(INPUT_PORT_GROUP, //
-            WorkflowBoundaryConfiguration.DEFAULT_PORT_TYPE, //
-            WorkflowBoundaryConfiguration.ALL_PORT_TYPES);
-        return Optional.of(b);
+        return Optional.of(m_portsConfigurationBuilder);
     }
 
     @Override
