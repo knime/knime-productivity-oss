@@ -36,6 +36,11 @@ public class CallWorkflowNodeFactory extends ConfigurableNodeFactory<CallWorkflo
     }
 
     @Override
+    public boolean isPortConfigurableViaMenu() {
+        return false;
+    }
+
+    @Override
     public NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
         return new CallWorkflowNodeDialog(creationConfig);
     }

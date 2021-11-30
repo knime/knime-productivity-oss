@@ -92,11 +92,11 @@
         	Optional connection to a KNIME Server where the workflow to be executed is located.
         	If connected, the execution of the workflow will be performed on that server. 
        	</inPort>
-		<dynInPort insert-before="1" name="Workflow inputs" group-identifier="Inputs">
+		<dynInPort insert-before="1" name="Workflow inputs" group-identifier="Inputs" configurable-via-menu="false">
 			One output port for each <i>Workflow Service Input</i> node in the workflow to be executed. 
 			The ports are automatically created when finishing the configuration of the node.   
 		</dynInPort>
-		<dynOutPort insert-before="0" name="Workflow outputs" group-identifier="Outputs">
+		<dynOutPort insert-before="0" name="Workflow outputs" group-identifier="Outputs" configurable-via-menu="false">
 			One output port for each <i>Workflow Service Output</i> node in the workflow to be executed. 
 			The ports are automatically created when finishing the configuration of the node.   
 		</dynOutPort>
