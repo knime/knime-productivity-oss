@@ -95,6 +95,9 @@ final class DialogSelectWorkflow extends JDialog {
 
     private final JTextField m_filterField = new JTextField();
 
+    private final PanelLoading m_panelLoading =
+        new PanelLoading("Fetching available workflows. This may take a while.");
+
     private State m_currentState = State.LOADING;
 
     /** Contents of the list view {@link #m_workflowList}. */
@@ -124,8 +127,7 @@ final class DialogSelectWorkflow extends JDialog {
         add(createContentPanel(), State.READY.name());
 
         // loading state, shown when workflow paths are loading
-        add(new PanelLoading("Fetching available workflows. This may take a while.").getPanel(),
-            State.LOADING.name());
+        add(m_panelLoading.getPanel(), State.LOADING.name());
 
         // error state
         add(createErrorPanel(), State.FAILURE.name());
@@ -161,11 +163,7 @@ final class DialogSelectWorkflow extends JDialog {
         }
     }
 
-    State getState() {
-        return m_currentState;
-    }
-
-    /** Fetch again all workflows from the remote side. */
+    /** Fetch all workflows from the remote side. Call {@link #setWorkflowPaths(List)} when done. */
     void refreshWorkflowList() {
         setState(State.LOADING);
         m_triggerRefresh.run();
@@ -175,16 +173,22 @@ final class DialogSelectWorkflow extends JDialog {
      * Prevents further user interaction with the dialog and shows the given error message.
      */
     void setErrorText(final String message) {
-        m_errorLabel.setText(message);
-        setState(State.FAILURE);
+        if(! "".equals(message)) {
+            m_errorLabel.setText(message);
+            setState(State.FAILURE);
+        }
     }
 
     /**
      * @param state Update the dialog to reflect this operation or state.
      */
-    void setState(final State state) {
+    synchronized void setState(final State state) {
         m_cardLayout.show(getContentPane(), state.name());
         m_currentState = state;
+    }
+
+    synchronized State getState() {
+        return m_currentState;
     }
 
     private JPanel createContentPanel() {

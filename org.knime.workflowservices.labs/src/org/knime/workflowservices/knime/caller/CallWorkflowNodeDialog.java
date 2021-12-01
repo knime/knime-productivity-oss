@@ -84,6 +84,15 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
     private final DialogSelectWorkflow m_selectWorkflowDialog =
         new DialogSelectWorkflow(getParentFrame(), this::setSelectedWorkflow, this::fetchRemoteWorkflows);
 
+    /** Calls {@link #fetchWorkflowProperties()} on every change. */
+    private final JTextField m_selectWorkflowPath = new JTextField();
+
+    private final JButton m_selectWorkflowButton = new JButton("Browse workflows");
+
+    /** Defines the timeout for {@link #fetchWorkflowProperties()} operation */
+    private final JSpinner m_loadTimeoutSpinner =
+        new JSpinner(new SpinnerNumberModel((int)IServerConnection.DEFAULT_LOAD_TIMEOUT.getSeconds(), 0, null, 30));
+
     /*
      * Asynchronous workers
      */
@@ -123,10 +132,6 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
 
         // configure timeout on loading a workflow
         createLoadTimeOutControls(mainPanel, gbc);
-
-        m_fetchWorkflowPropertiesButton.addActionListener(l -> fetchWorkflowProperties());
-        gbc.gridx = 2;
-        mainPanel.add(m_fetchWorkflowPropertiesButton, gbc);
 
         gbc.gridx = 0;
         gbc.gridwidth = 4;
@@ -340,20 +345,6 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
     }
 
     /**
-     * TODO everything below is copied from {@link AbstractCallWorkflowTableNodeDialogPane}
-     */
-
-    /** Calls {@link #fetchWorkflowProperties()} on every change. */
-    private final JTextField m_selectWorkflowPath = new JTextField();
-
-    private final JButton m_selectWorkflowButton = new JButton("Browse workflows");
-
-    private final JButton m_fetchWorkflowPropertiesButton = new JButton("Fetch workflow parameters");
-
-    private final JSpinner m_loadTimeoutSpinner =
-        new JSpinner(new SpinnerNumberModel((int)IServerConnection.DEFAULT_LOAD_TIMEOUT.getSeconds(), 0, null, 30));
-
-    /**
      * Set to true after the node's ports have been adapted to a callee workflow's in- and output ports.
      *
      * @see #updateNodePorts(NodeCreationConfiguration)
@@ -387,7 +378,6 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
 
     private void disableAllUIElements() {
         m_selectWorkflowButton.setEnabled(false);
-        m_fetchWorkflowPropertiesButton.setEnabled(false);
         m_selectWorkflowPath.setEnabled(false);
         m_loadTimeoutSpinner.setEnabled(false);
 
@@ -399,7 +389,6 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
 
     private void enableAllUIElements() {
         m_selectWorkflowButton.setEnabled(true);
-        m_fetchWorkflowPropertiesButton.setEnabled(true);
         m_selectWorkflowPath.setEnabled(true);
         m_loadTimeoutSpinner.setEnabled(true);
 
