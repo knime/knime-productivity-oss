@@ -725,18 +725,6 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
         m_nodeCreationConfig = nodeCreationConfig;
     }
 
-    /**
-     * TODO This is not called when the node is in executed state and thus will occasionally not update its ports.
-     * getNewNodeCreationConfiguration is called as part of WrappedNodeDialog#m_postApplyDialogAction. Problem is that
-     * the post apply action is called in WrappedNodeDialog#doApply ONLY if the node is not executed. This means that a
-     * Call Workflow node that is still green from the previous execution won't update its ports when closing the dialog
-     * by clicking "Ok". Since WrappedNodeDialog#doOK is called before the underlying node dialog's saveSettings I'm a
-     * little confused how to fix this. See also the NodeContainerEditPart#postApplyDialogAction that issues a
-     * ReplaceNodePortCommand for {@link NodeDialogPane}s that implement {@link ConfigurableNodeDialog} (like this
-     * class) I think the WorkflowExecutorNodeModel doesn't have this problem because it consumes the workflow to
-     * execute from an input port and thus can not be in executed state after the workflow to be executed changed
-     * {@inheritDoc}
-     */
     @Override
     public Optional<ModifiableNodeCreationConfiguration> getNewNodeCreationConfiguration() {
         return Optional.ofNullable(m_portConfigChanged ? m_nodeCreationConfig : null);
