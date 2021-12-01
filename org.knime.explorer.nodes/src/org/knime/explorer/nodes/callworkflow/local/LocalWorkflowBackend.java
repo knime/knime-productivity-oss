@@ -375,6 +375,14 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
     /** {@inheritDoc} */
     @Override
     public WorkflowState execute(final Map<String, ExternalNodeData> input) throws Exception {
+       return executeAsWorkflowService(input);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public WorkflowState executeAsWorkflowService(final Map<String, ExternalNodeData> input) throws Exception {
         setInputNodes(input);
         m_manager.executeAllAndWaitUntilDone();
         NodeContainerState state = m_manager.getNodeContainerState();

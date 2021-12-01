@@ -115,6 +115,14 @@ public interface IWorkflowBackend extends AutoCloseable {
     WorkflowState execute(final Map<String, ExternalNodeData> input) throws Exception;
 
     /**
+     *
+     * @param input a map with the updated input data
+     * @return the current workflow state
+     * @throws Exception if an error occurs during execution
+     */
+    WorkflowState executeAsWorkflowService(final Map<String, ExternalNodeData> input) throws Exception;
+
+    /**
      * Returns the messages that occurred during execution.
      *
      * @return the messages or an empty string if there are no messages

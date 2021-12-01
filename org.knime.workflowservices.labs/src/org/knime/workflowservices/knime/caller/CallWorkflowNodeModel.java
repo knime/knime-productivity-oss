@@ -110,7 +110,7 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
 
         // execute and check success
         exec.setMessage("Executing callee workflow.");
-        WorkflowState state = backend.execute(workflowInput);
+        WorkflowState state = backend.executeAsWorkflowService(workflowInput);
         CheckUtils.checkArgument(state == WorkflowState.EXECUTED, workflowExecutionFailureMessage(backend, state));
 
         // retrieve and restored callee workflow outputs
