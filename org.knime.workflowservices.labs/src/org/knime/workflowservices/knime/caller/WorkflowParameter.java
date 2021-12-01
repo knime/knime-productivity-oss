@@ -43,7 +43,7 @@
  *  when such Node is propagated with or for interoperation with KNIME.
  * ---------------------------------------------------------------------
  */
-package org.knime.workflowservices.knime;
+package org.knime.workflowservices.knime.caller;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -51,46 +51,19 @@ import java.util.function.UnaryOperator;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.knime.core.data.json.JSONValue;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.dialog.DialogNode;
-import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.util.CheckUtils;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 
-// TODO javadoc
 /**
- * Payload for {@link ExternalNodeData} objects used to communicate between caller and callee workflow. Instances of
- * this class are used for several purposes:
- *
- * <ul>
- * <li>communicate to caller the expected input for a callee workflow input node</li>
- * <li>communicate to caller what a callee workflow output node returns</li>
- * <li>receive from caller actual inputs for a callee workflow input node to be executed</li>
- * <li>send to caller actual outputs from an executed callee workflow output node</li>
- * </ul>
- *
- * The communication part is done by first calling {@link IWorkflowBackend#getInputNodes()} and
- * {@link IWorkflowBackend#getOutputValues()}. This returns {@link ExternalNodeData} and {@link JSONValue},
- * respectively. Both contain instances of this class to describe the kind of data using {@link #getPortType()}. <br/>
- * <br/>
- * The execution part comprises two steps. The inputs for the callee workflow are then prepared and set using
- * {@link IWorkflowBackend#setInputNodes(java.util.Map)}. The sent {@link ExternalNodeData} objects contain instances of
- * this class pointing to a file that contains the data for the workflow input nodes. Then,
- * {@link IWorkflowBackend#execute(java.util.Map)} is used to execute the callee workflow and
- * {@link IWorkflowBackend#getOutputValues()} is called again, this time the returned {@link JSONValue}s contain an
- * instance of this class that also contain <br/>
- * <br/>
- * JSON-serializable for convenient storage in {@link ExternalNodeData} or {@link JSONValue}. <br/>
- * <br/>
- * Immutable.
+ * Combines a workflow parameter name and its port type.
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-public final class CalleeWorkflowData {
+public final class WorkflowParameter {
 
     private static final String CFG_PORT_TYPE = "portType";
     private static final String CFG_PARAMETER_NAME = "parameterName";
@@ -103,6 +76,10 @@ public final class CalleeWorkflowData {
             .and(Predicate.not(String::isEmpty))//
             .and(DialogNode.PARAMETER_NAME_PATTERN.asMatchPredicate());
 
+    /**
+     * Takes a parameter name and generates the error message that informs the user that the name of the parameter is
+     * invalid.
+     */
     public static final UnaryOperator<String> PARAMETER_IDENTIFIER_ERROR_MESSAGE =
         parameterName -> String.format("Invalid parameter name: \"%s\". "
             + "Valid parameter names consist of one or several strings, separated by dashes or underscores. "
@@ -116,15 +93,13 @@ public final class CalleeWorkflowData {
     private final PortType m_portType;
 
     /**
-     * TODO port type might as well be a ResourceContentType
-     *
      * @param parameterName parameter name chosen by the user, e.g., input-parameter (as entered in the Workflow Service
      *            Input or Output dialog) or as modified by the framework (to make non-unique parameter names unique),
      *            e.g., input-parameter-1
      * @param portType the port type of the Workflow Input or Output node
      * @throws InvalidSettingsException if the port type is null or the parameter name is invalid
      */
-    public CalleeWorkflowData(final String parameterName, final PortType portType) throws InvalidSettingsException {
+    public WorkflowParameter(final String parameterName, final PortType portType) throws InvalidSettingsException {
         m_parameterName = parameterName;
         m_portType = CheckUtils.checkSettingNotNull(portType, "PortType must not be null");
     }
@@ -162,17 +137,17 @@ public final class CalleeWorkflowData {
      * @return a new object loaded from the settings
      * @throws InvalidSettingsException Settings invalid or port type can't be restored
      */
-    public static CalleeWorkflowData loadFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
+    public static WorkflowParameter loadFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
         var parameterName = settings.getString(CFG_PARAMETER_NAME);
         var portSettings = settings.getNodeSettings(CFG_PORT_TYPE);
         var portType = PortType.load(portSettings);
         // doesn't validate parameter names here (they might have been changed by the framework to make them unique)
-        return new CalleeWorkflowData(parameterName, portType);
+        return new WorkflowParameter(parameterName, portType);
     }
 
     @Override
     public String toString() {
-        return String.format("%s (%s)", m_parameterName, m_portType.getClass().getName());
+        return String.format("%s (%s)", m_parameterName, m_portType.getName());
     }
 
     @Override
@@ -185,6 +160,12 @@ public final class CalleeWorkflowData {
         return EqualsBuilder.reflectionEquals(this, obj, true);
     }
 
+    /**
+     * @param parameterName the name of the workflow input or output parameter to check
+     * @return the unchanged parameter name
+     * @throws InvalidSettingsException if the parameter name is invalid, see
+     *             {@link WorkflowParameter#PARAMETER_IDENTIFIER_ERROR_MESSAGE}
+     */
     public static String validateParameterName(final String parameterName) throws InvalidSettingsException {
         CheckUtils.checkSetting(PARAMETER_IDENTIFIER_IS_VALID.test(parameterName),
             PARAMETER_IDENTIFIER_ERROR_MESSAGE.apply(parameterName));

@@ -33,7 +33,7 @@ import javax.swing.JRadioButton;
 
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 
-final class ServerSettingsPanel extends JPanel {
+final class PanelServerSettings extends JPanel {
     private static final long serialVersionUID = 1L;
 
     JLabel m_serverAddress;
@@ -49,7 +49,7 @@ final class ServerSettingsPanel extends JPanel {
     /**
      * @param gbc
      */
-    ServerSettingsPanel(final GridBagConstraints gbc) {
+    PanelServerSettings(final GridBagConstraints gbc) {
         super(new GridBagLayout());
         setBorder(BorderFactory.createTitledBorder("KNIME Server Call Settings"));
         add(new JLabel("Server address:"), gbc);

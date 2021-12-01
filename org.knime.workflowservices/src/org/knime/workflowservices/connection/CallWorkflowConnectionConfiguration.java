@@ -44,7 +44,7 @@ public class CallWorkflowConnectionConfiguration {
      * @return true if valid, false otherwise
      */
     public static boolean isValidWorkflowPath(final String workflowPath) {
-        return StringUtils.startsWithAny(workflowPath, "/", "..");
+        return StringUtils.startsWithAny(workflowPath, "/", "..") && !workflowPath.endsWith("/");
     }
 
     /**
@@ -54,7 +54,7 @@ public class CallWorkflowConnectionConfiguration {
      * @return a user-facing error message in case an invalid workflow path is entered
      */
     public static String invalidWorkflowPathMessage(final String workflowPath) {
-        return String.format("Invalid workflow path: %s. Path must start with '/' or '..'", workflowPath);
+        return String.format("Invalid workflow path: \"%s\". Path must start with \"/\" or \"..\" and must not end with \"/\"", workflowPath);
     }
 
     private Optional<BackoffPolicy> m_backoffPolicy = Optional.empty();

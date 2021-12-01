@@ -54,13 +54,10 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortTypeRegistry;
-import org.knime.workflowservices.knime.CalleeWorkflowData;
+import org.knime.workflowservices.knime.caller.WorkflowParameter;
 
 /**
  * Common configuration for the Workflow Input and Workflow Output nodes.
- *
- * Uses the {@link CalleeWorkflowData}'s JSON serialization mechanism for loading and saving settings, by storing
- * them into a single String field in the NodeSettings.
  */
 public final class WorkflowBoundaryConfiguration {
 
@@ -103,7 +100,7 @@ public final class WorkflowBoundaryConfiguration {
      */
     WorkflowBoundaryConfiguration loadSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
         var parameterName = settings.getString(CFG_PARAMETER_NAME);
-        m_parameterName = CalleeWorkflowData.validateParameterName(parameterName);
+        m_parameterName = WorkflowParameter.validateParameterName(parameterName);
         return this;
     }
 
@@ -120,7 +117,7 @@ public final class WorkflowBoundaryConfiguration {
      * @throws InvalidSettingsException if arg doesn't follow pattern
      */
     WorkflowBoundaryConfiguration setParameterName(final String parameterName) throws InvalidSettingsException {
-        m_parameterName = CalleeWorkflowData.validateParameterName(parameterName);
+        m_parameterName = WorkflowParameter.validateParameterName(parameterName);
         return this;
     }
 

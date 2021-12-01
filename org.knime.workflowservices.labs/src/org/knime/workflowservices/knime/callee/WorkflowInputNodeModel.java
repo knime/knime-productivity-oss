@@ -51,8 +51,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import javax.ws.rs.core.UriBuilder;
-
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
@@ -69,13 +67,13 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortTypeRegistry;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.VariableType;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend.ResourceContentType;
 import org.knime.workflowservices.knime.util.CallWorkflowPayload;
+import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-public final class WorkflowInputNodeModel extends NodeModel implements InputNode {
+final class WorkflowInputNodeModel extends NodeModel implements InputNode {
 
     public static final String DEFAULT_PARAM_NAME = "input-parameter";
 
@@ -136,21 +134,7 @@ public final class WorkflowInputNodeModel extends NodeModel implements InputNode
     @Override
     public ExternalNodeData getInputData() {
         var paramName = m_config.getParameterName();
-        return createExternalNodeData(paramName, getOutPortType(0), null);
-    }
-
-    /**
-     * @param parameterName TODO
-     * @param portType
-     * @param portContent TODO
-     * @return
-     */
-    public static ExternalNodeData createExternalNodeData(final String parameterName,
-        final PortType portType, final File portContent) {
-        return ExternalNodeData.builder(parameterName)//
-            .resource(portContent == null ? UriBuilder.fromUri("file:/dev/null").build() : portContent.toURI())//
-            .contentType(ResourceContentType.of(portType).asString()) //
-            .build();
+        return CallWorkflowUtil.createExternalNodeData(paramName, getOutPortType(0), null);
     }
 
     @Override
@@ -165,7 +149,8 @@ public final class WorkflowInputNodeModel extends NodeModel implements InputNode
     @Override
     public void setInputData(final ExternalNodeData inputData) throws InvalidSettingsException {
         var locationURI = inputData.getResource();
-        try (InputStream in = new BufferedInputStream(locationURI.toURL().openStream())) {
+        CheckUtils.checkArgumentNotNull(locationURI);
+        try (InputStream in = new BufferedInputStream(locationURI.toURL().openStream())) { // NOSONAR
             m_payload = CallWorkflowPayload.createFrom(in, getOutPortType(0));
         } catch (IOException e) {
             throw new InvalidSettingsException(e.getMessage(), e);

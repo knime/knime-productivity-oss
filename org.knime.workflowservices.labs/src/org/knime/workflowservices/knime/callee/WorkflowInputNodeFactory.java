@@ -105,7 +105,7 @@ public final class WorkflowInputNodeFactory extends ConfigurableNodeFactory<Work
     @Override
     protected NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
         final var portConfig = creationConfig.getPortConfig().orElseThrow();
-        return new WorkflowInputNodeDialog(portConfig);
+        return new WorkflowBoundaryNodeDialog(portConfig, WorkflowInputNodeModel.DEFAULT_PARAM_NAME);
     }
 
     @Override

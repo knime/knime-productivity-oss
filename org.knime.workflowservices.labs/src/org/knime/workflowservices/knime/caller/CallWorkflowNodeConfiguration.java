@@ -39,7 +39,7 @@ final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfigur
     /**
      * Stores information such as the inputs and outputs of the workflow referenced by the workflow path.
      */
-    private Optional<CalleeWorkflowProperties> m_calleeWorkflowProperties = Optional.empty();
+    private Optional<WorkflowParameters> m_calleeWorkflowProperties = Optional.empty();
 
     @Override
     protected void saveSettings(final NodeSettingsWO settings) {
@@ -67,10 +67,10 @@ final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfigur
      * @throws InvalidSettingsException
      */
     private void loadCalleeWorkflowProperties(final NodeSettingsRO settings) throws InvalidSettingsException {
-        CalleeWorkflowProperties calleeWorkflowProperties = null;
+        WorkflowParameters calleeWorkflowProperties = null;
         if (settings.containsKey(CFG_CALLEE_PROPERTIES)) {
             var calleePropertiesSettings = settings.getNodeSettings(CFG_CALLEE_PROPERTIES);
-            calleeWorkflowProperties = CalleeWorkflowProperties.loadFrom(calleePropertiesSettings);
+            calleeWorkflowProperties = WorkflowParameters.loadFrom(calleePropertiesSettings);
         }
         m_calleeWorkflowProperties = Optional.ofNullable(calleeWorkflowProperties);
     }
@@ -78,14 +78,14 @@ final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfigur
     /**
      * @return the properties of the workflow selected for execution when the dialog was last closed
      */
-    Optional<CalleeWorkflowProperties> getCalleeWorkflowProperties() {
+    Optional<WorkflowParameters> getCalleeWorkflowProperties() {
         return m_calleeWorkflowProperties;
     }
 
     /**
      * @param remoteWorkflowProperties null for no properties
      */
-    void setCalleeWorkflowProperties(final CalleeWorkflowProperties remoteWorkflowProperties) {
+    void setCalleeWorkflowProperties(final WorkflowParameters remoteWorkflowProperties) {
         m_calleeWorkflowProperties = Optional.ofNullable(remoteWorkflowProperties);
     }
 

@@ -38,11 +38,9 @@
 		are designed exclusively to be used by other KNIME workflows.
 		</p>
 		<p>
-		In order to define which <i>Workflow Service Input</i> node receives data from which of this node's input ports,
-		each input node defines a <b>parameter identifier.</b>
-		The parameter identifier is supposed to be unique, but a badly designed workflow might have multiple input nodes
-		defining the same parameter name. In this case, KNIME will make the parameter names unique by appending the input
-		node's node ID to the parameter name, e.g., "input-table" becomes "input-table-7". 
+		To define which <i>Workflow Service Input</i> node receives data from which of this node's input ports, each input node defines a <b>parameter identifier.</b>
+		The parameter identifier is supposed to be unique, but it might happen that a workflow has multiple input nodes defining the same parameter name.
+		In this case, KNIME will make the parameter names unique by appending the input node's node ID to the parameter name, e.g., "input-table" becomes "input-table-7". 
 		</p>
 		</intro>
 		
@@ -52,7 +50,7 @@
 
 			<option name="Short duration (only applies to execution on a KNIME Server)">
 				Choose this if the called workflow is expected to finish within ten seconds. When selected, the invocation
-				of the workflow will not poll its status, but wait until the job completes (or fails). This removes the
+				of the workflow will not poll its status but wait until the job completes (or fails). This removes the
 				polling overhead and makes this option quicker for short running workflows. Choosing this option
 				for long running workflows (&gt; a minute) will cause timeout problems.
 			</option>
@@ -76,13 +74,20 @@
 			<option name="Workflow path">The path of the workflow you want to call. If connected to a server, the path must be an absolute 
 			path (i.e., a path starting with "/") in the server's repository. 
 			If calling a workflow in the Local Workspace, the path may be absolute or relative (i.e., a path starting with "../"). 
-			You can either enter the path by hand, or click on <i>Browse Workflows</i> and then select one of the available workflows.<br/>
-
+			You can either enter the path by hand or click on <i>Browse Workflows</i> and then select one of the available workflows.<br/>
+			</option>
+			
+			<option name="Fetch workflow parameters">Retrieves the parameter names defined in Workflow Service Input and
+			Workflow Service Output nodes in the workflow selected for execution. <br/>
 			</option>
 
 			<option name="Load timeout">
-				The maximum amount of time the client will wait for the server to load the called workflow. 
+				The maximum amount of time the client will wait for the server to fetch the input and output parameters of the called workflow. 
 				Specified in seconds. A value of 0 means that no timeout will be used.
+			</option>
+			
+			<option name="Adjust node ports"> When the node ports differ from the workflow parameters,
+			this button is used to confirm updating the node ports, which may remove connections to other nodes. 
 			</option>
 		</tab>
 	</fullDescription>

@@ -27,15 +27,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.core.UriBuilder;
+
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObject;
+import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.FlowVariable;
-import org.knime.workflowservices.knime.CalleeWorkflowData;
-import org.knime.workflowservices.knime.callee.WorkflowInputNodeModel;
+import org.knime.productivity.base.callworkflow.IWorkflowBackend.ResourceContentType;
+import org.knime.workflowservices.knime.caller.WorkflowParameter;
 
 /**
  *
@@ -56,7 +59,7 @@ public final class CallWorkflowUtil {
      * @param portObjects the data provided to this node's input ports
      * @param flowVariables flow variables to send to callee workflow if it contains an input parameter of type
      *            {@link FlowVariablePortObject}.
-     * @param exec the {@link ExecutionContext} passed to {@link #execute(PortObject[], ExecutionContext)}
+     * @param exec to write port objects
      *
      * @return a map from callee input parameter name to {@link ExternalNodeData} that contains the input data required
      *         for callee workflow execution
@@ -65,19 +68,16 @@ public final class CallWorkflowUtil {
      * @throws IOException on
      */
     public static Map<String, ExternalNodeData> createWorkflowInput(
-        final List<CalleeWorkflowData> inputs, final PortObject[] portObjects,
+        final List<WorkflowParameter> inputs, final PortObject[] portObjects,
         final Collection<FlowVariable> flowVariables, final ExecutionContext exec)
         throws IOException, CanceledExecutionException {
-
-        // TODO retrieve the target parameter for the port object at i-th input port from node configuration
-        // currently, the i-th port object goes to the i-th input parameter
 
         Map<String, ExternalNodeData> workflowInput = new HashMap<>();
 
         // if there is at least one input parameter that expects flow variables, write them to a file (unlike other
         // port objects, flow variable port objects are pure markers without content)
         File serializedFlowVariables = null;
-        if (inputs.stream().map(CalleeWorkflowData::getPortType).anyMatch(FlowVariablePortObject.TYPE::equals)) {
+        if (inputs.stream().map(WorkflowParameter::getPortType).anyMatch(FlowVariablePortObject.TYPE::equals)) {
             // do not write flow variables with reserved names, such as knime.workspace
             // they can not be restored using FlowVariable.load - for good reasons
 
@@ -91,7 +91,7 @@ public final class CallWorkflowUtil {
             final var portObject = portObjects[input];
 
             // identifier of the external node data object is the node id of the callee workflow Input node
-            CalleeWorkflowData portDesc = inputs.get(input - 1);
+            WorkflowParameter portDesc = inputs.get(input - 1);
             String key = portDesc.getParameterName();
 
             File tempFile = null;
@@ -104,7 +104,7 @@ public final class CallWorkflowUtil {
                 tempFile = writePortObject(exec, portObject);
             }
 
-            var externalNodeData = WorkflowInputNodeModel.createExternalNodeData(key, portDesc.getPortType(), tempFile);
+            var externalNodeData = createExternalNodeData(key, portDesc.getPortType(), tempFile);
 
             workflowInput.put(key, externalNodeData);
         }
@@ -141,6 +141,21 @@ public final class CallWorkflowUtil {
      */
     public static File writeFlowVariables(final Collection<FlowVariable> flowVariables) throws IOException {
         return FlowVariablesCallWorkflowPayload.writeFlowVariables(flowVariables);
+    }
+
+    /**
+     * @param parameterName the workflow parameter name
+     * @param portType specifies the type of content in the file
+     * @param portContent as written by, e.g., {@link CallWorkflowUtil#writePortObject(ExecutionContext, PortObject)}
+     * @return data for a workflow input parameter or from a workflow output parameter, with the port object contents in
+     *         a file
+     */
+    public static ExternalNodeData createExternalNodeData(final String parameterName, final PortType portType,
+        final File portContent) {
+        return ExternalNodeData.builder(parameterName)//
+            .resource(portContent == null ? UriBuilder.fromUri("file:/dev/null").build() : portContent.toURI())//
+            .contentType(ResourceContentType.of(portType).asString()) //
+            .build();
     }
 
 }

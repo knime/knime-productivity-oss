@@ -38,7 +38,7 @@ import org.knime.workflowservices.connection.ServerConnectionUtil;
  * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
-final class ParameterUpdateWorker extends SwingWorkerWithContext<CalleeWorkflowProperties, Void> {
+final class ParameterUpdateWorker extends SwingWorkerWithContext<WorkflowParameters, Void> {
 
     private final CallWorkflowConnectionConfiguration m_connectionConfiguration;
 
@@ -46,7 +46,7 @@ final class ParameterUpdateWorker extends SwingWorkerWithContext<CalleeWorkflowP
 
     private final IServerConnection m_serverConnection;
 
-    private Consumer<CalleeWorkflowProperties> m_whenDone;
+    private Consumer<WorkflowParameters> m_whenDone;
 
     /**
      *
@@ -57,11 +57,12 @@ final class ParameterUpdateWorker extends SwingWorkerWithContext<CalleeWorkflowP
      * @param whenDone callback for the retrieved information about the subworkflow
      */
     ParameterUpdateWorker(final String workflowPath, final Consumer<String> errorDisplay, final Duration loadTimeout,
-        final IServerConnection serverConnection, final Consumer<CalleeWorkflowProperties> whenDone,
+        final IServerConnection serverConnection, final Consumer<WorkflowParameters> whenDone,
         final Supplier<CallWorkflowConnectionConfiguration> configuration) {
 
         if (serverConnection == null) {
-            throw new IllegalArgumentException("Server connection must not be null.");
+            throw new IllegalArgumentException(
+                "Cannot connect to server. Please re-execute upstream KNIME Server Connector node.");
         }
 
         if (workflowPath.isBlank() || !CallWorkflowConnectionConfiguration.isValidWorkflowPath(workflowPath)) {
@@ -69,7 +70,6 @@ final class ParameterUpdateWorker extends SwingWorkerWithContext<CalleeWorkflowP
                 CallWorkflowConnectionConfiguration.invalidWorkflowPathMessage(workflowPath));
         }
         m_errorDisplay = errorDisplay;
-        errorDisplay.accept("");
 
         m_connectionConfiguration = configuration.get();
         m_connectionConfiguration.setLoadTimeout(loadTimeout);
@@ -83,18 +83,18 @@ final class ParameterUpdateWorker extends SwingWorkerWithContext<CalleeWorkflowP
     }
 
     @Override
-    protected CalleeWorkflowProperties doInBackgroundWithContext() throws Exception {
+    protected WorkflowParameters doInBackgroundWithContext() throws Exception {
 
         try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(m_connectionConfiguration)) {
             if (backend != null) {
                 var inputResourceDescription = backend.getInputResourceDescription();
                 var outputResourceDescription = backend.getOutputResourceDescription();
-                return new CalleeWorkflowProperties(inputResourceDescription, outputResourceDescription);
+                return new WorkflowParameters(inputResourceDescription, outputResourceDescription);
             } else {
                 return null;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            m_errorDisplay.accept(e.getMessage());
             return null;
         }
     }
@@ -106,7 +106,6 @@ final class ParameterUpdateWorker extends SwingWorkerWithContext<CalleeWorkflowP
                 var remoteWorkflowProperties = get();
                 if (remoteWorkflowProperties != null) {
                     m_whenDone.accept(remoteWorkflowProperties);
-                    m_errorDisplay.accept("");
                 }
             } catch (InterruptedException | CancellationException e) {
                 // do nothing

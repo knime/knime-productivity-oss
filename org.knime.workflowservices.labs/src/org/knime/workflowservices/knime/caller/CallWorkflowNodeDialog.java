@@ -1,9 +1,5 @@
 package org.knime.workflowservices.knime.caller;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
@@ -11,32 +7,23 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicReference;
 
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
-import javax.swing.KeyStroke;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.ConfigurableNodeFactory.ConfigurableNodeDialog;
@@ -51,44 +38,70 @@ import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.context.ports.ExtendablePortGroup;
 import org.knime.core.node.context.ports.ModifiablePortsConfiguration;
 import org.knime.core.node.port.PortObjectSpec;
+import org.knime.core.node.port.PortType;
 import org.knime.core.node.util.CheckUtils;
-import org.knime.core.node.util.FilterableListModel;
 import org.knime.core.node.workflow.NodeContext;
-import org.knime.core.node.workflow.WorkflowContext;
-import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.IServerConnection.ListWorkflowFailedException;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
-import org.knime.workflowservices.knime.CalleeWorkflowData;
 
 /**
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
- *
- * TODO when exchanging callees with different signatures things blow up (out of bounds exception, needs proper handling)
  */
-public class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeDialog {
+class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeDialog {
 
-    private ModifiableNodeCreationConfiguration m_nodeCreationConfig;
+    private static final NodeLogger LOGGER = NodeLogger.getLogger(CallWorkflowNodeDialog.class);
+
+    /*
+     * State
+     */
+
+    private IServerConnection m_serverConnection;
 
     private CallWorkflowNodeConfiguration m_configuration = new CallWorkflowNodeConfiguration();
 
-    private final ServerSettingsPanel m_serverSettingsPanel;
+    private ModifiableNodeCreationConfiguration m_nodeCreationConfig;
 
-    private final ParameterMappingPanel m_parameterMappingPanel;
+    /*
+     * GUI elements
+     */
+
+    private final PanelServerSettings m_serverSettingsPanel;
+
+    /**
+     * Displays which workflow input/output parameter is assigned to which input/output port. Uses the given method to
+     * check whether parameter configuration (type and order of input and output parameters) is compatible to the node's
+     * port configuration.
+     */
+    private final PanelWorkflowParameters m_parameterMappingPanel;
+
+    /**
+     * Shows locally or remotely available workflow paths. A path can be selected and will be copied over to
+     * {@link #m_selectWorkflowPath}.
+     */
+    private final DialogSelectWorkflow m_selectWorkflowDialog =
+        new DialogSelectWorkflow(getParentFrame(), this::setSelectedWorkflow, this::fetchRemoteWorkflows);
+
+    /*
+     * Asynchronous workers
+     */
+
+    /** Asynchronously fetches the workflow input and output parameters of a workflow to be executed. */
+    private ParameterUpdateWorker m_parameterUpdater;
+
+    /** Asynchronously fetches available workflows from a KNIME Server. */
+    private final AtomicReference<ListWorkflowsWorker> m_listWorkflowsWorker = new AtomicReference<>(null);
 
     CallWorkflowNodeDialog(final NodeCreationConfiguration creationConfig) {
 
         m_nodeCreationConfig = (ModifiableNodeCreationConfiguration)creationConfig;
+        m_parameterMappingPanel = new PanelWorkflowParameters(this::parametersCompatibleWithPorts,
+            m_nodeCreationConfig.getPortConfig().orElseThrow(() -> new IllegalStateException("Coding error.")));
 
-        // TODO everything below is copied from (fix after finalizing this dialog)
-        // org.knime.productivity.callworkflow.table.AbstractCallWorkflowTableNodeDialogPane
-
-        final JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-
-        m_workflowList = new JList<>(m_filteredWorkflowModel);
+        final var mainPanel = new JPanel(new GridBagLayout());
+        var gbc = new GridBagConstraints();
 
         gbc.anchor = GridBagConstraints.LINE_START;
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -97,31 +110,80 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
         gbc.weighty = 0.0;
         gbc.fill = GridBagConstraints.NONE;
 
-        m_serverSettingsPanel = new ServerSettingsPanel(gbc);
+        m_serverSettingsPanel = new PanelServerSettings(gbc);
         gbc.gridwidth = 3;
-        panel.add(m_serverSettingsPanel, gbc);
+        mainPanel.add(m_serverSettingsPanel, gbc);
 
         gbc.gridx = 0;
         gbc.gridy++;
         gbc.gridwidth = 1;
-        m_selectWorkflowPath = new JTextField();
+
+        // text field for workflow path input and browse workflows button
+        createSelectWorkflowControls(mainPanel, gbc);
+
+        // configure timeout on loading a workflow
+        createLoadTimeOutControls(mainPanel, gbc);
+
+        m_fetchWorkflowPropertiesButton.addActionListener(l -> fetchWorkflowProperties());
+        gbc.gridx = 2;
+        mainPanel.add(m_fetchWorkflowPropertiesButton, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridwidth = 4;
+        gbc.weighty = 1;
+        gbc.weightx = 1;
+        gbc.gridy++;
+        gbc.fill = GridBagConstraints.BOTH;
+
+        mainPanel.add(m_parameterMappingPanel.getContentPane(), gbc);
+
+        addTab("Workflow to Execute", new JScrollPane(mainPanel));
+
+    }
+
+    /**
+     * @param panel
+     * @param gbc
+     */
+    private void createLoadTimeOutControls(final JPanel panel, final GridBagConstraints gbc) {
+        ((JSpinner.DefaultEditor)m_loadTimeoutSpinner.getEditor()).getTextField().setColumns(4);
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.gridwidth = 1;
+        var timeoutLabel = new JLabel("Fetch timeout [s]: ");
+        panel.add(timeoutLabel, gbc);
+        gbc.gridx++;
+        gbc.fill = GridBagConstraints.NONE;
+        panel.add(m_loadTimeoutSpinner, gbc);
+        var timeoutTooltip = "The maximum number of seconds to wait when fetching the parameters of workflow";
+        timeoutLabel.setToolTipText(timeoutTooltip);
+        m_loadTimeoutSpinner.setToolTipText(timeoutTooltip);
+    }
+
+    /**
+     * @param panel
+     * @param gbc
+     */
+    private void createSelectWorkflowControls(final JPanel panel, final GridBagConstraints gbc) {
         m_selectWorkflowPath.setEditable(true);
 
-        m_selectWorkflowPath.setEnabled(true);
         m_selectWorkflowPath.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void removeUpdate(final DocumentEvent e) {
-                updateParameters();
+                // not nice: when setting the text of the input,
+                // it will fire a remove update (setting to "" first) and then an insert update
+                // causing an error to be shown (Empty string is an invalid path) for a tiny moment
+                fetchWorkflowProperties();
             }
 
             @Override
             public void insertUpdate(final DocumentEvent e) {
-                updateParameters();
+                fetchWorkflowProperties();
             }
 
             @Override
             public void changedUpdate(final DocumentEvent e) {
-                updateParameters();
+                fetchWorkflowProperties();
             }
         });
 
@@ -133,7 +195,7 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
                 }
             }
         });
-        JLabel workflowLabel = new JLabel("Workflow Path: ");
+        var workflowLabel = new JLabel("Workflow Path: ");
         panel.add(workflowLabel, gbc);
 
         gbc.gridx++;
@@ -144,74 +206,8 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
 
         gbc.gridx++;
         gbc.fill = GridBagConstraints.NONE;
-        m_selectWorkflowButton = new JButton("Browse workflows");
-        m_selectWorkflowButton.addActionListener(l -> openSelectWorkflowDialog());
+        m_selectWorkflowButton.addActionListener(l -> m_selectWorkflowDialog.open());
         panel.add(m_selectWorkflowButton, gbc);
-
-        m_loadTimeoutSpinner = new JSpinner(
-            new SpinnerNumberModel((int)IServerConnection.DEFAULT_LOAD_TIMEOUT.getSeconds(), 0, null, 30));
-        ((JSpinner.DefaultEditor)m_loadTimeoutSpinner.getEditor()).getTextField().setColumns(4);
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 1;
-        JLabel timeoutLabel = new JLabel("Load timeout [s]: ");
-        panel.add(timeoutLabel, gbc);
-        gbc.gridx++;
-        gbc.fill = GridBagConstraints.NONE;
-        panel.add(m_loadTimeoutSpinner, gbc);
-        var timeoutTooltip = "The timeout to use when loading a remote workflow";
-        timeoutLabel.setToolTipText(timeoutTooltip);
-        m_loadTimeoutSpinner.setToolTipText(timeoutTooltip);
-
-        gbc.gridx = 1;
-        gbc.gridy++;
-        gbc.gridwidth = 2;
-        m_workflowErrorLabel = new JLabel();
-        m_workflowErrorLabel.setForeground(Color.RED.darker());
-        panel.add(m_workflowErrorLabel, gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy++;
-        gbc.gridwidth = 2;
-        m_stateErrorLabel = new JLabel();
-        m_stateErrorLabel.setForeground(Color.RED.darker());
-        panel.add(m_stateErrorLabel, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1;
-        var loadingBox = new JPanel();
-        loadingBox.setLayout(new BoxLayout(loadingBox, BoxLayout.PAGE_AXIS));
-
-        m_loadingMessage = new JLabel();
-        m_loadingMessage.setForeground(Color.RED.darker());
-        m_loadingMessage.setAlignmentX(Component.CENTER_ALIGNMENT);
-        m_loadingAnimation = new JProgressBar();
-        m_loadingAnimation.setVisible(false);
-        m_loadingAnimation.setIndeterminate(true);
-        m_loadingAnimation.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        loadingBox.add(m_loadingAnimation);
-        loadingBox.add(m_loadingMessage);
-
-        gbc.gridx++;
-        panel.add(loadingBox, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-
-        gbc.gridwidth = 4;
-        gbc.weighty = 1;
-        gbc.weightx = 1;
-        gbc.gridy++;
-        gbc.fill = GridBagConstraints.BOTH;
-
-        m_parameterMappingPanel = new ParameterMappingPanel();
-        panel.add(m_parameterMappingPanel, gbc);
-
-        addTab("Callee Workflow", new JScrollPane(panel));
-
     }
 
     /**
@@ -219,39 +215,36 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
      *
      * @param remoteWorkflowProperties retrieved information, e.g., input ports and output ports.
      */
-    private void onWorkflowPropertiesLoad(final CalleeWorkflowProperties remoteWorkflowProperties) {
-
-        // create input/output ports for this node according to the workflow inputs/outputs of the callee
-        configureNodePorts(remoteWorkflowProperties);
-
-        // allow the user to select the fetched callee workflow input parameters as targets for this node's ports
-        ModifiablePortsConfiguration portsConf = m_nodeCreationConfig.getPortConfig().get();
-
-        m_parameterMappingPanel.update(remoteWorkflowProperties,
-            portsConf.getGroup(CallWorkflowNodeFactory.INPUT_PORT_GROUP),
-            portsConf.getGroup(CallWorkflowNodeFactory.OUTPUT_PORT_GROUP));
-
+    private void onWorkflowPropertiesLoad(final WorkflowParameters remoteWorkflowProperties) {
+        // store result
         m_configuration.setCalleeWorkflowProperties(remoteWorkflowProperties);
+        // show result
+        m_parameterMappingPanel.update(remoteWorkflowProperties);
 
         // mark retrieval as done
         m_parameterUpdater = null;
     }
 
     /**
-     * Configures the input and output ports of the node such that they reflect the input/output ports of the callee
-     * workflow.
+     * Configures the input and output ports of the node such that they reflect the input/output parameters of the
+     * callee workflow in the order selected in the dialog.
      *
-     * Called in {@link #onWorkflowPropertiesLoad(CalleeWorkflowProperties)}, triggered by the asynchronous completion
-     * of the {@link ParameterUpdateWorker} execution
+     * Called when finishing configuration in {@link #saveSettingsTo(NodeSettingsWO)}.
      *
      * @param properties describes the input and output ports of the callee workflow.
+     * @throws InvalidSettingsException
      */
-    private void configureNodePorts(final CalleeWorkflowProperties properties) {
+    private void updateNodePorts() throws InvalidSettingsException {
 
         Optional<ModifiablePortsConfiguration> portConfig = m_nodeCreationConfig.getPortConfig();
         if (portConfig.isEmpty()) {
             return; // should never happen - setCurrentNodeCreationConfiguration would be broken
         }
+
+        // should not happen - the configuration should not be able to finish without configuring a callee workflow and
+        // fetching its workflow parameters
+        var properties = m_configuration.getCalleeWorkflowProperties().orElseThrow(
+            () -> new InvalidSettingsException("Could not find the parameters of the workflow to be called."));
 
         // update input ports
         ExtendablePortGroup inputConfig =
@@ -259,7 +252,7 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
         while (inputConfig.hasConfiguredPorts()) {
             inputConfig.removeLastPort();
         }
-        for (CalleeWorkflowData portDesc : properties.getInputNodes()) {
+        for (WorkflowParameter portDesc : properties.getInputParameters()) {
             inputConfig.addPort(portDesc.getPortType());
         }
 
@@ -269,7 +262,7 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
         while (outputConfig.hasConfiguredPorts()) {
             outputConfig.removeLastPort();
         }
-        for (CalleeWorkflowData portDesc : properties.getOutputNodes()) {
+        for (WorkflowParameter portDesc : properties.getOutputParameters()) {
             outputConfig.addPort(portDesc.getPortType());
         }
 
@@ -278,11 +271,28 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
 
     @Override
     protected final void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        CheckUtils.checkSetting(m_parameterUpdater == null, "Can't apply configuration while analysis is ongoing");
+        CheckUtils.checkSetting(m_parameterMappingPanel.getState() != PanelWorkflowParameters.State.ERROR,
+            "Cannot apply configuration when workflow parameters could not be successfully fetched.");
+        CheckUtils.checkSetting(m_parameterMappingPanel.getState() != PanelWorkflowParameters.State.LOADING,
+            "Cannot apply configuration while fetching workflow parameters.");
+        CheckUtils.checkSetting(m_parameterMappingPanel.getState() != PanelWorkflowParameters.State.PARAMETER_CONFLICT,
+            "Please confirm adjusting the ports of the node to match the workflow parameters.");
+        CheckUtils.checkSetting(m_parameterMappingPanel.getState() != PanelWorkflowParameters.State.NO_WORKFLOW_SELECTED,
+            "Please select a workflow to execute.");
 
         m_serverSettingsPanel.saveConfiguration(m_configuration);
         m_configuration.setWorkflowPath(m_selectWorkflowPath.getText());
         m_configuration.setLoadTimeout(Duration.ofSeconds(((Number)m_loadTimeoutSpinner.getValue()).intValue()));
+
+        // update the order of the parameters
+        if (m_configuration.getCalleeWorkflowProperties().isPresent()) {
+            var cwp = m_configuration.getCalleeWorkflowProperties().get(); // NOSONAR
+            cwp.setInputParameterOrder(m_parameterMappingPanel.getInputParameterOrder());
+            cwp.setOutputParameterOrder(m_parameterMappingPanel.getOutputParameterOrder());
+        }
+
+        // create input/output ports according to the selected order of the workflow input/output parameters
+        updateNodePorts();
 
         m_configuration.saveSettings(settings);
     }
@@ -302,82 +312,57 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
 
         m_serverSettingsPanel.loadConfiguration(m_configuration);
 
-        // configure remote execution if a server connection is present
-        var fileSystemPOS = (FileSystemPortObjectSpec)specs[0];
-        var nodeContext = NodeContext.getContext();
-        var wfm = nodeContext.getWorkflowManager();
-        WorkflowContext context = wfm.getContext();
-
-        if (context.isTemporaryCopy()) {
-            configureTemporaryCopyWithoutServerConnection();
+        var wfm = NodeContext.getContext().getWorkflowManager();
+        if (wfm.getContext().isTemporaryCopy()) {
+            m_serverConnection = null;
+            disableAllUIElements();
+            m_parameterMappingPanel
+                .setErrorMessage("This node cannot be configured in a temporary copy of the workflow.");
+            return;
         } else {
-            configureRemoteExecution(fileSystemPOS, wfm);
+            // configure remote execution if a server connection is present
+            final var spec = (FileSystemPortObjectSpec)specs[0];
+            enableAllUIElements();
+            try {
+                m_serverConnection = ServerConnectionUtil.getConnection(spec, wfm);
+                m_serverSettingsPanel.m_serverAddress.setText(m_serverConnection.getHost());
+            } catch (InvalidSettingsException e) {
+                getLogger().debug(e.getMessage(), e);
+                disableAllUIElements();
+                m_parameterMappingPanel.setErrorMessage(e.getMessage());
+                m_serverConnection = null;
+            }
         }
 
-        if (m_configuration.getCalleeWorkflowProperties().isPresent()) {
-            ModifiablePortsConfiguration portsConf = m_nodeCreationConfig.getPortConfig().get();
-            m_parameterMappingPanel.update(m_configuration.getCalleeWorkflowProperties().get(),
-                portsConf.getGroup(CallWorkflowNodeFactory.INPUT_PORT_GROUP),
-                portsConf.getGroup(CallWorkflowNodeFactory.OUTPUT_PORT_GROUP));
-        }
-
-        // If we open the dialog a second time and an panelUpdater is currently running (probably waiting
-        // for the workflow lock because the workflow to call is already executing) we need to cancel it to avoid
-        // filling the panelMap twice
-        //  TODO understand the concurrency problem solved here
-        //        m_parameterMappingPanel.clearParameters();
-
+        // display workflow input/output parameters
+        m_configuration.getCalleeWorkflowProperties().ifPresent(m_parameterMappingPanel::load);
         m_selectWorkflowPath.setText(m_configuration.getWorkflowPath());
     }
 
-    static final NodeLogger LOGGER = NodeLogger.getLogger(CallWorkflowNodeDialog.class);
-
     /**
-     *
      * TODO everything below is copied from {@link AbstractCallWorkflowTableNodeDialogPane}
-     *
      */
 
-    private IServerConnection m_serverConnection;
+    /** Calls {@link #fetchWorkflowProperties()} on every change. */
+    private final JTextField m_selectWorkflowPath = new JTextField();
 
-    private final JTextField m_selectWorkflowPath;
+    private final JButton m_selectWorkflowButton = new JButton("Browse workflows");
 
-    private final JSpinner m_loadTimeoutSpinner;
+    private final JButton m_fetchWorkflowPropertiesButton = new JButton("Fetch workflow parameters");
 
-    private final JButton m_selectWorkflowButton;
-
-    private final JLabel m_workflowErrorLabel;
-
-    private final JLabel m_stateErrorLabel;
-
-    private ParameterUpdateWorker m_parameterUpdater;
-
-    private final JProgressBar m_loadingAnimation;
-
-    private final JLabel m_loadingMessage;
-
-    private JList<String> m_workflowList;
-
-    private SwingWorkerWithContext<List<String>, Void> m_workflowLister;
-
-    private FilterableListModel m_filteredWorkflowModel = new FilterableListModel(Collections.emptyList());
+    private final JSpinner m_loadTimeoutSpinner =
+        new JSpinner(new SpinnerNumberModel((int)IServerConnection.DEFAULT_LOAD_TIMEOUT.getSeconds(), 0, null, 30));
 
     /**
      * Set to true after the node's ports have been adapted to a callee workflow's in- and output ports.
      *
-     * @see #configureNodePorts(NodeCreationConfiguration)
+     * @see #updateNodePorts(NodeCreationConfiguration)
      */
     private boolean m_portConfigChanged = false;
 
-    private void openSelectWorkflowDialog() {
-        var selectWorkflowDialog = new SelectWorkflowDialog(getParentFrame());
-        selectWorkflowDialog.setVisible(true);
-        selectWorkflowDialog.dispose();
-    }
-
     private Frame getParentFrame() {
         Frame frame = null;
-        Container container = getPanel().getParent();
+        var container = getPanel().getParent();
         while (container != null) {
             if (container instanceof Frame) {
                 frame = (Frame)container;
@@ -388,112 +373,110 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
         return frame;
     }
 
-    private void configureTemporaryCopyWithoutServerConnection() {
-        String message = "This node cannot be configured without a server connection in a temporary copy of the"
-            + " workflow, please download the workflow to your local workspace for configuration";
-        m_stateErrorLabel.setText(message);
-        m_serverConnection = null;
-        disableAllUIElements();
-    }
-
-    private void configureRemoteExecution(final FileSystemPortObjectSpec spec, final WorkflowManager wfm) {
-        enableAllUIElements();
-        try {
-            m_serverConnection = ServerConnectionUtil.getConnection(spec, wfm);
-            m_stateErrorLabel.setText("");
-            m_serverSettingsPanel.m_serverAddress.setText(m_serverConnection.getHost());
-            fillWorkflowList();
-        } catch (InvalidSettingsException e) {
-            getLogger().debug(e.getMessage(), e);
-            disableAllUIElements();
-            m_stateErrorLabel.setText(e.getMessage());
-            m_serverConnection = null;
+    /**
+     * Get a list of workflow paths from the connected KNIME Server. This may take a while and is done asynchronously.
+     * The worker will call {@link DialogSelectWorkflow#setWorkflowPaths(List)} on {@link #m_selectWorkflowDialog}.
+     */
+    private void fetchRemoteWorkflows() {
+        if (m_listWorkflowsWorker.get() == null) {
+            var worker = new ListWorkflowsWorker();
+            m_listWorkflowsWorker.set(worker);
+            worker.execute();
         }
     }
 
     private void disableAllUIElements() {
-        disableUISelections();
+        m_selectWorkflowButton.setEnabled(false);
+        m_fetchWorkflowPropertiesButton.setEnabled(false);
         m_selectWorkflowPath.setEnabled(false);
-        // TODO or only m_asyncInvocationChecker, m_syncInvocationChecker, and m_retainJobOnFailure?
-        m_serverSettingsPanel.setEnabled(false);
+        m_loadTimeoutSpinner.setEnabled(false);
+
+        m_serverSettingsPanel.m_asyncInvocationChecker.setEnabled(false);
+        m_serverSettingsPanel.m_syncInvocationChecker.setEnabled(false);
+        m_serverSettingsPanel.m_retainJobOnFailure.setEnabled(false);
+        m_serverSettingsPanel.m_discardJobOnSuccesfulExecution.setEnabled(false);
     }
 
     private void enableAllUIElements() {
-        enableUISelections();
+        m_selectWorkflowButton.setEnabled(true);
+        m_fetchWorkflowPropertiesButton.setEnabled(true);
         m_selectWorkflowPath.setEnabled(true);
-        // TODO or only m_asyncInvocationChecker, m_syncInvocationChecker, and m_retainJobOnFailure?
-        m_serverSettingsPanel.setEnabled(true);
+        m_loadTimeoutSpinner.setEnabled(true);
+
+        m_serverSettingsPanel.m_asyncInvocationChecker.setEnabled(true);
+        m_serverSettingsPanel.m_syncInvocationChecker.setEnabled(true);
+        m_serverSettingsPanel.m_retainJobOnFailure.setEnabled(true);
+        m_serverSettingsPanel.m_discardJobOnSuccesfulExecution.setEnabled(true);
     }
 
     private void setSelectedWorkflow(final String selectedWorkflow) {
-        // TODO why was this necessary?
-        //        m_parameterMappingPanel.removeConfiguredSelections();
-        // TODO trigger the event not the triggerer?
         m_selectWorkflowPath.setText(selectedWorkflow); // triggers updater
     }
 
-    private void updateParameters() {
-
+    /**
+     * Asynchronously fetch input and output parameters of the workflow to be executed.
+     * {@link #onWorkflowPropertiesLoad(WorkflowParameters)} is the callback for the result.
+     */
+    private void fetchWorkflowProperties() {
         var inProgress =
             !(m_parameterUpdater == null || m_parameterUpdater.isDone() || m_parameterUpdater.cancel(true));
-
-        if (m_selectWorkflowPath.getText().isBlank() || inProgress) {
-            m_workflowErrorLabel.setText("Failed to interrupt analysis of current workflow!");
+        if (inProgress) {
+            m_parameterMappingPanel.setErrorMessage("Failed to interrupt fetching workflow parameters.");
             return;
         }
 
-        m_parameterMappingPanel.removeAll();
-        m_parameterMappingPanel.revalidate();
-        m_parameterMappingPanel.repaint();
+        m_parameterMappingPanel.setState(PanelWorkflowParameters.State.LOADING);
 
         var timeOut = Duration.ofSeconds(((Number)m_loadTimeoutSpinner.getValue()).intValue());
-        m_parameterUpdater = new ParameterUpdateWorker(//
-            m_selectWorkflowPath.getText(), //
-            m_workflowErrorLabel::setText, //
-            timeOut, //
-            m_serverConnection, //
-            this::onWorkflowPropertiesLoad, CallWorkflowNodeConfiguration::new);
 
-        m_configuration.setCalleeWorkflowProperties(null);
-        m_parameterUpdater.execute();
+        try {
+            m_parameterUpdater = new ParameterUpdateWorker(//
+                m_selectWorkflowPath.getText(), //
+                m_parameterMappingPanel::setErrorMessage, //
+                timeOut, //
+                m_serverConnection, //
+                this::onWorkflowPropertiesLoad,//
+                CallWorkflowNodeConfiguration::new);
 
-    }
-
-    private void fillWorkflowList() {
-        assert m_workflowLister == null;
-        m_workflowErrorLabel.setText("");
-        disableUISelectionsWhileFetchingWorkflows();
-        m_filteredWorkflowModel = new FilterableListModel(Collections.emptyList());
-        m_workflowLister = new ListWorkflowsWorker();
-        m_workflowLister.execute();
-    }
-
-    private void disableUISelectionsWhileFetchingWorkflows() {
-        m_loadingMessage.setText("Fetching workflows...");
-        m_loadingAnimation.setVisible(true);
-        disableUISelections();
-    }
-
-    private void disableUISelections() {
-        m_selectWorkflowButton.setEnabled(false);
-        m_parameterMappingPanel.setEnabled(false);
-
-    }
-
-    private void enableUISelectionsAfterFetchingWorkflows() {
-        m_loadingMessage.setText(" ");
-        m_loadingAnimation.setVisible(false);
-        enableUISelections();
-    }
-
-    private void enableUISelections() {
-        m_selectWorkflowButton.setEnabled(true);
-        m_parameterMappingPanel.setEnabled(true);
+            m_configuration.setCalleeWorkflowProperties(null);
+            m_parameterUpdater.execute();
+        } catch(Exception e){
+            m_parameterMappingPanel.setErrorMessage(e.getMessage());
+        }
     }
 
     /**
-     * {@inheritDoc}
+     * Checks whether the given workflow input and output parameters are compatible with the node's port configuration.
+     * Compatible means that the input parameter types (in the order defined in the {@link WorkflowParameters}
+     * match the input ports of a node, and the output parameters match the output ports. If compatible, no node
+     * connections will be removed when calling {@link #updateNodePorts()}.
+     *
+     * NB: When swapping two ports with the same type, the routing of the data will change, but existing connections at
+     * those ports will not be removed, thus, the new {@link WorkflowParameters} will still be considered
+     * compatible to the node's ports.
+     *
+     * @param properties workflow input and output parameters
+     * @return true if {@link WorkflowParameters} are compatible with the node's port configuration
      */
+    private boolean parametersCompatibleWithPorts(final WorkflowParameters properties) {
+        ModifiablePortsConfiguration portConfig = m_nodeCreationConfig.getPortConfig()
+            .orElseThrow(() -> new IllegalStateException("Coding error. No port configuration found."));
+
+        PortType[] inputParameterTypes =
+            properties.getInputParameters().stream().map(WorkflowParameter::getPortType).toArray(PortType[]::new);
+        PortType[] inputPorts = portConfig.getInputPorts();
+        // skip first (optional file system) port
+        PortType[] inputPortTypes = Arrays.copyOfRange(inputPorts, 1, inputPorts.length);
+
+        PortType[] outputParameterTypes =
+            properties.getOutputParameters().stream().map(WorkflowParameter::getPortType).toArray(PortType[]::new);
+        PortType[] outputPortTypes = portConfig.getOutputPorts();
+
+        return Arrays.equals(inputParameterTypes, inputPortTypes)
+            && Arrays.equals(outputParameterTypes, outputPortTypes);
+
+    }
+
     @Override
     public void onClose() {
         if (m_parameterUpdater != null) {
@@ -501,9 +484,9 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
             m_parameterUpdater = null;
         }
 
-        if (m_workflowLister != null) {
-            m_workflowLister.cancel(true);
-            m_workflowLister = null;
+        if (m_listWorkflowsWorker.get() != null) {
+            m_listWorkflowsWorker.get().cancel(true);
+            m_listWorkflowsWorker.set(null);
         }
 
         super.onClose();
@@ -536,182 +519,17 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
         protected void doneWithContext() {
             try {
                 List<String> listedWorkflows = get();
-                m_filteredWorkflowModel = new FilterableListModel(listedWorkflows);
-                m_workflowList.setModel(m_filteredWorkflowModel);
+                m_selectWorkflowDialog.setWorkflowPaths(listedWorkflows);
+                m_listWorkflowsWorker.set(null);
             } catch (InterruptedException | CancellationException ex) {
-                clearWorkflowList();
+                m_selectWorkflowDialog.clearWorkflowList();
                 // do nothing
             } catch (Exception ex) {
-                clearWorkflowList();
+                m_selectWorkflowDialog.clearWorkflowList();
                 var pair = ServerConnectionUtil.handle(ex);
-                m_workflowErrorLabel.setText(pair.getLeft());
+                m_selectWorkflowDialog.setErrorText(pair.getLeft());
                 LOGGER.error(pair.getLeft(), pair.getRight());
-
-            } finally {
-                enableUISelectionsAfterFetchingWorkflows();
             }
-        }
-
-    }
-
-    private void clearWorkflowList() {
-        m_workflowList.setModel(new FilterableListModel(Collections.emptyList()));
-    }
-
-    /**
-     * Dialog that enables the user to select a workflow from an already populated list. Offers a text field which can
-     * be used as a filter. When something has been entered in the field only workflow paths containing this entry will
-     * be shown in the list.
-     *
-     * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
-     */
-    final class SelectWorkflowDialog extends JDialog {
-
-        private static final long serialVersionUID = 1L;
-
-        private final JTextField m_filterField;
-
-        SelectWorkflowDialog(final Frame frame) {
-            super(frame);
-            m_filterField = new JTextField();
-            requestFocus();
-            setModal(true);
-            setLayout(new BorderLayout());
-            add(createContentPane(), BorderLayout.CENTER);
-            setTitle("Browse workflows");
-            pack();
-            setLocationRelativeTo(getParent());
-            setSize(500, 800);
-
-            getRootPane().registerKeyboardAction(e -> closeDialog(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
-                JComponent.WHEN_IN_FOCUSED_WINDOW);
-        }
-
-        private Container createContentPane() {
-            JPanel selectWorkflowPanel = new JPanel(new GridBagLayout());
-            GridBagConstraints gbc = new GridBagConstraints();
-
-            /*
-             * Filter text field
-             */
-
-            gbc.gridx = 0;
-            gbc.gridwidth = 1;
-            gbc.gridy++;
-            gbc.insets = new Insets(5, 5, 5, 5);
-            gbc.anchor = GridBagConstraints.LINE_START;
-            gbc.fill = GridBagConstraints.HORIZONTAL;
-            selectWorkflowPanel.add(new JLabel("Search:"), gbc);
-            gbc.gridx++;
-            gbc.weightx = 1;
-            m_filterField.requestFocusInWindow();
-            selectWorkflowPanel.add(m_filterField, gbc);
-            m_filterField.getDocument().addDocumentListener(new DocumentListener() {
-
-                @Override
-                public void removeUpdate(final DocumentEvent e) {
-                    update(e);
-                }
-
-                @Override
-                public void insertUpdate(final DocumentEvent e) {
-                    update(e);
-                }
-
-                @Override
-                public void changedUpdate(final DocumentEvent e) {
-                    update(e);
-                }
-
-                void update(final DocumentEvent e) {
-                    try {
-                        final Document doc = e.getDocument();
-                        m_filteredWorkflowModel.setFilter(doc.getText(0, doc.getLength()));
-                    } catch (BadLocationException e1) {
-                        // Will never happen
-                    }
-                }
-            });
-
-            m_filterField.addKeyListener(new KeyAdapter() {
-                @Override
-                public void keyPressed(final KeyEvent e) {
-                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                        m_workflowList.grabFocus();
-                    }
-                }
-            });
-
-            /*
-             * Scroll pane with all available workflows
-             */
-
-            m_workflowList = new JList<>(m_filteredWorkflowModel);
-            gbc.gridx = 0;
-            gbc.gridy++;
-            gbc.gridwidth = 2;
-            gbc.weighty = 1;
-            gbc.fill = GridBagConstraints.BOTH;
-            final JScrollPane scrollPane = new JScrollPane(m_workflowList);
-            selectWorkflowPanel.add(scrollPane, gbc);
-
-            m_workflowList.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(final MouseEvent e) {
-                    if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
-                        setSelectionAndClose();
-                    }
-                }
-            });
-
-            m_workflowList.addKeyListener(new KeyAdapter() {
-                @Override
-                public void keyPressed(final KeyEvent e) {
-                    if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                        setSelectionAndClose();
-                    }
-                }
-            });
-
-            /*
-             * Control panel
-             */
-
-            JButton selectButton = new JButton("Select");
-            selectButton.addActionListener(l -> setSelectionAndClose());
-
-            JButton cancelButton = new JButton("Cancel");
-            cancelButton.addActionListener(l -> closeDialog());
-
-            JPanel controlPanel = new JPanel();
-
-            controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.LINE_AXIS));
-            controlPanel.add(Box.createHorizontalGlue());
-            controlPanel.add(selectButton, null);
-            controlPanel.add(Box.createHorizontalStrut(10));
-            controlPanel.add(cancelButton, null);
-            controlPanel.add(Box.createHorizontalStrut(5));
-            controlPanel.add(Box.createHorizontalGlue());
-
-            gbc.gridx = 0;
-            gbc.gridy++;
-            gbc.weightx = gbc.weighty = 0;
-            gbc.anchor = GridBagConstraints.CENTER;
-            gbc.fill = GridBagConstraints.NONE;
-            selectWorkflowPanel.add(controlPanel, gbc);
-            return selectWorkflowPanel;
-        }
-
-        private void setSelectionAndClose() {
-            String selectedWorkflow = m_workflowList.getSelectedValue();
-            setSelectedWorkflow(selectedWorkflow);
-            closeDialog();
-        }
-
-        private void closeDialog() {
-            m_filteredWorkflowModel.setFilter("");
-            setVisible(false);
-            dispose();
         }
 
     }
@@ -727,7 +545,8 @@ public class CallWorkflowNodeDialog extends NodeDialogPane implements Configurab
 
     @Override
     public Optional<ModifiableNodeCreationConfiguration> getNewNodeCreationConfiguration() {
-        return Optional.ofNullable(m_portConfigChanged ? m_nodeCreationConfig : null);
+        var newConfig = Optional.ofNullable(m_portConfigChanged ? m_nodeCreationConfig : null);
+        return newConfig;
     }
 
 }

@@ -105,7 +105,7 @@ public final class WorkflowOutputNodeFactory extends ConfigurableNodeFactory<Wor
     @Override
     protected NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
         final var portConfig = creationConfig.getPortConfig().orElseThrow();
-        return new WorkflowOutputNodeDialog(portConfig);
+        return new WorkflowBoundaryNodeDialog(portConfig, WorkflowOutputNodeModel.DEFAULT_PARAM_NAME);
     }
 
     /**

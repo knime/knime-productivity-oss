@@ -34,12 +34,11 @@ import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.port.PortObjectSpec;
 
 /**
- * TODO make final
- * Common superclass for {@link WorkflowInputNodeDialog} and {@link WorkflowOutputNodeDialog}.
+ * Common dialog class for Workflow Service Input node and Workflow Service Output node.
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-public abstract class WorkflowBoundaryNodeDialog extends NodeDialogPane {
+final class WorkflowBoundaryNodeDialog extends NodeDialogPane {
 
     private final ParameterPanel m_parameterPanel;
     private final String m_defParameterName;

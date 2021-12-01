@@ -31,14 +31,13 @@ import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 import org.knime.productivity.base.callworkflow.IWorkflowBackend.WorkflowState;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
-import org.knime.workflowservices.knime.CalleeWorkflowData;
 import org.knime.workflowservices.knime.util.CallWorkflowPayload;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel {
+class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel {
 
     private IServerConnection m_serverConnection;
 
@@ -64,7 +63,7 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
 
-        Optional<CalleeWorkflowProperties> calleeProperties = m_configuration.getCalleeWorkflowProperties();
+        Optional<WorkflowParameters> calleeProperties = m_configuration.getCalleeWorkflowProperties();
         if (calleeProperties.isEmpty()) {
             throw new IllegalStateException(
                 "Call Workflow node is not properly configured: No callee workflow information available.");
@@ -86,7 +85,7 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
      * {@link #m_serverConnection} provides.
      *
      * @param portObjects the data provided to this node's input ports, they are wrapped for transmission using
-     *            {@link #createWorkflowInput(CalleeWorkflowProperties, PortObject[], Map, ExecutionContext)}
+     *            {@link #createWorkflowInput(WorkflowParameters, PortObject[], Map, ExecutionContext)}
      * @param calleeWorkflowProperties description of callee workflow inputs and outputs
      * @param exec the {@link ExecutionContext} passed to {@link #execute(PortObject[], ExecutionContext)}
      * @return the result {@link PortObject}s computed by the callee workflow, in order of their output at the ports of
@@ -94,10 +93,7 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
      * @throws Exception
      */
     private PortObject[] executeWorkflow(final IWorkflowBackend backend, final PortObject[] portObjects,
-        final CalleeWorkflowProperties calleeWorkflowProperties, final ExecutionContext exec)
-        throws Exception {
-
-        // TODO credentials?
+        final WorkflowParameters calleeWorkflowProperties, final ExecutionContext exec) throws Exception {
 
         // prepare an input object for each callee workflow input node
         VariableType<?>[] allTypes = VariableTypeRegistry.getInstance().getAllTypes();
@@ -106,7 +102,7 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
 
         Collection<FlowVariable> flowVariables = getAvailableFlowVariables(allTypes).values();
         Map<String, ExternalNodeData> workflowInput = CallWorkflowUtil
-            .createWorkflowInput(calleeWorkflowProperties.getInputNodes(), portObjects, flowVariables, exec);
+            .createWorkflowInput(calleeWorkflowProperties.getInputParameters(), portObjects, flowVariables, exec);
 
         // execute and check success
         exec.setMessage("Executing callee workflow.");
@@ -115,25 +111,24 @@ public class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel
 
         // retrieve and restored callee workflow outputs
         exec.setMessage("Receiving results from callee workflow.");
-        var outputNodes = calleeWorkflowProperties.getOutputNodes();
+        var outputNodes = calleeWorkflowProperties.getOutputParameters();
         var outputPOs = new PortObject[outputNodes.size()];
         // there might be multiple flow variable outputs in the callee (which is useless and a badly designed workflow)
         // map guarantees that flow vars are added only once
         var flowVarMap = new LinkedHashMap<String, FlowVariable>();
         for (var i = 0; i < outputNodes.size(); i++) {
-            CalleeWorkflowData output = outputNodes.get(i);
+            WorkflowParameter output = outputNodes.get(i);
             try (InputStream in = new BufferedInputStream(backend.openOutputResource(output.getParameterName()));
                     var payload = CallWorkflowPayload.createFrom(in, getOutPortType(i))) {
                 outputPOs[i] = payload.onExecute(exec, fv -> flowVarMap.put(fv.getName(), fv));
             }
         }
-        flowVarMap.values().stream().forEach(variable -> {;
+        flowVarMap.values().stream().forEach(variable -> {
             VariableType expectedType = variable.getVariableType(); // NOSONAR must be declared as raw type
             pushFlowVariable(variable.getName(), expectedType, variable.getValue(expectedType));
         });
         return outputPOs;
     }
-
 
     @Override
     protected void reset() {
