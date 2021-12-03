@@ -239,7 +239,7 @@ class WorkflowParameters {
 
         for (WorkflowParameter oldParameter : oldParameters) {
             var newPortType = newInputParameters.get(oldParameter.getParameterName());
-            if (!newPortType.equals(oldParameter.getPortType())) {
+            if (!Objects.equals(newPortType, oldParameter.getPortType())) {
                 return false;
             }
         }
