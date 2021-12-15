@@ -5,11 +5,13 @@ Bundle-SymbolicName: org.knime.workflowservices;singleton:=true
 Bundle-Version: 4.6.0.qualifier
 Bundle-ClassPath: workflowservices-nodes.jar
 Bundle-Vendor: KNIME AG, Zurich, Switzerland
-Require-Bundle: org.knime.base;bundle-version="[4.0.0,5.0.0)",
- org.knime.productivity.base;bundle-version="[4.0.0,5.0.0)",
+Require-Bundle: org.knime.base;bundle-version="[4.6.0,5.0.0)",
+ org.knime.productivity.base;bundle-version="[4.6.0,5.0.0)",
  org.apache.commons.lang3;bundle-version="[3.9.0,4.0.0)",
- org.knime.filehandling.core;bundle-version="[4.5.0,5.0.0)",
- org.knime.explorer.nodes;bundle-version="[4.5.0,5.0.0)"
+ org.knime.filehandling.core;bundle-version="[4.6.0,5.0.0)",
+ org.knime.explorer.nodes;bundle-version="[4.6.0,5.0.0)",
+ org.knime.base.filehandling;bundle-version="[4.6.0,5.0.0)",
+ org.knime.json;bundle-version="[4.6.0,5.0.0)"
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Automatic-Module-Name: org.knime.workflowservices
 Export-Package: org.knime.workflowservices.connection,
