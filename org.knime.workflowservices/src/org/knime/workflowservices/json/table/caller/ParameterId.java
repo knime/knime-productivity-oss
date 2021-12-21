@@ -18,9 +18,7 @@
  * History
  *   Created on May 31, 2018 by Tobias Urhaug, KNIME GmbH, Berlin, Germany
  */
-package org.knime.workflowservices.json.caller;
-
-import org.knime.productivity.callworkflow.table.ParameterId;
+package org.knime.workflowservices.json.table.caller;
 
 /**
  * Simple class holding both the fully qualified and simple id of a parameter.

@@ -18,7 +18,7 @@
  * History
  *   Created on Nov 13, 2020 by wiswedel
  */
-package org.knime.workflowservices.json.caller;
+package org.knime.workflowservices.json.table.caller;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -26,11 +26,10 @@ import javax.swing.JPanel;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.port.PortObjectSpec;
+import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
-import org.knime.productivity.callworkflow.caller.connection.Post43ServerConnection;
-import org.knime.productivity.callworkflow.table.AbstractCallWorkflowTableNodeDialogPane;
-import org.knime.productivity.callworkflow.table.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
+import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.BackoffPanel;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
 
@@ -72,8 +71,9 @@ final class Post43CallWorkflowTableNodeDialogPane extends AbstractCallWorkflowTa
     }
 
     @Override
-    IServerConnection readServerConnection(final PortObjectSpec spec) throws InvalidSettingsException {
-        return new Post43ServerConnection((FileSystemPortObjectSpec)spec);
+    IServerConnection readServerConnection(final PortObjectSpec spec, final WorkflowManager currentWFM)
+            throws InvalidSettingsException {
+        return ServerConnectionUtil.getConnection((FileSystemPortObjectSpec)spec, currentWFM);
     }
 
 }

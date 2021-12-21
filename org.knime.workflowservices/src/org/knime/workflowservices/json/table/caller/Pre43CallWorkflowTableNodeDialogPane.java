@@ -18,15 +18,13 @@
  * History
  *   Created on Nov 13, 2020 by wiswedel
  */
-package org.knime.workflowservices.json.caller;
+package org.knime.workflowservices.json.table.caller;
 
+import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.port.PortObjectSpec;
-import org.knime.productivity.callworkflow.table.AbstractCallWorkflowTableNodeDialogPane;
-import org.knime.productivity.callworkflow.table.Pre43ServerConnection;
+import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.workflowservices.connection.IServerConnection;
-
-import com.knime.server.nodes.util.KnimeServerConnectionInformation;
-import com.knime.server.nodes.util.KnimeServerConnectionInformationPortObjectSpec;
+import org.knime.workflowservices.connection.ServerConnectionUtil;
 
 /**
  * Dialog for the deprecated Call Workflow Table node.
@@ -34,14 +32,13 @@ import com.knime.server.nodes.util.KnimeServerConnectionInformationPortObjectSpe
  * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
  * @deprecated
  */
-@Deprecated
+@Deprecated(since = "4.4")
 final class Pre43CallWorkflowTableNodeDialogPane extends AbstractCallWorkflowTableNodeDialogPane { // NOSONAR
 
     @Override
-    IServerConnection readServerConnection(final PortObjectSpec spec) {
-        KnimeServerConnectionInformationPortObjectSpec connectionSpec =
-            (KnimeServerConnectionInformationPortObjectSpec)spec;
-        return new Pre43ServerConnection((KnimeServerConnectionInformation)connectionSpec.getConnectionInformation());
+    IServerConnection readServerConnection(final PortObjectSpec spec, final WorkflowManager currentWFM)
+            throws InvalidSettingsException {
+        return ServerConnectionUtil.getConnection(spec, currentWFM);
     }
 
 }

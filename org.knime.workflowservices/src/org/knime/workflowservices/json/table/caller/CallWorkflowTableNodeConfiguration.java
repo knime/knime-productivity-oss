@@ -18,12 +18,11 @@
  * History
  *   Created on May 24, 2018 by Tobias Urhaug, KNIME GmbH, Berlin, Germany
  */
-package org.knime.workflowservices.json.caller;
+package org.knime.workflowservices.json.table.caller;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
-import org.knime.productivity.callworkflow.table.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 
 /**

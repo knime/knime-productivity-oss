@@ -25,8 +25,8 @@ import java.util.Optional;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.WorkflowManager;
-import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.util.tracker.ServiceTracker;
@@ -51,14 +51,14 @@ public final class ServerConnectionUtil {
     }
 
     public static IServerConnection getConnection(
-        final FileSystemPortObjectSpec fileSystemSpec, final WorkflowManager manager) throws InvalidSettingsException {
+        final PortObjectSpec spec, final WorkflowManager manager) throws InvalidSettingsException {
         var service = getService();
 
         // all the 'nice' method chaining on Optional not possible due to "throws" declaration
         IServerConnection serverConnection = null;
         if (service.isPresent()) {
             serverConnection =
-                service.get().createKNIMEServerConnection(fileSystemSpec, manager.getContext()).orElse(null);
+                service.get().createKNIMEServerConnection(spec, manager.getContext()).orElse(null);
         }
         if (serverConnection == null) {
             serverConnection = new LocalExecutionServerConnection(manager);

@@ -89,5 +89,10 @@
 			<layout>p2</layout>
 			<url>${knime.reporting.p2}</url>
 		</repository>
-	</repositories>
+        <repository>
+            <id>p2-knime-filehandling</id>
+            <layout>p2</layout>
+            <url>${knime.filehandling.p2}</url>
+        </repository>
+</repositories>
 </project>

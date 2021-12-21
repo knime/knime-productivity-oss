@@ -16,31 +16,34 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Created on Nov 14, 2020 by wiswedel
+ *   Created on Nov 13, 2020 by wiswedel
  */
-package org.knime.workflowservices.json.caller;
+package org.knime.workflowservices.json.table.caller;
 
+import org.knime.base.filehandling.remote.connectioninformation.port.ConnectionInformationPortObject;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.port.PortObjectSpec;
-import org.knime.filehandling.core.port.FileSystemPortObject;
-import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
-import org.knime.productivity.callworkflow.caller.connection.Post43ServerConnection;
-import org.knime.productivity.callworkflow.table.AbstractCallWorkflowTableNodeModel;
+import org.knime.core.node.workflow.WorkflowManager;
+import org.knime.workflowservices.connection.IServerConnection;
+import org.knime.workflowservices.connection.ServerConnectionUtil;
 
 /**
- * Model for Call Workflow Table node, added in 4.3.
+ * Model for the deprecated Call Workflow Table node.
  *
  * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
+ * @deprecated
  */
-final class Post43CallWorkflowTableNodeModel extends AbstractCallWorkflowTableNodeModel {
+@Deprecated
+final class Pre43CallWorkflowTableNodeModel extends AbstractCallWorkflowTableNodeModel { // NOSONAR
 
-    Post43CallWorkflowTableNodeModel() {
-        super(FileSystemPortObject.TYPE_OPTIONAL);
+    Pre43CallWorkflowTableNodeModel() {
+        super(ConnectionInformationPortObject.TYPE_OPTIONAL);
     }
 
     @Override
-    Post43ServerConnection onConfigure(final PortObjectSpec connectionSpec) throws InvalidSettingsException {
-        return new Post43ServerConnection((FileSystemPortObjectSpec)connectionSpec);
+    IServerConnection onConfigure(final PortObjectSpec spec, final WorkflowManager currentWfm)
+            throws InvalidSettingsException {
+        return ServerConnectionUtil.getConnection(spec, currentWfm);
     }
 
 }

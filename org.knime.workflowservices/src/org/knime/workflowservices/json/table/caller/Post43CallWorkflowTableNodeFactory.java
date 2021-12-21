@@ -18,25 +18,22 @@
  * History
  *   Created on May 24, 2018 by Tobias Urhaug, KNIME GmbH, Berlin, Germany
  */
-package org.knime.workflowservices.json.caller;
+package org.knime.workflowservices.json.table.caller;
 
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeFactory;
 import org.knime.core.node.NodeView;
-import org.knime.productivity.callworkflow.table.AbstractCallWorkflowTableNodeModel;
-import org.knime.productivity.callworkflow.table.Pre43CallWorkflowTableNodeDialogPane;
-import org.knime.productivity.callworkflow.table.Pre43CallWorkflowTableNodeModel;
 
 /**
- * Factory for the Call Workflow node.
+ * Factory for Call Workflow Table node, added in 4.3.
  *
- * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
+ * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
  */
-public final class CallWorkflowTableNodeFactory extends NodeFactory<AbstractCallWorkflowTableNodeModel> {
+public final class Post43CallWorkflowTableNodeFactory extends NodeFactory<AbstractCallWorkflowTableNodeModel> {
 
     @Override
     public AbstractCallWorkflowTableNodeModel createNodeModel() {
-        return new Pre43CallWorkflowTableNodeModel();
+        return new Post43CallWorkflowTableNodeModel();
     }
 
     @Override
@@ -57,7 +54,7 @@ public final class CallWorkflowTableNodeFactory extends NodeFactory<AbstractCall
 
     @Override
     protected NodeDialogPane createNodeDialogPane() {
-        return new Pre43CallWorkflowTableNodeDialogPane();
+        return new Post43CallWorkflowTableNodeDialogPane();
     }
 
 }

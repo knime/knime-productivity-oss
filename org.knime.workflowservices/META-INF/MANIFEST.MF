@@ -15,5 +15,6 @@ Require-Bundle: org.knime.base;bundle-version="[4.6.0,5.0.0)",
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Automatic-Module-Name: org.knime.workflowservices
 Export-Package: org.knime.workflowservices.connection,
- org.knime.workflowservices.connection.util
+ org.knime.workflowservices.connection.util,
+ org.knime.workflowservices.json.table.caller
 Bundle-ActivationPolicy: lazy

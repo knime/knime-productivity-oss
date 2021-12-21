@@ -18,7 +18,7 @@
  * History
  *   Created on May 24, 2018 by Tobias Urhaug, KNIME GmbH, Berlin, Germany
  */
-package org.knime.workflowservices.json.caller;
+package org.knime.workflowservices.json.table.caller;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -33,8 +33,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.nio.file.InvalidPathException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
 
@@ -72,14 +70,11 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.data.json.container.credentials.ContainerCredentialsJsonSchema;
 import org.knime.core.data.json.container.table.ContainerTableJsonSchema;
-import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeLogger;
@@ -96,17 +91,11 @@ import org.knime.core.node.workflow.WorkflowContext;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.productivity.base.callworkflow.IWorkflowBackend;
-import org.knime.productivity.callworkflow.table.AbstractCallWorkflowTableNodeDialogPane;
-import org.knime.productivity.callworkflow.table.CallWorkflowTableNodeConfiguration;
-import org.knime.productivity.callworkflow.table.ParameterId;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.IServerConnection.ListWorkflowFailedException;
 import org.knime.workflowservices.connection.LocalExecutionServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
-
-import com.knime.enterprise.utility.ExecutorException;
-import com.knime.enterprise.utility.PermissionException;
 
 /**
  * Shared dialog components for Call Workflow nodes.
@@ -578,7 +567,8 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
     private void configureRemoteExecution(final PortObjectSpec[] specs) {
         enableAllUIElements();
         try {
-            m_serverConnection = readServerConnection(specs[0]);
+            m_serverConnection = readServerConnection(specs[0],
+                Optional.ofNullable(NodeContext.getContext()).map(NodeContext::getWorkflowManager).orElse(null));
             m_stateErrorLabel.setText("");
             m_serverAddress.setText(m_serverConnection.getHost());
             fillWorkflowList();
@@ -590,7 +580,8 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
         }
     }
 
-    abstract IServerConnection readServerConnection(final PortObjectSpec spec) throws InvalidSettingsException;
+    abstract IServerConnection readServerConnection(final PortObjectSpec spec,
+        WorkflowManager currentWFM) throws InvalidSettingsException;
 
     private void disableAllUIElements() {
         disableUISelections();
@@ -764,9 +755,10 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
             if (m_serverConnection != null) {
                 try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(tempConfig)) {
                     if (backend != null) {
+                        backend.loadWorkflow();
                         // The input nodes needs to be set to make sure the output values are present
                         Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
-                        backend.setInputNodes(inputNodes);
+                        backend.updateWorkflow(inputNodes);
                         return Arrays.asList(getInputNodeValues(backend), backend.getOutputValues());
                     } else {
                         return null;
@@ -849,43 +841,14 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
                     m_outputParameterSelectionPanel.clearParameters();
                     m_flowVariableDestination.clearParameters();
 
-                    String errorMessage = e.getMessage();
                     Throwable cause = ExceptionUtils.getRootCause(e);
-                    boolean logError = true;
-                    if (cause instanceof InvalidSettingsException) {
-                        logError = false; // prevent log spam -- this happens with every key stroke
-                        errorMessage = cause.getMessage();
-                    } else if (cause instanceof ExecutorException) {
-                        errorMessage = "A called workflow can only be executed on a server with version 4.7 or higher. "
-                            + "Please make sure that your server installation is compatible and contains the required "
-                            + "nodes (read node description).";
-                    } else if (cause instanceof InvalidPathException) {
-                        errorMessage = "Invalid path (probably trailing white spaces/characters)";
-                    } else if (cause instanceof WebApplicationException) {
-                        errorMessage = "Could not list workflows: ";
-                        Response response = ((WebApplicationException)cause).getResponse();
-                        int status = response.getStatus();
-                        if (status == 401) {
-                            errorMessage += "No or wrong authentication data provided.";
-                        } else if (status == 404) {
-                            errorMessage += "Looks like the server address is not correct.";
-                        } else {
-                            errorMessage += "HTTP Status " + status;
-                        }
-                    } else if (cause instanceof CanceledExecutionException) {
-                        errorMessage = "Could not load the parameters of the workflow "
-                            + "(please try again by resetting the path)";
-                    } else if (cause instanceof PermissionException) {
-                        errorMessage = StringUtils
-                            .remove(cause.getMessage(), "com.knime.enterprise.utility.PermissionException").trim();
-                    } else if (cause instanceof NoSuchElementException || cause instanceof IOException){
-                        errorMessage = StringUtils.remove(cause.getMessage(), "java.util.NoSuchElementException").trim();
-                    }
 
-                    if (logError) {
-                        LOGGER.debug(errorMessage, e);
+                    var errorPair = ServerConnectionUtil.handle(e);
+
+                    if (!(cause instanceof InvalidSettingsException)) {
+                        LOGGER.debug(errorPair.getLeft(), errorPair.getRight());
                     }
-                    m_workflowErrorLabel.setText(errorMessage);
+                    m_workflowErrorLabel.setText(errorPair.getLeft());
                 }
             }
             m_parameterUpdater = null;

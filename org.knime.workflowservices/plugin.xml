@@ -3,5 +3,15 @@
 
 <plugin>
     <extension point="org.knime.workbench.repository.nodes">
-    </extension>
+       <node
+             category-path="/flowabstraction/container"
+             deprecated="true"
+             factory-class="org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeFactory">
+       </node>
+       <node
+             category-path="/flowabstraction/container"
+             deprecated="false"
+             factory-class="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory">
+       </node>
+</extension>
 </plugin>

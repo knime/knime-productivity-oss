@@ -23,8 +23,8 @@ package org.knime.workflowservices.connection;
 import java.util.Optional;
 
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.WorkflowContext;
-import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
 
 /**
  * TODO Javadoc
@@ -33,7 +33,7 @@ import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
  */
 public interface KNIMEServerAwareConnectionService {
 
-    public Optional<IServerConnection> createKNIMEServerConnection(final FileSystemPortObjectSpec fileSystemSpec,
+    public Optional<IServerConnection> createKNIMEServerConnection(final PortObjectSpec portObjectSpec,
         final WorkflowContext context) throws InvalidSettingsException;
 
     public Optional<String> handle(final Throwable ex);

@@ -18,11 +18,10 @@
  * History
  *   Created on May 24, 2018 by Tobias Urhaug, KNIME GmbH, Berlin, Germany
  */
-package org.knime.workflowservices.json.caller;
+package org.knime.workflowservices.json.table.caller;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,18 +52,13 @@ import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.CredentialsProvider;
 import org.knime.core.node.workflow.ICredentials;
 import org.knime.core.node.workflow.NodeContext;
-import org.knime.core.node.workflow.WorkflowContext;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.json.node.container.input.credentials.ContainerCredentialMapper;
 import org.knime.json.node.container.input.variable2.ContainerVariableMapper2;
 import org.knime.json.node.container.mappers.ContainerTableMapper;
 import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 import org.knime.productivity.base.callworkflow.IWorkflowBackend.WorkflowState;
-import org.knime.productivity.callworkflow.caller.connection.RuningOnServerItselfServerConnection;
-import org.knime.productivity.callworkflow.caller.connection.TemporaryCopyServerConnection;
-import org.knime.productivity.callworkflow.table.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
-import org.knime.workflowservices.connection.LocalExecutionServerConnection;
 
 /**
  * Model for the Call Workflow (Table) node.
@@ -107,14 +101,13 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
         }
     }
 
-    private PortObject[] executeInternal(final PortObject[] inObjects, final ExecutionContext exec)
-        throws InvalidSettingsException, Exception {
+    private PortObject[] executeInternal(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
         final BufferedDataTable table = (BufferedDataTable)inObjects[1];
-
         try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(m_configuration)) {
             if (backend != null) {
+                backend.loadWorkflow();
                 WorkflowState state = backend.execute(createWorkflowInput(table));
-                if (!state.equals(WorkflowState.EXECUTED)) {
+                if (state != WorkflowState.EXECUTED) {
                     String failureMessage = "Failure, workflow was not executed, current state is " + state + ".";
                     String workflowMessage = backend.getWorkflowMessage();
                     if (StringUtils.isNotBlank(workflowMessage)) {
@@ -232,24 +225,15 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         CheckUtils.checkSetting(StringUtils.isNotEmpty(m_configuration.getWorkflowPath()), "No workflow path provided");
 
-        WorkflowManager currentWfm = NodeContext.getContext().getWorkflowManager();
-        WorkflowContext context = currentWfm.getContext();
-        final var serverAuthenticator = context.getServerAuthenticator();
-        Optional<URI> remoteRepositoryAddress = context.getRemoteRepositoryAddress();
-        PortObjectSpec connectionSpec = inSpecs[0];
-        if (connectionSpec != null) {
-            m_serverConnection = onConfigure(connectionSpec);
-        } else if (remoteRepositoryAddress.isPresent() && serverAuthenticator.isPresent()) {
-            m_serverConnection = new RuningOnServerItselfServerConnection(context);
-        } else if (context.isTemporaryCopy()) {
-            m_serverConnection = new TemporaryCopyServerConnection();
-        } else {
-            m_serverConnection = new LocalExecutionServerConnection(currentWfm);
-        }
+        var currentWfm = NodeContext.getContext().getWorkflowManager();
+        var connectionSpec = inSpecs[0];
+
+        m_serverConnection = onConfigure(connectionSpec, currentWfm);
         return new PortObjectSpec[] {null};
     }
 
-    abstract IServerConnection onConfigure(final PortObjectSpec connectionSpec) throws InvalidSettingsException;
+    abstract IServerConnection onConfigure(final PortObjectSpec connectionSpec,
+        final WorkflowManager currentWfm) throws InvalidSettingsException;
 
     @Override
     protected void loadInternals(final File nodeInternDir, final ExecutionMonitor exec)
