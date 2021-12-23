@@ -383,7 +383,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
      */
     @Override
     public WorkflowState executeAsWorkflowService(final Map<String, ExternalNodeData> input) throws Exception {
-        setInputNodes(input);
+        updateWorkflow(input);
         m_manager.executeAllAndWaitUntilDone();
         NodeContainerState state = m_manager.getNodeContainerState();
         if (state.isExecuted()) {
@@ -468,13 +468,6 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setInputNodes(final Map<String, ExternalNodeData> input) throws InvalidSettingsException {
-        m_manager.setInputNodes(input);
-    }
 
     /** {@inheritDoc}
      * @throws ReportGenerationException */
@@ -502,5 +495,21 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         } finally {
             FileUtils.deleteQuietly(reportDocDir);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void loadWorkflow() throws Exception {
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateWorkflow(final Map<String, ExternalNodeData> input) throws Exception {
+        m_manager.setInputNodes(input);
     }
 }

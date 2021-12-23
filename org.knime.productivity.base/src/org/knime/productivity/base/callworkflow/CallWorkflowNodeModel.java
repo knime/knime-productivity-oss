@@ -179,11 +179,11 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         try (IWorkflowBackend backend = newBackend(getConfiguration().getWorkflowPath())) {
             Map<String, String> parameterToJsonColumnMap = getConfiguration().getParameterToJsonColumnMap();
             RptOutputFormat reportFormatOrNull = getConfiguration().getReportFormatOrNull();
-            // set static input once
-            // dynamic input (columns variable) is set in a loop further down below.
-            backend.setInputNodes(getConfiguration().getParameterToJsonConfigMap());
 
             // create container based on the output nodes
+            backend.loadWorkflow();
+            backend.updateWorkflow(getConfiguration().getParameterToJsonConfigMap());
+
             Collection<String> outputKeysSet = backend.getOutputValues().keySet();
             if (!getConfiguration().isUseQualifiedParameterNames()) {
                 outputKeysSet = IWorkflowBackend.getFullyQualifiedToSimpleIDMap(outputKeysSet).values();
@@ -223,6 +223,7 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         final Map<String, ExternalNodeData> input) throws InvalidSettingsException, Exception {
 
         long start = System.currentTimeMillis();
+        backend.loadWorkflow();
         WorkflowState state = backend.execute(input);
         long delay = System.currentTimeMillis() - start;
         // one extra column for status; and another one for the report

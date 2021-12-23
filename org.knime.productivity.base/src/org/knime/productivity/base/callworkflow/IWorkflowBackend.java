@@ -83,13 +83,19 @@ public interface IWorkflowBackend extends AutoCloseable {
     Map<String, ExternalNodeData> getInputNodes();
 
     /**
-     * Sets the input nodes for the workflow. The map should have the same structure as the one returned by
-     * {@link #getInputNodes()} but with potententially updated values.
+     * Creates a job if doesn't exists
      *
-     * @param input a map with the updated input data
-     * @throws InvalidSettingsException
+     * @throws Exception
      */
-    void setInputNodes(Map<String, ExternalNodeData> input) throws InvalidSettingsException;
+    void loadWorkflow() throws Exception;
+
+    /**
+     * Updates the workflow with a given inputs or outputs map.
+     *
+     * @param input a map with the updated input/output data
+     * @throws Exception
+     */
+    void updateWorkflow(final Map<String, ExternalNodeData> input) throws Exception;
 
     /**
      * Returns a map with the output values of the called workflow. That map keys are the unique output IDs.
@@ -98,10 +104,24 @@ public interface IWorkflowBackend extends AutoCloseable {
      */
     Map<String, JsonValue> getOutputValues();
 
+
+    /**
+     * @return the Input's node description as {@link ResourceContentType}
+     * @throws InvalidSettingsException
+     */
     Map<String, ResourceContentType> getInputResourceDescription() throws InvalidSettingsException;
 
+    /**
+     * @return the Output's node description as {@link ResourceContentType}
+     * @throws InvalidSettingsException
+     */
     Map<String, ResourceContentType> getOutputResourceDescription() throws InvalidSettingsException;
 
+    /**
+     * @param name of the Output node
+     * @return the Output's node as a stream
+     * @throws IOException
+     */
     InputStream openOutputResource(final String name) throws IOException;
 
     /**
@@ -115,6 +135,8 @@ public interface IWorkflowBackend extends AutoCloseable {
     WorkflowState execute(final Map<String, ExternalNodeData> input) throws Exception;
 
     /**
+     * Executes the workflow and returns the state after execution. It is used when the
+     * Input/Output nodes of the workflow be represented as a resource.
      *
      * @param input a map with the updated input data
      * @return the current workflow state
@@ -169,7 +191,11 @@ public interface IWorkflowBackend extends AutoCloseable {
         }));
     }
 
-    // TODO javadoc
+    /*
+     * Declares knime custom content types for the input and output nodes
+     *
+     * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
+     */
     public class ResourceContentType {
 
         /** The content type of in/output node's {@link ExternalNodeData} starts with this and is followed by the fully
@@ -195,10 +221,19 @@ public interface IWorkflowBackend extends AutoCloseable {
             return asString();
         }
 
+        /**
+         * @return if the given port type is included to the knime's port types.
+         */
         public boolean isKNIMEPortType() {
             return m_contentType.startsWith(CONTENT_TYPE_DEF_PREFIX);
         }
 
+        /**
+         * Converts the input/output class to {@link PortType}
+         *
+         * @return the port type of the input/output node
+         * @throws InvalidSettingsException
+         */
         public PortType toPortType() throws InvalidSettingsException {
             CheckUtils.checkSetting(isKNIMEPortType(), "content type does not represent a KNIME port type: %s",
                 m_contentType);
@@ -209,10 +244,22 @@ public interface IWorkflowBackend extends AutoCloseable {
                     String.format("Can not instantiate port object for class %s - class not found.", className)));
         }
 
+        /**
+         * Converts a {@link PortType} to ResourceContentType
+         *
+         * @param portType a {@link PortType}
+         * @return a ResourceContentType
+         */
         public static ResourceContentType of(final PortType portType) {
             return new ResourceContentType(CONTENT_TYPE_DEF_PREFIX + portType.getPortObjectClass().getName());
         }
 
+        /**
+         * Converts a string to ResourceContentType
+         *
+         * @param contentType a string of the content type
+         * @return a ResourceContentType
+         */
         public static ResourceContentType of(final String contentType) {
             return new ResourceContentType(contentType);
         }

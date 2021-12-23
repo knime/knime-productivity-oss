@@ -106,6 +106,7 @@ class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel {
 
         // execute and check success
         exec.setMessage("Executing callee workflow.");
+        backend.loadWorkflow();
         WorkflowState state = backend.executeAsWorkflowService(workflowInput);
         CheckUtils.checkArgument(state == WorkflowState.EXECUTED, workflowExecutionFailureMessage(backend, state));
 
