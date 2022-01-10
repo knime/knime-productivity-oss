@@ -223,7 +223,6 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         final Map<String, ExternalNodeData> input) throws InvalidSettingsException, Exception {
 
         long start = System.currentTimeMillis();
-        backend.loadWorkflow();
         WorkflowState state = backend.execute(input);
         long delay = System.currentTimeMillis() - start;
         // one extra column for status; and another one for the report
