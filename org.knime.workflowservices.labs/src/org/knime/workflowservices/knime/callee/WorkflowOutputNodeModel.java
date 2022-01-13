@@ -64,11 +64,11 @@ import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.dialog.OutputNode;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
-import org.knime.core.node.port.WorkflowPortUtil;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.VariableTypeRegistry;
 import org.knime.core.node.workflow.capture.WorkflowPortObject;
+import org.knime.core.node.workflow.capture.WorkflowPortUtil;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
@@ -124,7 +124,7 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
             return CallWorkflowUtil.writeFlowVariables(getAvailableFlowVariables(allTypes).values());
         } else if (portObj instanceof WorkflowPortObject) {
             return WorkflowPortUtil.writeWorkflowPortObject((WorkflowPortObject)portObj, m_config.getParameterName(),
-                exec, false);
+                exec);
         } else {
             return CallWorkflowUtil.writePortObject(exec, portObj);
         }
