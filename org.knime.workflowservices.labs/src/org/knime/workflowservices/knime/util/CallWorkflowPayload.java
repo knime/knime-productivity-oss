@@ -33,6 +33,7 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.FlowVariable;
+import org.knime.core.node.workflow.capture.WorkflowPortObject;
 
 /**
  * Represents the binary data that is set in the Workflow Input via an external call
@@ -51,16 +52,25 @@ public interface CallWorkflowPayload extends Closeable {
      * @throws IOException
      * @throws InvalidSettingsException
      */
-    public static CallWorkflowPayload createFrom(final InputStream stream, final PortType portType) throws IOException, InvalidSettingsException {
+    public static CallWorkflowPayload createFrom(final InputStream stream, final PortType portType)
+        throws IOException, InvalidSettingsException {
         if (BufferedDataTable.TYPE.equals(portType)) {
             return TableCallWorkflowPayload.createFrom(stream);
         } else if (FlowVariablePortObject.TYPE.equals(portType)) {
             return FlowVariablesCallWorkflowPayload.createFrom(stream);
+        } else if (WorkflowPortObject.TYPE.equals(portType)) {
+            return WorkflowPortObjectPayload.createFrom(stream);
         } else {
             return PortObjectCallWorkflowPayload.createFrom(stream);
         }
     }
 
+    /**
+     * @param exec
+     * @param pushTo
+     * @return
+     * @throws Exception
+     */
     public PortObject onExecute(final ExecutionContext exec, final Consumer<FlowVariable> pushTo) throws Exception;
 
     public PortObjectSpec getSpec();

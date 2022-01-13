@@ -64,9 +64,11 @@ import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.dialog.OutputNode;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
+import org.knime.core.node.port.WorkflowPortUtil;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.VariableTypeRegistry;
+import org.knime.core.node.workflow.capture.WorkflowPortObject;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
@@ -110,16 +112,22 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
         var result = inObjects[0];
-        File outputFile;
-        if (result instanceof FlowVariablePortObject) {
-            VariableType<?>[] allTypes = VariableTypeRegistry.getInstance().getAllTypes();
-            outputFile = CallWorkflowUtil.writeFlowVariables(getAvailableFlowVariables(allTypes).values());
-        } else {
-            outputFile = CallWorkflowUtil.writePortObject(exec, result);
-        }
+        var outputFile = writePortObjectToFile(result, exec);
         m_output = Optional.of(outputFile);
         m_isOutputATempFile = true;
-        return new PortObject[] {result};
+        return new PortObject[]{result};
+    }
+
+    private File writePortObjectToFile(final PortObject portObj, final ExecutionContext exec) throws Exception {
+        if (portObj instanceof FlowVariablePortObject) {
+            VariableType<?>[] allTypes = VariableTypeRegistry.getInstance().getAllTypes();
+            return CallWorkflowUtil.writeFlowVariables(getAvailableFlowVariables(allTypes).values());
+        } else if (portObj instanceof WorkflowPortObject) {
+            return WorkflowPortUtil.writeWorkflowPortObject((WorkflowPortObject)portObj, m_config.getParameterName(),
+                exec, false);
+        } else {
+            return CallWorkflowUtil.writePortObject(exec, portObj);
+        }
     }
 
     /**
