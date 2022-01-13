@@ -153,6 +153,7 @@ class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel {
                     var wfmCopy = po.getSpec().getWorkflowSegment().loadWorkflow();
                     WorkflowSegment ws = new WorkflowSegment(wfmCopy, po.getSpec().getWorkflowSegment().getConnectedInputs(), po.getSpec().getWorkflowSegment().getConnectedOutputs(), portObjectReferenceReaderNodes);
                     outputPOs[i] = new WorkflowPortObject(new WorkflowPortObjectSpec(ws, po.getSpec().getWorkflowName(), po.getSpec().getInputIDs(), po.getSpec().getOutputIDs()));
+                    ws.serializeAndDisposeWorkflow();
                 } else {
                     outputPOs[i] = payload.onExecute(exec, fv -> flowVarMap.put(fv.getName(), fv));
                 }
