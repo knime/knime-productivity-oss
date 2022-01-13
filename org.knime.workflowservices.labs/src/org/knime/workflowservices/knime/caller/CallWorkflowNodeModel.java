@@ -224,7 +224,7 @@ class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel {
     }
 
     //TODO Should move this method to the WorkflowPortUtil, add a consumer as argument for the addPortObject
-    Set<NodeIDSuffix> copyPortObjectReferenceReaderData(final WorkflowPortObject workflowPortObject,
+    private Set<NodeIDSuffix> copyPortObjectReferenceReaderData(final WorkflowPortObject workflowPortObject,
         final ExecutionContext exec) throws IOException, CanceledExecutionException, InvalidSettingsException, UnsupportedWorkflowVersionException, LockFailedException {
         Set<NodeIDSuffix> res = new HashSet<>();
         var wfm = workflowPortObject.getSpec().getWorkflowSegment().loadWorkflow();
