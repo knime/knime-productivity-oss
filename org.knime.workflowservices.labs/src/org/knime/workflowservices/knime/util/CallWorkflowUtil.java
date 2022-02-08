@@ -22,6 +22,7 @@ package org.knime.workflowservices.knime.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -29,14 +30,21 @@ import java.util.Map;
 
 import javax.ws.rs.core.UriBuilder;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
+import org.knime.core.node.ExecutionMonitor;
+import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortType;
+import org.knime.core.node.port.PortUtil;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.FlowVariable;
+import org.knime.core.node.workflow.capture.ReferenceReaderDataUtil;
+import org.knime.core.node.workflow.capture.WorkflowPortObject;
+import org.knime.core.util.FileUtil;
 import org.knime.productivity.base.callworkflow.IWorkflowBackend.ResourceContentType;
 import org.knime.workflowservices.knime.caller.WorkflowParameter;
 
@@ -67,9 +75,8 @@ public final class CallWorkflowUtil {
      * @throws CanceledExecutionException
      * @throws IOException on
      */
-    public static Map<String, ExternalNodeData> createWorkflowInput(
-        final List<WorkflowParameter> inputs, final PortObject[] portObjects,
-        final Collection<FlowVariable> flowVariables, final ExecutionContext exec)
+    public static Map<String, ExternalNodeData> createWorkflowInput(final List<WorkflowParameter> inputs,
+        final PortObject[] portObjects, final Collection<FlowVariable> flowVariables, final ExecutionContext exec)
         throws IOException, CanceledExecutionException {
 
         Map<String, ExternalNodeData> workflowInput = new HashMap<>();
@@ -99,6 +106,8 @@ public final class CallWorkflowUtil {
             if (FlowVariablePortObject.TYPE.equals(portDesc.getPortType())) {
                 // reuse the written file
                 tempFile = serializedFlowVariables;
+            } else if (WorkflowPortObject.TYPE.equals(portDesc.getPortType())) {
+                tempFile = writeWorkflowPortObjectAndReferencedData((WorkflowPortObject)portObject, exec);
             } else {
                 // serialize port object to temporary file
                 tempFile = writePortObject(exec, portObject);
@@ -156,6 +165,35 @@ public final class CallWorkflowUtil {
             .resource(portContent == null ? UriBuilder.fromUri("file:/dev/null").build() : portContent.toURI())//
             .contentType(ResourceContentType.of(portType).asString()) //
             .build();
+    }
+
+    /**
+     * Writes a copy of the WorkflowPortObject and it's referenced reader data to file
+     *
+     * @param po <T> a {@link WorkflowPortObject}
+     * @param exec an {@link ExecutionMonitor}
+     * @return a {@link File}
+     * @throws IOException
+     * @throws CanceledExecutionException
+     */
+    public static File writeWorkflowPortObjectAndReferencedData(final WorkflowPortObject po,
+        final ExecutionMonitor exec) throws IOException, CanceledExecutionException {
+
+        var segment = po.getSpec().getWorkflowSegment();
+        var poCopy = po.transformAndCopy(wfm -> {
+            var wfDir = wfm.getNodeContainerDirectory().getFile();
+            var dataDir = new File(wfDir, "data");
+            dataDir.mkdir();
+            wfm.setName(po.getSpec().getWorkflowName());
+            try {
+                ReferenceReaderDataUtil.writeReferenceReaderData(wfm, segment.getPortObjectReferenceReaderNodes(), dataDir, exec);
+            } catch (IOException | CanceledExecutionException | URISyntaxException | InvalidSettingsException ex) {
+                ExceptionUtils.rethrow(ex);
+            }
+        });
+        final var tmpFile = FileUtil.createTempFile("workflow-port-object", ".portobject", true);
+        PortUtil.writeObjectToFile(poCopy, tmpFile, exec);
+        return tmpFile;
     }
 
 }

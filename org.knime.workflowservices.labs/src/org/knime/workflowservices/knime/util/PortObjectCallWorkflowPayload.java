@@ -24,8 +24,10 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
@@ -34,6 +36,9 @@ import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortUtil;
 import org.knime.core.node.workflow.FlowVariable;
+import org.knime.core.node.workflow.capture.ReferenceReaderDataUtil;
+import org.knime.core.node.workflow.capture.WorkflowPortObject;
+import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
 import org.knime.core.util.FileUtil;
 
 /**
@@ -56,8 +61,25 @@ final class PortObjectCallWorkflowPayload implements CallWorkflowPayload {
     }
 
     @Override
-    public PortObject onExecute(final ExecutionContext exec, final Consumer<FlowVariable> pushTo) throws Exception {
-        return m_portObject;
+    public PortObject onExecute(final ExecutionContext exec, final Consumer<FlowVariable> pushTo,
+        final AbstractPortObjectRepositoryNodeModel portObjRepoNodeModel) throws Exception {
+        if (m_portObject instanceof WorkflowPortObject) {
+            if (portObjRepoNodeModel == null) {
+                throw new IllegalStateException(
+                    "A special kind of node model must be given if workflow port object is part of the payload. Most likely an implementation error.");
+            }
+            var workflowPortObject = (WorkflowPortObject)m_portObject;
+            return workflowPortObject.transformAndCopy(wfm -> {
+                try {
+                    ReferenceReaderDataUtil.copyReferenceReaderData(wfm, exec, portObjRepoNodeModel);
+                } catch (IOException | CanceledExecutionException | InvalidSettingsException e) {
+                    ExceptionUtils.rethrow(e);
+                }
+            });
+        } else {
+            return m_portObject;
+        }
+
     }
 
     /**
@@ -87,5 +109,11 @@ final class PortObjectCallWorkflowPayload implements CallWorkflowPayload {
         return tempFile;
     }
 
-
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Optional<PortObject> getPortObject() {
+        return Optional.ofNullable(m_portObject);
+    }
 }

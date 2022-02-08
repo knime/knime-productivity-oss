@@ -55,7 +55,6 @@ import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
-import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.context.ports.PortsConfiguration;
@@ -67,13 +66,14 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortTypeRegistry;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.VariableType;
+import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
 import org.knime.workflowservices.knime.util.CallWorkflowPayload;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-final class WorkflowInputNodeModel extends NodeModel implements InputNode {
+final class WorkflowInputNodeModel extends AbstractPortObjectRepositoryNodeModel implements InputNode {
 
     public static final String DEFAULT_PARAM_NAME = "input-parameter";
 
@@ -123,10 +123,10 @@ final class WorkflowInputNodeModel extends NodeModel implements InputNode {
                 @SuppressWarnings("rawtypes")
                 VariableType expectedType = variable.getVariableType(); // NOSONAR must be declared as raw type
                 pushFlowVariable(variable.getName(), expectedType, variable.getValue(expectedType));
-            });
-            return new PortObject[] {portObject};
+            }, this);
+            return new PortObject[]{portObject};
         } else if (inObjects[0] != null) {
-            return new PortObject[] {inObjects[0]};
+            return new PortObject[]{inObjects[0]};
         }
         throw new IllegalStateException("No data set, method should not have been called");
     }

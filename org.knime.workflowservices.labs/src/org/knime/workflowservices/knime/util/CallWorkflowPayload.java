@@ -23,17 +23,20 @@ package org.knime.workflowservices.knime.util;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.exec.dataexchange.PortObjectRepository;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.node.workflow.capture.WorkflowPortObject;
+import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
 
 /**
  * Represents the binary data that is set in the Workflow Input via an external call
@@ -46,9 +49,10 @@ public interface CallWorkflowPayload extends Closeable {
 
     /**
      * Creates the actual payload object based on the selected port type.
+     *
      * @param stream
      * @param portType
-     * @return
+     * @return a {@link CallWorkflowPayload}
      * @throws IOException
      * @throws InvalidSettingsException
      */
@@ -58,21 +62,31 @@ public interface CallWorkflowPayload extends Closeable {
             return TableCallWorkflowPayload.createFrom(stream);
         } else if (FlowVariablePortObject.TYPE.equals(portType)) {
             return FlowVariablesCallWorkflowPayload.createFrom(stream);
-        } else if (WorkflowPortObject.TYPE.equals(portType)) {
-            return WorkflowPortObjectPayload.createFrom(stream);
         } else {
             return PortObjectCallWorkflowPayload.createFrom(stream);
         }
     }
 
     /**
-     * @param exec
-     * @param pushTo
-     * @return
+     * Creates a new port object or returns the existing one if no additional functionality should be applied to the
+     * existing port object.
+     *
+     * @param exec an {@link ExecutionContext}
+     * @param pushTo used to handle the flow variables
+     * @param portObjRepoNodeModel a special kind of node model which receives the port objects possibly stored in a
+     *            {@link WorkflowPortObject}; the node model manages them and makes them available through the
+     *            {@link PortObjectRepository}
+     * @return a {@link PortObject}
      * @throws Exception
      */
-    public PortObject onExecute(final ExecutionContext exec, final Consumer<FlowVariable> pushTo) throws Exception;
+    public PortObject onExecute(final ExecutionContext exec, final Consumer<FlowVariable> pushTo,
+        AbstractPortObjectRepositoryNodeModel portObjRepoNodeModel) throws Exception;
 
     public PortObjectSpec getSpec();
+
+    /**TODO Add java doc
+     * @return
+     */
+    public Optional<PortObject> getPortObject();
 
 }

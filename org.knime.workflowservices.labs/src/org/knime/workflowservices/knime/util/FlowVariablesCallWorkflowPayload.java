@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -45,6 +46,7 @@ import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.node.workflow.ICredentials;
 import org.knime.core.node.workflow.IllegalFlowVariableNameException;
 import org.knime.core.node.workflow.VariableType;
+import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
 import org.knime.core.util.FileUtil;
 
 /**
@@ -70,7 +72,7 @@ final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
      * {@inheritDoc}
      */
     @Override
-    public PortObject onExecute(final ExecutionContext exec, final Consumer<FlowVariable> pushTo) throws Exception {
+    public PortObject onExecute(final ExecutionContext exec, final Consumer<FlowVariable> pushTo, final AbstractPortObjectRepositoryNodeModel portObjRepoNodeModel) throws Exception {
         for (FlowVariable variable : m_flowVariables) {
             // this should be typed to the type of the variable value
             pushTo.accept(variable);
@@ -163,6 +165,14 @@ final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
             variables.saveToXML(out);
         }
         return tempFile;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Optional<PortObject> getPortObject() {
+        return Optional.of(FlowVariablePortObject.INSTANCE);
     }
 
 }

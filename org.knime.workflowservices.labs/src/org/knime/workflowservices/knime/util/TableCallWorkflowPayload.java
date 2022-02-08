@@ -23,6 +23,7 @@ package org.knime.workflowservices.knime.util;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.knime.core.data.container.ContainerTable;
@@ -33,6 +34,7 @@ import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.FlowVariable;
+import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
 import org.knime.core.util.FileUtil;
 
 /**
@@ -48,7 +50,8 @@ final class TableCallWorkflowPayload implements CallWorkflowPayload {
     }
 
     @Override
-    public PortObject onExecute(final ExecutionContext exec, final Consumer<FlowVariable> pushTo) throws Exception {
+    public PortObject onExecute(final ExecutionContext exec, final Consumer<FlowVariable> pushTo,
+        final AbstractPortObjectRepositoryNodeModel portObjRepoNodeModel) throws Exception {
         return exec.createBufferedDataTable(m_containerTable, exec);
     }
 
@@ -76,6 +79,14 @@ final class TableCallWorkflowPayload implements CallWorkflowPayload {
         var tempFile = FileUtil.createTempFile("external-node-input-", ".table", false);
         DataContainer.writeToZip(table, tempFile, exec);
         return tempFile;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Optional<PortObject> getPortObject() {
+        return Optional.ofNullable(null);
     }
 
 }

@@ -68,7 +68,6 @@ import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.VariableTypeRegistry;
 import org.knime.core.node.workflow.capture.WorkflowPortObject;
-import org.knime.core.node.workflow.capture.WorkflowPortUtil;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
@@ -123,8 +122,7 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
             VariableType<?>[] allTypes = VariableTypeRegistry.getInstance().getAllTypes();
             return CallWorkflowUtil.writeFlowVariables(getAvailableFlowVariables(allTypes).values());
         } else if (portObj instanceof WorkflowPortObject) {
-            return WorkflowPortUtil.writeWorkflowPortObject((WorkflowPortObject)portObj, m_config.getParameterName(),
-                exec);
+            return CallWorkflowUtil.writeWorkflowPortObjectAndReferencedData((WorkflowPortObject)portObj, exec);
         } else {
             return CallWorkflowUtil.writePortObject(exec, portObj);
         }
