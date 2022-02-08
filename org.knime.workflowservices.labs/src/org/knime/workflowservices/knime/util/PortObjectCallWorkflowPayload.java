@@ -24,7 +24,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -109,11 +108,4 @@ final class PortObjectCallWorkflowPayload implements CallWorkflowPayload {
         return tempFile;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<PortObject> getPortObject() {
-        return Optional.ofNullable(m_portObject);
-    }
 }

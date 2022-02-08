@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -165,14 +164,6 @@ final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
             variables.saveToXML(out);
         }
         return tempFile;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<PortObject> getPortObject() {
-        return Optional.of(FlowVariablePortObject.INSTANCE);
     }
 
 }

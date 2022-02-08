@@ -23,7 +23,6 @@ package org.knime.workflowservices.knime.util;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.knime.core.node.BufferedDataTable;
@@ -83,10 +82,5 @@ public interface CallWorkflowPayload extends Closeable {
         AbstractPortObjectRepositoryNodeModel portObjRepoNodeModel) throws Exception;
 
     public PortObjectSpec getSpec();
-
-    /**TODO Add java doc
-     * @return
-     */
-    public Optional<PortObject> getPortObject();
 
 }

@@ -23,7 +23,6 @@ package org.knime.workflowservices.knime.util;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.knime.core.data.container.ContainerTable;
@@ -79,14 +78,6 @@ final class TableCallWorkflowPayload implements CallWorkflowPayload {
         var tempFile = FileUtil.createTempFile("external-node-input-", ".table", false);
         DataContainer.writeToZip(table, tempFile, exec);
         return tempFile;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<PortObject> getPortObject() {
-        return Optional.ofNullable(null);
     }
 
 }
