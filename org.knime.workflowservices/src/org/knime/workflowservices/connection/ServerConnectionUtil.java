@@ -20,6 +20,7 @@
  */
 package org.knime.workflowservices.connection;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -66,7 +67,15 @@ public final class ServerConnectionUtil {
         return serverConnection;
     }
 
-    /**
+    public static IServerConnection getConnection(final String hostAndPort, final String username,
+        final String password, final Duration connectTimeout, final Duration readTimeout) throws InvalidSettingsException {
+        var service = getService().orElseThrow(() -> new InvalidSettingsException(
+            String.format("No service providing remote workflow execution (implementation to \"%s\")",
+                KNIMEServerAwareConnectionService.class.getName())));
+        return service.createKNIMEServerConnection(hostAndPort, username, password, connectTimeout, readTimeout);
+    }
+
+        /**
      * @return
      */
     public static Optional<KNIMEServerAwareConnectionService> getService() {

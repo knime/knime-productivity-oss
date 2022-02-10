@@ -20,6 +20,7 @@
  */
 package org.knime.workflowservices.connection;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import org.knime.core.node.InvalidSettingsException;
@@ -35,6 +36,17 @@ public interface KNIMEServerAwareConnectionService {
 
     public Optional<IServerConnection> createKNIMEServerConnection(final PortObjectSpec portObjectSpec,
         final WorkflowContext context) throws InvalidSettingsException;
+
+    /**
+     * @param hostAndPort
+     * @param username
+     * @param password
+     * @param connectTimeOut
+     * @param readTimeout
+     * @return
+     */
+    IServerConnection createKNIMEServerConnection(String hostAndPort, String username, String password,
+        Duration connectTimeOut, Duration readTimeout);
 
     public Optional<String> handle(final Throwable ex);
 }

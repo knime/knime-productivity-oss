@@ -101,7 +101,7 @@ public class ConnectionTimeoutPanel extends JPanel {
         m_connectionTimeoutSpinner.setValue(timeout.getSeconds());
     }
 
-    public void getSelectedReadTimeout(final Duration timeout) {
+    public void setSelectedReadTimeout(final Duration timeout) {
         m_readTimeoutSpinner.setValue(timeout.getSeconds());
     }
 }

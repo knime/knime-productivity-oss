@@ -73,8 +73,9 @@ public class CallWorkflowConnectionConfiguration {
         return m_backoffPolicy;
     }
 
-    public void setBackoffPolicy(final BackoffPolicy policy) {
+    public CallWorkflowConnectionConfiguration setBackoffPolicy(final BackoffPolicy policy) {
         m_backoffPolicy = Optional.of(policy);
+        return this;
     }
 
     /**
@@ -90,9 +91,11 @@ public class CallWorkflowConnectionConfiguration {
      * Sets a flag determining if successful jobs should be kept.
      *
      * @param discardJobOnSuccessfulExecution flag determining if successful jobs should be kept
+     * @return this
      */
-    public void setDiscardJobOnSuccessfulExecution(final boolean discardJobOnSuccessfulExecution) {
+    public CallWorkflowConnectionConfiguration setDiscardJobOnSuccessfulExecution(final boolean discardJobOnSuccessfulExecution) {
         m_discardJobOnSuccessfulExecution = discardJobOnSuccessfulExecution;
+        return this;
     }
 
     public FailingJobRetentionPolicy getFailingJobPolicy() {
@@ -114,9 +117,11 @@ public class CallWorkflowConnectionConfiguration {
      * Sets a flag determining if failing jobs should be kept.
      *
      * @param keepFailingJobs flag determining if failing jobs should be kept
+     * @return this
      */
-    public void setKeepFailingJobs(final boolean keepFailingJobs) {
+    public CallWorkflowConnectionConfiguration setKeepFailingJobs(final boolean keepFailingJobs) {
         m_keepFailingJobs = keepFailingJobs;
+        return this;
     }
 
     /**
@@ -128,9 +133,11 @@ public class CallWorkflowConnectionConfiguration {
 
     /**
      * @param timeout {@link #getLoadTimeout()}
+     * @return this
      */
-    public void setLoadTimeout(final Duration timeout) {
+    public CallWorkflowConnectionConfiguration setLoadTimeout(final Duration timeout) {
         m_loadTimeout = Optional.of(timeout);
+        return this;
     }
 
     /**
@@ -146,8 +153,9 @@ public class CallWorkflowConnectionConfiguration {
         return m_isSynchronous;
     }
 
-    public void setSynchronousInvocation(final boolean isSynchronous) {
+    public CallWorkflowConnectionConfiguration setSynchronousInvocation(final boolean isSynchronous) {
         m_isSynchronous = isSynchronous;
+        return this;
     }
 
     /**
@@ -160,9 +168,11 @@ public class CallWorkflowConnectionConfiguration {
 
     /**
      * @param workflowPath {@link #getWorkflowPath()}
+     * @return this
      */
-    public void setWorkflowPath(final String workflowPath) {
+    public CallWorkflowConnectionConfiguration setWorkflowPath(final String workflowPath) {
         m_workflowPath = workflowPath;
+        return this;
     }
 
     /**
