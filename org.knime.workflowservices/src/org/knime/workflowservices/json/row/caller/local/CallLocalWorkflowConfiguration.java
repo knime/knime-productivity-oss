@@ -48,7 +48,7 @@
  */
 package org.knime.workflowservices.json.row.caller.local;
 
-import org.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
+import org.knime.workflowservices.json.row.caller.CallWorkflowConfiguration;
 
 /**
  *

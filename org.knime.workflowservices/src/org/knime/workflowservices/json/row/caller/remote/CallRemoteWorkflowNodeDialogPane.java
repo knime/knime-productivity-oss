@@ -65,14 +65,14 @@ import org.knime.core.node.workflow.Credentials;
 import org.knime.core.node.workflow.ICredentials;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
-import org.knime.productivity.base.callworkflow.JSONInputPanel;
+import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.BackoffPanel;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
 import org.knime.workflowservices.connection.util.ConnectionTimeoutPanel;
+import org.knime.workflowservices.json.row.caller.JSONInputPanel;
 
 /**
  * Dialog to node.

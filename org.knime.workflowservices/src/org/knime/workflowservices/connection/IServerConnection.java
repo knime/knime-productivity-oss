@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
+import org.knime.workflowservices.IWorkflowBackend;
 
 /**
  * Represents the connection details to a server, whereby 'server' could also be local execution. Class hierarchy came

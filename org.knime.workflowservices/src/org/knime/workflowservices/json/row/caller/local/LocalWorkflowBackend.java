@@ -95,12 +95,12 @@ import org.knime.core.util.LockFailedException;
 import org.knime.core.util.Pair;
 import org.knime.core.util.report.ReportingConstants;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 import org.knime.reporting.executor.ReportExecutor;
 import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.ExplorerURLStreamHandler;
 import org.knime.workbench.explorer.filesystem.LocalExplorerFileStore;
 import org.knime.workbench.ui.navigator.ProjectWorkflowMap;
+import org.knime.workflowservices.IWorkflowBackend;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;

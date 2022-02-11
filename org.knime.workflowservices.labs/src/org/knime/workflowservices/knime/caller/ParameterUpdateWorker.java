@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.knime.core.util.SwingWorkerWithContext;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
+import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;

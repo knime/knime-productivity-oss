@@ -27,13 +27,13 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.ICredentials;
-import org.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
-import org.knime.productivity.base.callworkflow.CallWorkflowNodeModel;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
+import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
+import org.knime.workflowservices.json.row.caller.CallWorkflowConfiguration;
+import org.knime.workflowservices.json.row.caller.CallWorkflowNodeModel;
 
 /**
  *

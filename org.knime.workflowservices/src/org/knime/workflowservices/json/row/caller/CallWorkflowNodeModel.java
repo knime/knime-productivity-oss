@@ -63,7 +63,7 @@
  * History
  *   Created on 21.07.2015 by thor
  */
-package org.knime.productivity.base.callworkflow;
+package org.knime.workflowservices.json.row.caller;
 
 import java.io.File;
 import java.io.IOException;
@@ -109,8 +109,9 @@ import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.StringFormat;
 import org.knime.core.util.UniqueNameGenerator;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend.ReportGenerationException;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend.WorkflowState;
+import org.knime.workflowservices.IWorkflowBackend;
+import org.knime.workflowservices.IWorkflowBackend.ReportGenerationException;
+import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
 
 /**
  * Abstract class for nodes that call other workflows.

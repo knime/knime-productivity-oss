@@ -45,7 +45,7 @@ import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.node.workflow.capture.ReferenceReaderDataUtil;
 import org.knime.core.node.workflow.capture.WorkflowPortObject;
 import org.knime.core.util.FileUtil;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend.ResourceContentType;
+import org.knime.workflowservices.IWorkflowBackend.ResourceContentType;
 import org.knime.workflowservices.knime.caller.WorkflowParameter;
 
 /**

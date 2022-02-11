@@ -56,8 +56,8 @@ import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.json.node.container.input.credentials.ContainerCredentialMapper;
 import org.knime.json.node.container.input.variable2.ContainerVariableMapper2;
 import org.knime.json.node.container.mappers.ContainerTableMapper;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend.WorkflowState;
+import org.knime.workflowservices.IWorkflowBackend;
+import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
 import org.knime.workflowservices.connection.IServerConnection;
 
 /**

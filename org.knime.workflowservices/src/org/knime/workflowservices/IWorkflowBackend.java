@@ -46,7 +46,7 @@
  * History
  *   Created on Feb 17, 2015 by wiswedel
  */
-package org.knime.productivity.base.callworkflow;
+package org.knime.workflowservices;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -35,8 +35,8 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.util.CheckUtils;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend.ResourceContentType;
+import org.knime.workflowservices.IWorkflowBackend;
+import org.knime.workflowservices.IWorkflowBackend.ResourceContentType;
 
 /**
  * Input and output parameters of a KNIME workflow.

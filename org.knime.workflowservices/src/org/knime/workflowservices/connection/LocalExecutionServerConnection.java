@@ -33,7 +33,7 @@ import java.util.List;
 import org.eclipse.core.runtime.Platform;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.node.workflow.WorkflowPersistor;
-import org.knime.productivity.base.callworkflow.IWorkflowBackend;
+import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.json.row.caller.local.LocalWorkflowBackend;
 
 /**
