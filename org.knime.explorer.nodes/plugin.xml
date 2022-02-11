@@ -3,9 +3,6 @@
 
 <plugin>
     <extension point="org.knime.workbench.repository.nodes">
-       <node
-            category-path="/flowabstraction/container"
-            factory-class="org.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory"/>
        <node 
             after="_last_"
             category-path="/io/read" 

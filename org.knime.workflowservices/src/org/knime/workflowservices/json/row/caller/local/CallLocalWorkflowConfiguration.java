@@ -44,46 +44,16 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Created on Feb 17, 2015 by wiswedel
+ *   Created on 21.07.2015 by thor
  */
-package org.knime.explorer.nodes.callworkflow.local;
+package org.knime.workflowservices.json.row.caller.local;
 
-import org.knime.core.node.NodeDialogPane;
-import org.knime.core.node.NodeFactory;
-import org.knime.core.node.NodeView;
+import org.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
 
 /**
- * Factory to node.
- * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
+ *
+ * @author Thorsten Meinl, KNIME AG, Zurich, Switzerland
  */
-public class CallLocalWorkflowNodeFactory extends NodeFactory<CallLocalWorkflowNodeModel> {
-    /** {@inheritDoc} */
-    @Override
-    public CallLocalWorkflowNodeModel createNodeModel() {
-        return new CallLocalWorkflowNodeModel();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected int getNrNodeViews() {
-        return 0;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public NodeView<CallLocalWorkflowNodeModel> createNodeView(final int viewIndex, final CallLocalWorkflowNodeModel nodeModel) {
-        return null;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected boolean hasDialog() {
-        return true;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected NodeDialogPane createNodeDialogPane() {
-        return new CallLocalWorkflowNodeDialogPane();
-    }
+public class CallLocalWorkflowConfiguration extends CallWorkflowConfiguration {
+    // Nothing to add yet
 }

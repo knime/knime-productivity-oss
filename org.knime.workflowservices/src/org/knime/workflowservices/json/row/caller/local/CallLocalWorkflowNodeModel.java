@@ -44,16 +44,77 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Created on 21.07.2015 by thor
+ *   Created on Feb 16, 2015 by wiswedel
  */
-package org.knime.explorer.nodes.callworkflow.local;
+package org.knime.workflowservices.json.row.caller.local;
 
+import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeSettingsRO;
+import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.workflow.NodeContext;
 import org.knime.productivity.base.callworkflow.CallWorkflowConfiguration;
+import org.knime.productivity.base.callworkflow.CallWorkflowNodeModel;
+import org.knime.productivity.base.callworkflow.IWorkflowBackend;
 
 /**
+ * Model to node.
  *
- * @author Thorsten Meinl, KNIME AG, Zurich, Switzerland
+ * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  */
-public class CallLocalWorkflowConfiguration extends CallWorkflowConfiguration {
-    // Nothing to add yet
+final class CallLocalWorkflowNodeModel extends CallWorkflowNodeModel {
+    private CallLocalWorkflowConfiguration m_configuration = new CallLocalWorkflowConfiguration();
+
+    /** {@inheritDoc} */
+    @Override
+    protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
+        m_configuration.loadInModel(settings);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected IWorkflowBackend newBackend(final String workflowPath) throws Exception {
+        return LocalWorkflowBackend.newInstance(workflowPath, NodeContext.getContext().getWorkflowManager());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected CallWorkflowConfiguration getConfiguration() {
+        return m_configuration;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void saveSettingsTo(final NodeSettingsWO settings) {
+        m_configuration.save(settings);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
+        new CallLocalWorkflowConfiguration().loadInModel(settings);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void reset() {
+        // nothing to do
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onDispose() {
+        LocalWorkflowBackend.cleanCalledWorkflows(NodeContext.getContext().getWorkflowManager());
+    }
 }

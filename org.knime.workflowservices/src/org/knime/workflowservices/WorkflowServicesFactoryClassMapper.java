@@ -18,29 +18,29 @@
  * History
  *   Created on Jun 20, 2017 by wiswedel
  */
-package org.knime.explorer.nodes;
+package org.knime.workflowservices;
 
 import java.util.Map;
 
 import org.knime.core.node.MapNodeFactoryClassMapper;
 import org.knime.core.node.NodeFactory;
 import org.knime.core.node.NodeModel;
-import org.knime.explorer.nodes.browser.ExplorerBrowserNodeFactory;
-import org.knime.explorer.nodes.writer.ExplorerWriterNodeFactory;
+import org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFactory;
 
 /**
- * Maps old class names "com.knime.explorer.nodes.*" to new open source class names (new package suffix included).
+ * The "Call Local Workflow (Row Based)" used to be in a different plug-in and this mapper resolves the old path stored
+ * in (old) workflows.
+ *
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  */
-public final class ExplorerNodeFactoryClassMapper extends MapNodeFactoryClassMapper {
+public final class WorkflowServicesFactoryClassMapper extends MapNodeFactoryClassMapper {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected Map<String, Class<? extends NodeFactory<? extends NodeModel>>> getMapInternal() {
         return Map.of(//
-            "com.knime.explorer.nodes.ExplorerBrowserNodeFactory", ExplorerBrowserNodeFactory.class, //
-            "com.knime.explorer.nodes.ExplorerWriterNodeFactory", ExplorerWriterNodeFactory.class);
+            "com.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory",
+            CallLocalWorkflowNodeFactory.class,
+            "org.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory",
+            CallLocalWorkflowNodeFactory.class);
     }
 }

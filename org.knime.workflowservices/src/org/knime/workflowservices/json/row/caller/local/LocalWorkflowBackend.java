@@ -46,7 +46,7 @@
  * History
  *   Created on Feb 17, 2015 by wiswedel
  */
-package org.knime.explorer.nodes.callworkflow.local;
+package org.knime.workflowservices.json.row.caller.local;
 
 import java.io.File;
 import java.io.FileOutputStream;

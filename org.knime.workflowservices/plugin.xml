@@ -4,9 +4,13 @@
 <plugin>
     <extension point="org.knime.workbench.repository.nodes">
        <node
+            category-path="/flowabstraction/container"
+            factory-class="org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFactory"
+            after="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory" />
+       <node
              category-path="/flowabstraction/container"
              factory-class="org.knime.workflowservices.json.row.caller.remote.CallRemoteWorkflowNodeFactory"
-             after="org.knime.explorer.nodes.callworkflow.local.CallLocalWorkflowNodeFactory">
+             after="org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFactory">
        </node>
        <node
              category-path="/flowabstraction/container"
@@ -18,5 +22,12 @@
              deprecated="false"
              factory-class="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory">
        </node>
-</extension>
+    </extension>
+    <extension
+          point="org.knime.core.NodeFactoryClassMapper">
+       <NodeFactoryClassMapper
+             classMapper="org.knime.workflowservices.WorkflowServicesFactoryClassMapper">
+       </NodeFactoryClassMapper>
+    </extension>
+
 </plugin>
