@@ -5,8 +5,7 @@ This repository contains the source code of [KNIME Analytics Platform](http://ww
 
 * _org.knime.explorer.nodes.*_: Nodes for interacting with the local workflow
   repository
-* _org.knime.productivity.base.*_: API definitions for nodes that call
-  workflows
+* _org.knime.workflowservices.*_: API definitions and implementations for nodes that call workflows
 * _org.knime.workbench.workflowdiff.*_: Workflow diff extension
 * _org.knime.workbench.workflowcoach.local.*_: Provider for local workflowcoach
   recommendations
