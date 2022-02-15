@@ -20,13 +20,21 @@
  */
 package org.knime.workflowservices.json.row.caller.remote;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+
+import javax.json.JsonValue;
+
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.ICredentials;
+import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
@@ -95,7 +103,7 @@ class CallRemoteWorkflowNodeModel extends CallWorkflowNodeModel {
                 .setLoadTimeout(loadTimeout) //
                 .setSynchronousInvocation(sync) //
                 .setWorkflowPath(workflowPath);
-        return serverConnection.createWorkflowBackend(callConfig);
+        return new CloseServerConnectionOnCloseWorkflowBackend(serverConnection.createWorkflowBackend(callConfig), serverConnection);
     }
 
     /**
@@ -136,5 +144,83 @@ class CallRemoteWorkflowNodeModel extends CallWorkflowNodeModel {
     @Override
     protected void reset() {
         // nothing to do
+    }
+
+    /**
+     * {@link IWorkflowBackend} wrapper that delegates to a real implementation and also closes the
+     * {@link IServerConnection} on #close.
+     */
+    private static final class CloseServerConnectionOnCloseWorkflowBackend implements IWorkflowBackend {
+
+        private final IWorkflowBackend m_delegateBackend;
+        private final IServerConnection m_serverConn;
+
+        CloseServerConnectionOnCloseWorkflowBackend(final IWorkflowBackend delegateBackend,
+            final IServerConnection serverConn) {
+            m_delegateBackend = delegateBackend;
+            m_serverConn = serverConn;
+        }
+
+        @Override
+        public void close() throws Exception {
+            m_delegateBackend.close();
+            m_serverConn.close();
+        }
+
+        @Override
+        public Map<String, ExternalNodeData> getInputNodes() {
+            return m_delegateBackend.getInputNodes();
+        }
+
+        @Override
+        public void loadWorkflow() throws Exception {
+            m_delegateBackend.loadWorkflow();
+        }
+
+        @Override
+        public void updateWorkflow(final Map<String, ExternalNodeData> input) throws Exception {
+            m_delegateBackend.updateWorkflow(input);
+        }
+
+        @Override
+        public Map<String, JsonValue> getOutputValues() {
+            return m_delegateBackend.getOutputValues();
+        }
+
+        @Override
+        public Map<String, ResourceContentType> getInputResourceDescription() throws InvalidSettingsException {
+            return m_delegateBackend.getInputResourceDescription();
+        }
+
+        @Override
+        public Map<String, ResourceContentType> getOutputResourceDescription() throws InvalidSettingsException {
+            return m_delegateBackend.getOutputResourceDescription();
+        }
+
+        @Override
+        public InputStream openOutputResource(final String name) throws IOException {
+            return m_delegateBackend.openOutputResource(name);
+        }
+
+        @Override
+        public WorkflowState execute(final Map<String, ExternalNodeData> input) throws Exception {
+            return m_delegateBackend.execute(input);
+        }
+
+        @Override
+        public WorkflowState executeAsWorkflowService(final Map<String, ExternalNodeData> input) throws Exception {
+            return m_delegateBackend.executeAsWorkflowService(input);
+        }
+
+        @Override
+        public String getWorkflowMessage() {
+            return m_delegateBackend.getWorkflowMessage();
+        }
+
+        @Override
+        public byte[] generateReport(final RptOutputFormat format) throws ReportGenerationException {
+            return m_delegateBackend.generateReport(format);
+        }
+
     }
 }

@@ -390,9 +390,7 @@ final class CallRemoteWorkflowNodeDialogPane extends NodeDialogPane {
             SwingWorkerWithContext<List<String>, Void> worker = new SwingWorkerWithContext<List<String>, Void>() {
                 @Override
                 protected List<String> doInBackgroundWithContext() throws Exception {
-                    try (var serverConnection = ServerConnectionUtil.getConnection(m_hostField.getSelectedString(),
-                        creds.getLogin(), creds.getPassword(), m_connectionTimeoutPanel.getSelectedConnectionTimeout(),
-                        m_connectionTimeoutPanel.getSelectedReadTimeout())) {
+                    try (var serverConnection = newServerConnection(creds)) {
                         return serverConnection.listWorkflows();
                     }
                 }

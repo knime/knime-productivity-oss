@@ -28,25 +28,36 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.WorkflowContext;
 
 /**
- * TODO Javadoc
- *
- * @author wiswedel
+ * The interface to an OSGi service / factor to create {@link IServerConnection}.
+ * @author Bernd Wiswedel, KNIME, Konstanz, Germany
  */
 public interface KNIMEServerAwareConnectionService {
 
+    /**
+     * Create new connection for supported port object implementations (they represent KNIME server connection).
+     * @param portObjectSpec server connection, if available
+     * @param context the context the workflow runs in, needed for resolving relativ paths etc.
+     * @return An optional server connection to be used.
+     * @throws InvalidSettingsException ...
+     */
     public Optional<IServerConnection> createKNIMEServerConnection(final PortObjectSpec portObjectSpec,
         final WorkflowContext context) throws InvalidSettingsException;
 
     /**
-     * @param hostAndPort
-     * @param username
-     * @param password
+     * Create a server connection for plain user,pass,path information.
+     * @param hostAndPort url to the workflow
+     * @param username username
+     * @param password ...
      * @param connectTimeOut
      * @param readTimeout
-     * @return
+     * @return The server connection
      */
     IServerConnection createKNIMEServerConnection(String hostAndPort, String username, String password,
         Duration connectTimeOut, Duration readTimeout);
 
+    /** Extract error information, e.g. workflow not found, from a throwable. Used for error handling in the dialogs.
+     * @param ex Exception itself
+     * @return Extracted error text.
+     */
     public Optional<String> handle(final Throwable ex);
 }
