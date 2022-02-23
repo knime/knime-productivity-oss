@@ -33,9 +33,12 @@
 			<br/>
 			<b>Send Flow Variables</b>
 			<br/>
-			All flow variables available in the <i>Call Workflow (Table Based)</i> node can be sent to a 
-			<i>Container Input (Variable)</i> node in the called workflow via the variable-input defined in the 
-			<i>Container Input (Variable)</i> node
+			Certain flow variables available in the <i>Call Workflow (Table Based)</i> node can be sent to a 
+			<i>Container Input (Variable)</i> node in the called workflow. Currently, neither boolean, long, nor list or
+			set flow variables are supported and will be ignored without warning. 
+			The supported types are mostly converted to string flow
+			variables (e.g., path or URI flow variables), except for integer flow variables and non-NaN double flow variables.
+			Note that the <i>Call Workflow Service</i> node supports all flow variable types.
 			<br/>
 			<br/>
 			<b>Send Flow Credentials</b>

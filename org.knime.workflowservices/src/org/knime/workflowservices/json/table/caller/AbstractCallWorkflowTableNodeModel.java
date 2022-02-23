@@ -154,6 +154,10 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
         }
     }
 
+    /**
+     * @param id the name of the input parameter to which the flow variable data is pushed to
+     * @return the flow variable payload to be associated to the input parameter's name
+     */
     private Optional<ExternalNodeData> createFlowVariableData(final String id) throws InvalidSettingsException {
         if (StringUtils.isNotBlank(id)) {
             // Technically, we would have to infer from the template supplied by the CI(V) node if it uses a
