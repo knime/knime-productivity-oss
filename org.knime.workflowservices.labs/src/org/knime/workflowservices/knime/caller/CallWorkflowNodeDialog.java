@@ -15,6 +15,8 @@ import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -46,6 +48,8 @@ import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.IServerConnection.ListWorkflowFailedException;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
+import org.knime.workflowservices.connection.util.BackoffPanel;
+import org.knime.workflowservices.connection.util.BackoffPolicy;
 
 /**
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
@@ -76,6 +80,8 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
      * port configuration.
      */
     private final PanelWorkflowParameters m_parameterMappingPanel;
+
+    private BackoffPanel m_backoffPanel;
 
     /**
      * Shows locally or remotely available workflow paths. A path can be selected and will be copied over to
@@ -144,6 +150,16 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
 
         addTab("Workflow to Execute", new JScrollPane(mainPanel));
 
+        addTab("Advanced Settings", createAdvancedTab());
+    }
+
+    private JPanel createAdvancedTab() {
+        final var container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        m_backoffPanel = new BackoffPanel();
+        container.add(m_backoffPanel);
+        container.add(Box.createHorizontalGlue());
+        return container;
     }
 
     /**
@@ -296,6 +312,8 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
             cwp.setOutputParameterOrder(m_parameterMappingPanel.getOutputParameterOrder());
         }
 
+        m_configuration.setBackoffPolicy(m_backoffPanel.getSelectedBackoffPolicy());
+
         // create input/output ports according to the selected order of the workflow input/output parameters
         updateNodePorts();
 
@@ -327,6 +345,7 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
         } else {
             // configure remote execution if a server connection is present
             final var spec = (FileSystemPortObjectSpec)specs[0];
+            m_backoffPanel.setEnabled(spec != null);
             enableAllUIElements();
             try {
                 m_serverConnection = ServerConnectionUtil.getConnection(spec, wfm);
@@ -342,6 +361,8 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
         // display workflow input/output parameters
         m_configuration.getCalleeWorkflowProperties().ifPresent(m_parameterMappingPanel::load);
         m_selectWorkflowPath.setText(m_configuration.getWorkflowPath());
+        m_backoffPanel.setSelectedBackoffPolicy(m_configuration.getBackoffPolicy() //
+            .orElse(BackoffPolicy.DEFAULT_BACKOFF_POLICY));
     }
 
     /**
@@ -380,6 +401,7 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
         m_selectWorkflowButton.setEnabled(false);
         m_selectWorkflowPath.setEnabled(false);
         m_loadTimeoutSpinner.setEnabled(false);
+        m_backoffPanel.setEnabled(false);
 
         m_serverSettingsPanel.m_asyncInvocationChecker.setEnabled(false);
         m_serverSettingsPanel.m_syncInvocationChecker.setEnabled(false);
