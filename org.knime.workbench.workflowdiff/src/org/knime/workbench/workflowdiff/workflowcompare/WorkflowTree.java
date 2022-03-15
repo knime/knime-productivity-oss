@@ -416,6 +416,9 @@ public class WorkflowTree {
 		 *         {@code portIndex} (ignores meta-nodes)
 		 */
 		public Node getOutputtingNode(int portIndex) {
+		    if (metaOutputting[portIndex] == null) {
+		        return null;
+		    }
 			// A Leaf is what we want.
 			if (metaOutputting[portIndex].isLeaf()) {
 				return metaOutputting[portIndex];
