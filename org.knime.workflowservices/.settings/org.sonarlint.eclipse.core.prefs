@@ -3,4 +3,4 @@ eclipse.preferences.version=1
 idePrefixKey=
 projectKey=org.knime\:knime-personalproductivity
 serverId=sonar.knime.com
-sqPrefixKey=com.knime.workflowservices
+sqPrefixKey=
