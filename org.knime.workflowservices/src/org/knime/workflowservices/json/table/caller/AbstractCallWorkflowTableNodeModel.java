@@ -59,6 +59,7 @@ import org.knime.json.node.container.mappers.ContainerTableMapper;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
 import org.knime.workflowservices.connection.IServerConnection;
+import org.knime.workflowservices.json.row.caller.CallWorkflowNodeModel;
 
 /**
  * Model for the Call Workflow (Table) node.
@@ -178,6 +179,7 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
             CredentialsProvider credentialsProvider = getCredentialsProvider();
 
             List<ICredentials> credentials = credentialsProvider.listNames().stream()
+                .filter(CallWorkflowNodeModel::verifyCredentialIdentifier)
                 .map(name -> credentialsProvider.get(name)).collect(Collectors.toList());
 
             JsonValue jsonValue = ContainerCredentialMapper.toContainerCredentialsJsonValue(credentials);

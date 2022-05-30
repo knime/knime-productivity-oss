@@ -35,7 +35,6 @@ import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.KNIMEConstants;
 import org.knime.core.node.NodeSettings;
-import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
@@ -43,10 +42,10 @@ import org.knime.core.node.port.flowvariable.FlowVariablePortObjectSpec;
 import org.knime.core.node.workflow.CredentialsStore;
 import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.node.workflow.ICredentials;
-import org.knime.core.node.workflow.IllegalFlowVariableNameException;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
 import org.knime.core.util.FileUtil;
+import org.knime.workflowservices.json.row.caller.CallWorkflowNodeModel;
 
 /**
  *
@@ -113,20 +112,14 @@ final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
     }
 
     /**
-     * For instance the flow variable with the name "knime.workspace" is a reserved variable and can not be loaded using
-     * {@link FlowVariable#load(NodeSettingsRO)} (which won't accept flow variables with reserved names).
+     * Checks if the flow variable can be sent. Its name must not contain a reserved prefix.
+     * See {@link CallWorkflowNodeModel#verifyCredentialIdentifier(String)}.
      *
-     * @param variable the flow variable to test for inclusion
-     * @return whether the flow variable can be re-instantiated on the receiving side (the callee for a Workflow Service
-     *         Input node, the caller for a Workflow Service Output node).
+     * @param variable the flow variable to test
+     * @return whether the flow variable can be sent
      */
     private static boolean isSendableFlowVariable(final FlowVariable variable) {
-        try {
-            FlowVariable.Scope.Flow.verifyName(variable.getName());
-            return true;
-        } catch (IllegalFlowVariableNameException e) { // NOSONAR
-            return false;
-        }
+        return CallWorkflowNodeModel.verifyCredentialIdentifier(variable.getName());
     }
 
     /**

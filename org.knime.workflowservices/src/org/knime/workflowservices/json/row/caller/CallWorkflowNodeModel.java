@@ -104,9 +104,12 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.KNIMEConstants;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeModel;
+import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.StringFormat;
+import org.knime.core.node.workflow.FlowVariable;
+import org.knime.core.node.workflow.IllegalFlowVariableNameException;
 import org.knime.core.util.UniqueNameGenerator;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.workflowservices.IWorkflowBackend;
@@ -311,6 +314,23 @@ public abstract class CallWorkflowNodeModel extends NodeModel {
         Arrays.fill(cells, DataType.getMissingCell());
         cells[cells.length - 1] = new StringCell(message);
         return new DefaultRow(rowKey, cells);
+    }
+
+    /**
+     * For instance the flow variable with the name "knime.workspace" is a reserved variable and can not be loaded using
+     * {@link FlowVariable#load(NodeSettingsRO)} (which won't accept flow variables with reserved names).
+     *
+     * @param variableName the flow variable name to test for inclusion
+     * @return whether the flow variable can be re-instantiated on the receiving side (the callee for a Workflow Service
+     *         Input node, the caller for a Workflow Service Output node).
+     */
+    public static boolean verifyCredentialIdentifier(final String variableName) {
+        try {
+            FlowVariable.Scope.Flow.verifyName(variableName);
+            return true;
+        } catch (IllegalFlowVariableNameException e) { // NOSONAR
+            return false;
+        }
     }
 
     /** {@inheritDoc} */

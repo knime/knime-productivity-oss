@@ -72,6 +72,7 @@ import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.BackoffPanel;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
 import org.knime.workflowservices.connection.util.ConnectionTimeoutPanel;
+import org.knime.workflowservices.json.row.caller.CallWorkflowNodeModel;
 import org.knime.workflowservices.json.row.caller.JSONInputPanel;
 
 /**
@@ -488,7 +489,9 @@ final class CallRemoteWorkflowNodeDialogPane extends NodeDialogPane {
 
         m_credentials.removeAllItems();
         for (String s : getCredentialsProvider().listNames()) {
-            m_credentials.addItem(s);
+            if (CallWorkflowNodeModel.verifyCredentialIdentifier(s)) {
+                m_credentials.addItem(s);
+            }
         }
 
         if (m_settings.getCredentialsName() == null) {
