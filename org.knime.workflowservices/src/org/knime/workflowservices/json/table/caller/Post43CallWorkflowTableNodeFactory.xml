@@ -57,48 +57,26 @@
 
 
 		<tab name="Workflow">
-
-			<option name="Server address (Only when connected to a KNIME Server)">Displays the server address of the server connection.</option>
-
-			<option name="Short duration: the workflow is expected to run quickly, less than 10 seconds
-							(only applies if the called workflow is executed on a KNIME server)">
-				Choose this if the called workflow is expected to finish within ten seconds. When selected, the invocation
-				of the workflow will not poll its status, but wait until the job completes (or fails). This removes the
-				polling overhead and makes this option quicker for short running workflows. Choosing this option
-				for long running workflows (&gt; a minute) will cause timeout problems.
-			</option>
-
-			<option name="Long duration: the workflow is expected to run longer than 10 seconds
-							(only applies if the called workflow is executed on a KNIME server)">
-				Choose this if the called workflow is expected to run for more than ten seconds. When selected, the
-				invocation of the workflow will poll its status, that is start, poll, poll, ..., finish, until the job
-				completes (or fails). This option is reasonable for long running workflows where the overhead of regularly
-				polling the status is negligible. The polling is implemented so that for the first few seconds there will
-				be frequent status checks (poll interval 100ms or 500ms), whereas jobs that run minutes or hours will be
-				checked only every few seconds.
-			</option>
-
-			<option name="Retain job on failure (only applies if the called workflow is executed on a KNIME server)">
+			<option name="Server address (only for remote execution)">Displays the server address of the server connection.</option>
+			<option name="Short duration (only for remote execution)">
+                Choose this if the called workflow is expected to finish within ten seconds. When selected, the invocation of the workflow will not poll its status, but wait until the job completes (or fails). This removes the polling overhead and makes this option quicker for short running workflows. Choosing this option for long running workflows (&gt; a minute) will cause timeout problems.
+            </option>
+            <option name="Long duration (only for remote execution)">
+                Choose this if the called workflow is expected to run for more than ten seconds. When selected, the invocation of the workflow will poll its status, that is start, poll, poll, ..., finish, until the job completes (or fails). This option is reasonable for long running workflows where the overhead of regularly polling the status is negligible. The polling is implemented so that for the first few seconds there will be frequent status checks (poll interval 100ms or 500ms), whereas jobs that run minutes or hours will be checked only every few seconds.
+            </option>
+			<option name="Retain job on failure (only for remote execution)">
 			When selected, failing jobs of the called workflow will be kept on the server. This can be
-			useful for debugging purposes. When not selected, the failing jobs will be discarded.</option>
-
-			<option name="Discard job on successful execution (only applies if the called workflow is executed on a KNIME server)">
+			useful for debugging purposes. When not selected, the failing jobs will be discarded.
+			</option>
+			<option name="Discard job on successful execution (only for remote execution)">
 			When selected, successful jobs of the called workflow will be discarded from the server. When not selected, the
 			successful jobs will be kept.
 			</option>
-
 			<option name="Workflow path">The path of the workflow you want to call. If connected to a server the path must be an absolute
 			path in the server's repository. If not connected to a server the path may be absolute or use KNIME URLs. You can either enter the path by hand,
 			or click on <i>Browse Workflows</i> and then select one of the available workflows in a pop up dialog. The pop up dialog offers
 			a search field for easier location of the desired workflow. When a search string is entered, the dialog lists all workflows that contain the typed search string in their path.<br/>
-
 			</option>
-
-			<option name="Load timeout">
-				The maximum amount of time the client will wait for the server to load the called workflow. Specified in
-				seconds. A value of 0 means that no timeout will be used.
-			</option>
-
 			<option	name="Advanced Settings">After a workflow has been successfully selected, the input table can be
 			directed to a desired <i>Container Input (Table)</i> node, the output table can be fetched from a desired
 			<i>Container Output (Table)</i> node, and all flow variables/credentials can be pushed to a desired
@@ -125,6 +103,10 @@
 		</tab>
 
 		<tab name="Advanced Settings">
+			<option name="Workflow load timeout (only for remote execution)">
+                The maximum amount of time to wait for the server when trying to initialize remote workflow execution.
+				Specified in seconds. A value of 0 means that no timeout will be used.
+            </option>
 			<option name="Job Status Polling">
 				When calling remote workflows and when using asynchronous invocation
 				(option "Long Duration"): if a HTTP 5XX error occurs, eg. bad gateway, while polling the

@@ -119,7 +119,7 @@ final class FlowVariablesCallWorkflowPayload implements CallWorkflowPayload {
      * @return whether the flow variable can be sent
      */
     private static boolean isSendableFlowVariable(final FlowVariable variable) {
-        return CallWorkflowNodeModel.verifyCredentialIdentifier(variable.getName());
+        return org.knime.workflowservices.caller.util.CallWorkflowUtil.verifyCredentialIdentifier(variable.getName());
     }
 
     /**

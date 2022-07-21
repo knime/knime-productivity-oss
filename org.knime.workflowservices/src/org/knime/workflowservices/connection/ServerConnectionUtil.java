@@ -49,8 +49,8 @@ public final class ServerConnectionUtil {
     static {
         Bundle coreBundle = FrameworkUtil.getBundle(ServerConnectionUtil.class);
         if (coreBundle != null) {
-            serviceTracker = new ServiceTracker<>(coreBundle.getBundleContext(),
-                    KNIMEServerAwareConnectionService.class, null);
+            serviceTracker =
+                new ServiceTracker<>(coreBundle.getBundleContext(), KNIMEServerAwareConnectionService.class, null);
             serviceTracker.open();
         } else {
             serviceTracker = null;
@@ -60,31 +60,30 @@ public final class ServerConnectionUtil {
     /**
      * Private constructor hiding the implicit public constructor
      */
-    private ServerConnectionUtil() {}
+    private ServerConnectionUtil() {
+    }
 
     /**
-     * Retrieves the correct IServerConnection implementation. Uses server and port object spec determining.
-     * 1. If soleley a Server Connector is used, use the server connection.
-     * 2. If no Server Connector is connected, invoke a local Call Workflow Service, using a local execution connection.
-     * 3. If a Mountpoint Connector is connected, check mountpoint type:
-     *      a) external mountpoint: use server connection.
-     *      b) local mountpoint: use local execution connection.
+     * Retrieves the correct IServerConnection implementation. Uses server and port object spec determining. 1. If
+     * soleley a Server Connector is used, use the server connection. 2. If no Server Connector is connected, invoke a
+     * local Call Workflow Service, using a local execution connection. 3. If a Mountpoint Connector is connected, check
+     * mountpoint type: a) external mountpoint: use server connection. b) local mountpoint: use local execution
+     * connection.
      *
      * @param spec the PortObjectSpec containing server or mountpoint connection
      * @param manager the workflow manager
      * @return IServerConnection that establishes connection to target
      * @throws InvalidSettingsException
      */
-    public static IServerConnection getConnection(
-        final PortObjectSpec spec, final WorkflowManager manager) throws InvalidSettingsException {
+    public static IServerConnection getConnection(final PortObjectSpec spec, final WorkflowManager manager)
+        throws InvalidSettingsException {
         var service = getService();
 
         // all the 'nice' method chaining on Optional not possible due to "throws" declaration
         IServerConnection serverConnection = null;
         // if the spec identifies a local mountpoint, don't create a server connection
         if (service.isPresent() && !isLocalMountpoint(spec)) {
-            serverConnection =
-                service.get().createKNIMEServerConnection(spec, manager.getContext()).orElse(null);
+            serverConnection = service.get().createKNIMEServerConnection(spec, manager.getContext()).orElse(null);
         }
         // non-present service OR local mountpoint connections will use the LocalExecutionServerConnection
         if (serverConnection == null) {
@@ -105,7 +104,8 @@ public final class ServerConnectionUtil {
      * @throws InvalidSettingsException
      */
     public static IServerConnection getConnection(final String hostAndPort, final String username,
-        final String password, final Duration connectTimeout, final Duration readTimeout) throws InvalidSettingsException {
+        final String password, final Duration connectTimeout, final Duration readTimeout)
+        throws InvalidSettingsException {
         var service = getService().orElseThrow(() -> new InvalidSettingsException(
             String.format("No service providing remote workflow execution (implementation to \"%s\")",
                 KNIMEServerAwareConnectionService.class.getName())));
@@ -133,12 +133,11 @@ public final class ServerConnectionUtil {
     }
 
     /**
-     * Determines if a spec specifies a local mountpoint connection by the following criteria:
-     *   1. has to be a FileSystemPortObjectSpec
-     *   2. file system specifier matches the relative mountpoint identifier
+     * Determines if a spec specifies a local mountpoint connection by the following criteria: 1. has to be a
+     * FileSystemPortObjectSpec 2. file system specifier matches the relative mountpoint identifier
      *
-     * @param spec connector spec
-     * @return is relative mountpoint connection
+     * @param spec connector spec, can be null.
+     * @return is relative mountpoint connection or false for null.
      */
     private static boolean isLocalMountpoint(final PortObjectSpec spec) {
         if (spec instanceof FileSystemPortObjectSpec) {
@@ -147,5 +146,21 @@ public final class ServerConnectionUtil {
                 && (fsSpecifier.get().equals(RELATIVE_MOUNTPOINT) || fsSpecifier.get().equals(LOCAL_MOUNTPOINT));
         }
         return false;
+    }
+
+    /**
+     * Sanity check for the arguments to be passed to {@link #getConnection(PortObjectSpec, WorkflowManager)}. Does not
+     * guarantee that getConnection will succeed but helps to sort out common problems early.
+     *
+     * @param wfm to check
+     * @param portObjectSpec to check
+     * @return error message if the workflow manager represents a temporary copy of the workflow or the port object is
+     *         not of type {@link FileSystemPortObjectSpec}
+     */
+    public static Optional<String> validate(final WorkflowManager wfm, final PortObjectSpec portObjectSpec) {
+        if (wfm.getContext().isTemporaryCopy()) {
+            return Optional.of("This node cannot be configured in a temporary copy of the workflow.");
+        }
+        return Optional.empty();
     }
 }

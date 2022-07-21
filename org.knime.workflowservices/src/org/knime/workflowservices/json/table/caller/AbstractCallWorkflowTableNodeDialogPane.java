@@ -46,10 +46,8 @@ import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
 
 import javax.json.JsonValue;
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -60,7 +58,6 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
@@ -91,11 +88,11 @@ import org.knime.core.node.workflow.WorkflowContext;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.IWorkflowBackend;
-import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.IServerConnection.ListWorkflowFailedException;
 import org.knime.workflowservices.connection.LocalExecutionServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
+import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
 
 /**
  * Shared dialog components for Call Workflow nodes.
@@ -106,17 +103,9 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
 
     private static final NodeLogger LOGGER = NodeLogger.getLogger(AbstractCallWorkflowTableNodeDialogPane.class);
 
-    private final JLabel m_serverAddress;
+    private final CallWorkflowConnectionControls m_serverSettings = new CallWorkflowConnectionControls();
 
     private IServerConnection m_serverConnection;
-
-    private final JRadioButton m_syncInvocationChecker;
-
-    private final JRadioButton m_asyncInvocationChecker;
-
-    private final JCheckBox m_retainJobOnFailure;
-
-    private final JCheckBox m_discardJobOnSuccesfulExecution;
 
     private final JTextField m_selectWorkflowPath;
 
@@ -179,39 +168,8 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
         gbc.weighty = 0.0;
         gbc.fill = GridBagConstraints.NONE;
 
-        JPanel serverSettingsPanel = new JPanel(new GridBagLayout());
-        serverSettingsPanel.setBorder(BorderFactory.createTitledBorder("KNIME Server Call Settings"));
-        serverSettingsPanel.add(new JLabel("Server address:"), gbc);
-
-        gbc.gridx++;
-        m_serverAddress = new JLabel("No server connected");
-
-        serverSettingsPanel.add(m_serverAddress, gbc);
-
-        m_syncInvocationChecker = new JRadioButton
-            ("Short duration: the workflow is expected to run quickly (less than 10 seconds)");
-        m_asyncInvocationChecker = new JRadioButton(
-            "Long duration: the workflow is expected to run longer than 10 seconds");
-        JPanel invocationPanel = createInvocationPanel();
-        invocationPanel.setBorder(BorderFactory.createTitledBorder("Invocation"));
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 2;
-        serverSettingsPanel.add(invocationPanel, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 1;
-        m_retainJobOnFailure = new JCheckBox("Retain job on failure");
-        serverSettingsPanel.add(m_retainJobOnFailure, gbc);
-
-        gbc.gridy++;
-        m_discardJobOnSuccesfulExecution = new JCheckBox("Discard job on successful execution");
-        serverSettingsPanel.add(m_discardJobOnSuccesfulExecution, gbc);
-
         gbc.gridwidth = 3;
-        panel.add(serverSettingsPanel, gbc);
-
+        panel.add(m_serverSettings.getMainPanel(), gbc);
 
         gbc.gridx = 0;
         gbc.gridy++;
@@ -390,29 +348,6 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
         addTab("Workflow", new JScrollPane(panel));
     }
 
-    private JPanel createInvocationPanel() {
-        JPanel p = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-
-        ButtonGroup bg = new ButtonGroup();
-        bg.add(m_syncInvocationChecker);
-        bg.add(m_asyncInvocationChecker);
-        m_syncInvocationChecker.doClick();
-
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 1;
-        gbc.weightx = 1.0;
-        gbc.insets = new Insets(0, 0, 0, 0);
-        p.add(m_syncInvocationChecker, gbc);
-        gbc.gridy += 1;
-        p.add(m_asyncInvocationChecker, gbc);
-
-        return p;
-    }
-
     private void openSelectWorkflowDialog() {
         SelectWorkflowDialog selectWorkflowDialog = new SelectWorkflowDialog(getParentFrame());
         selectWorkflowDialog.setVisible(true);
@@ -445,9 +380,7 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
         CheckUtils.checkSetting(m_validWorkflowPath, "Invalid workflow path");
         CheckUtils.checkSetting(m_parameterUpdater == null, "Can't apply configuration while analysis is ongoing");
 
-        configuration.setSynchronousInvocation(m_syncInvocationChecker.isSelected());
-        configuration.setKeepFailingJobs(m_retainJobOnFailure.isSelected());
-        configuration.setDiscardJobOnSuccessfulExecution(m_discardJobOnSuccesfulExecution.isSelected());
+        m_serverSettings.saveToConfiguration(configuration);
 
         configuration.setWorkflowPath(m_selectWorkflowPath.getText());
         configuration.setLoadTimeout(Duration.ofSeconds(((Number)m_loadTimeoutSpinner.getValue()).intValue()));
@@ -488,12 +421,8 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
 
     @Override
     protected final void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
-            throws NotConfigurableException {
-        try {
-            m_configuration = new CallWorkflowTableNodeConfiguration().loadInDialog(settings);
-        } catch (InvalidSettingsException e) {
-            throw new NotConfigurableException("Could not load settings in dialog", e);
-        }
+        throws NotConfigurableException {
+        m_configuration = new CallWorkflowTableNodeConfiguration().loadInDialog(settings);
         loadConfiguration(m_configuration, specs);
     }
 
@@ -501,14 +430,8 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
         Duration loadTimeout = configuration.getLoadTimeout().orElse(IServerConnection.DEFAULT_LOAD_TIMEOUT);
         m_loadTimeoutSpinner.setValue(loadTimeout.getSeconds());
 
-        if (configuration.isSynchronousInvocation()) {
-            m_syncInvocationChecker.doClick();
-        } else {
-            m_asyncInvocationChecker.doClick();
-        }
+        m_serverSettings.loadConfiguration(configuration);
 
-        m_retainJobOnFailure.setSelected(configuration.isKeepFailingJobs());
-        m_discardJobOnSuccesfulExecution.setSelected(configuration.isDiscardJobOnSuccessfulExecution());
         m_useFullyQualifiedNamesChecker.setSelected(configuration.isUseFullyQualifiedId());
 
         if (specs[1] == null) {
@@ -552,7 +475,7 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
 
     private void configureLocalExecution(final WorkflowManager wfm) {
         m_serverConnection = new LocalExecutionServerConnection(wfm);
-        m_serverAddress.setText("No server connection");
+        m_serverSettings.setServerConnection(m_serverConnection, false);
         fillWorkflowList();
     }
 
@@ -570,7 +493,7 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
             m_serverConnection = readServerConnection(specs[0],
                 Optional.ofNullable(NodeContext.getContext()).map(NodeContext::getWorkflowManager).orElse(null));
             m_stateErrorLabel.setText("");
-            m_serverAddress.setText(m_serverConnection.getHost());
+            m_serverSettings.setServerConnection(m_serverConnection, true);
             fillWorkflowList();
         } catch (InvalidSettingsException e) {
             getLogger().debug(e.getMessage(), e);
@@ -586,17 +509,13 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
     private void disableAllUIElements() {
         disableUISelections();
         m_selectWorkflowPath.setEnabled(false);
-        m_asyncInvocationChecker.setEnabled(false);
-        m_syncInvocationChecker.setEnabled(false);
-        m_retainJobOnFailure.setEnabled(false);
+        m_serverSettings.enableAllUIElements(false);
     }
 
     private void enableAllUIElements() {
         enableUISelections();
         m_selectWorkflowPath.setEnabled(true);
-        m_asyncInvocationChecker.setEnabled(true);
-        m_syncInvocationChecker.setEnabled(true);
-        m_retainJobOnFailure.setEnabled(true);
+        m_serverSettings.enableAllUIElements(true);
     }
 
     private void setSelectedWorkflow(final String selectedWorkflow) {
@@ -746,13 +665,14 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
         @Override
         protected List<Map<String, JsonValue>> doInBackgroundWithContext() throws Exception {
             CheckUtils.checkSetting(StringUtils.isNotEmpty(m_workflowPath), "No workflow path provided");
-            CheckUtils.checkSetting(CallWorkflowConnectionConfiguration.isValidWorkflowPath(m_workflowPath),
-                CallWorkflowConnectionConfiguration.invalidWorkflowPathMessage(m_workflowPath));
             CallWorkflowTableNodeConfiguration tempConfig = new CallWorkflowTableNodeConfiguration();
             tempConfig.setLoadTimeout(Duration.ofSeconds(((Number)m_loadTimeoutSpinner.getValue()).intValue()));
             tempConfig.setWorkflowPath(m_workflowPath);
             tempConfig.setKeepFailingJobs(false);
+            IServerConnection.validateConfiguration(tempConfig, m_serverConnection);
+
             if (m_serverConnection != null) {
+
                 try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(tempConfig)) {
                     if (backend != null) {
                         backend.loadWorkflow();
@@ -1057,6 +977,8 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
      * Dialog that enables the user to select a workflow from an already populated list. Offers a text field which can
      * be used as a filter. When something has been entered in the field only workflow paths containing this entry will
      * be shown in the list.
+     *
+     * TODO should be replaced with {@link org.knime.workflowservices.connection.util.SelectWorkflowDialog}
      *
      * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
      */

@@ -38,6 +38,7 @@ import org.knime.core.node.context.ports.ModifiablePortsConfiguration;
 import org.knime.core.node.port.PortType;
 import org.knime.filehandling.core.defaultnodesettings.status.DefaultStatusMessage;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
+import org.knime.workflowservices.connection.util.LoadingPanel;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusView;
 
 /**
@@ -93,7 +94,7 @@ final class PanelWorkflowParameters {
 
     private final JLabel m_errorLabel = new JLabel();
 
-    private final PanelLoading m_fetchingParametersPanel = new PanelLoading("Fetching workflow parameters...");
+    private final LoadingPanel m_fetchingParametersPanel = new LoadingPanel("Fetching workflow parameters...");
 
     /** Warns the user when the node ports do not match the workflow parameter types (or their order). */
     private final StatusView m_outOfSyncWarning = new StatusView(500);

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<knimeNode deprecated="true" icon="./callworkflow.png" type="Other" xmlns="http://knime.org/node/v2.10" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://knime.org/node/v2.10 http://knime.org/node/v2.10.xsd">
+    <name>Call Remote Workflow (Row Based)</name>
+    
+    <shortDescription>
+        Calls other remote workflows on a KNIME server.
+    </shortDescription>
+    
+    <fullDescription>
+        <intro>This node can be used to call other workflows that reside on a KNIME Server. Input data can be passed to
+        Quickform Input nodes (only the new input nodes, e.g <i>Container Input (JSON)</i>) in the other workflow and results can likewise be read back as
+        a JSON value from JSON Output nodes(e.g <i>Container Output (JSON)</i>).
+        The input can either be a static JSON values provided via the dialog (which itself can be overridden by a flow
+        variable) or from a JSON column in the input table. The node will call the other workflow with every row
+        of the input table and append the results of the call to it.<br />
+        The node will call the other workflow with every row of the input table and append the results of the call to it.
+        The same remote workflow can be called by multiple nodes at the same time, a new job is created on the server
+        for each node.  
+        </intro>
+
+        <tab name="Workflow">
+
+            <option name="Server address">The address to the KNIME Server's REST interface. This is usually something like
+                <tt>http://server:8080/knime/rest</tt>.
+            </option>
+            <option name="User">The username on the server.</option>
+            <option name="Password">The user's password the server.</option>
+
+            <option name="Short duration: the workflow is expected to run quickly, less than 10 seconds
+        				(only applies if the called workflow is executed on a KNIME server)">
+                Choose this if the called workflow is expected to finish within ten seconds. When selected, the invocation
+                of the workflow will not poll its status, but wait until the job completes (or fails). This removes the
+                polling overhead and makes this option quicker for short running workflows. Choosing this option
+                for long running workflows (&gt; a minute) will cause timeout problems.
+            </option>
+
+            <option name="Long duration: the workflow is expected to run longer than 10 seconds
+        				(only applies if the called workflow is executed on a KNIME server)">
+                Choose this if the called workflow is expected to run for more than ten seconds. When selected, the
+                invocation of the workflow will poll its status, that is start, poll, poll, ..., finish, until the job
+                completes (or fails). This option is reasonable for long running workflows where the overhead of regularly
+                polling the status is negligible. The polling is implemented so that for the first few seconds there will
+                be frequent status checks (poll interval 100ms or 500ms), whereas jobs that run minutes or hours will be
+                checked only every few seconds.
+            </option>
+
+            <option name="Asynchronous Invocation">The user's password the server.</option>
+            <option name="Workflow path">The path of the workflow on the server you want to call. The path must an absolute
+                path in the server's repository. You can either enter the path by hand, or click on <i>List available
+                    workflows</i> and then select a workflow in the dropdown list.
+            </option>
+            <option name="Create Report">If checked the report associated with the remote workflow will be generated and
+                put into the output table. The format can be chosen in the drop-down. The output table will contain a column
+                containing the binary content of the report (column type: binary object); the column can be further processed,
+                e.g. use a &quot;Binary Objects to Files&quot; node to write the content to a file, or use a database writer
+                to write the report as BLOB into a database. Failures to generate the report
+                (for instance, because no report is attached to the workflow) will result in a missing cell.
+            </option>
+            <option name="Use Fully Qualified Name for Input and Output Parameters">If checked, use the full parameter name
+                to select the input and output. The parameter names are
+                defined by the user in the configuration dialog
+                of each of the parameters (like JSON In/Output node), e.g. "timeout",
+                "count", etc. Using these 'simple names'
+                may lead to duplicates, hence a 'fully qualified name' is constructed by
+                appending a suffix, e.g. "timeout-1" or "count-5:6".
+                While these suffixes guarantee unique parameter names across one workflow they may cause
+                names not to match in case you
+                call out to different workflows (e.g. in a loop). It's good practice to (manually) ensure that parameter
+                names in the called workflow are unique and hence often the 'simple name' is sufficient (= do not check the box).
+            </option>
+            <option name="Inputs">After you have loaded the input format you will see an input block for every input node in
+                the called workflow. You can select if you want to use a static value or the value of a column for the respective
+                input field or use the default value (that is the value that is set up in the workflow being called).
+            </option>
+        </tab>
+
+        <tab name="Advanced Settings">
+            <option name="Workflow load timeout">The timeout to use when loading the workflow on the server. Specified
+                in seconds. A value of 0 means that no timeout will be used.</option>
+            <option name="Server connection timeout">The maximum amount of time to wait when establishing a connection
+                to the server. Specified in seconds. A value of 0 means that no timeout will be used.
+            </option>
+            <option name="Server read timeout">The maximum amount of time to wait when waiting for a response from the
+                server. This applies to requests made after the workflow job has been loaded. Specified in seconds.
+                A value of 0 means that no timeout will be used.
+            </option>
+            <option name="Job Status Polling">
+                During asynchronous invocation (option "Long Duration"), if a HTTP 5XX error occurs when polling for the
+                job status, the node will retry the request. The node will wait a certain amount of time before each retry.
+                The time to wait before the <i>n</i>-th attempt is determined by <i>base * multiplier^n</i>.
+                Use a multiplier of 1 for a linear, or greater than 1 for an exponential backoff.
+                Set the number of retries to 0 to disable retrying.
+            </option>
+        </tab>
+
+    </fullDescription>
+    <ports>
+        <inPort index="0" name="Input">Any input, possibly with JSON column.</inPort>
+        <outPort index="0" name="Output">Output of workflow call</outPort>
+    </ports>    
+</knimeNode>

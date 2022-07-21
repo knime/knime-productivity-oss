@@ -36,7 +36,7 @@ public interface KNIMEServerAwareConnectionService {
     /**
      * Create new connection for supported port object implementations (they represent KNIME server connection).
      * @param portObjectSpec server connection, if available
-     * @param context the context the workflow runs in, needed for resolving relativ paths etc.
+     * @param context the context the workflow runs in, needed for resolving relative paths etc.
      * @return An optional server connection to be used.
      * @throws InvalidSettingsException ...
      */

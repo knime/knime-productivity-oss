@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
@@ -55,26 +56,25 @@ final class ParameterUpdateWorker extends SwingWorkerWithContext<WorkflowParamet
      * @param loadTimeout maximum time to wait for the remote side
      * @param serverConnection local or remote connection
      * @param whenDone callback for the retrieved information about the subworkflow
+     * @throws InvalidSettingsException if the configuration cannot be used to instantiate an {@link IWorkflowBackend}
+     *             from the serverConnection.
      */
     ParameterUpdateWorker(final String workflowPath, final Consumer<String> errorDisplay, final Duration loadTimeout,
         final IServerConnection serverConnection, final Consumer<WorkflowParameters> whenDone,
-        final Supplier<CallWorkflowConnectionConfiguration> configuration) {
+        final Supplier<CallWorkflowConnectionConfiguration> configuration) throws InvalidSettingsException {
 
         if (serverConnection == null) {
             throw new IllegalArgumentException(
                 "Cannot connect to server. Please re-execute upstream KNIME Server Connector node.");
         }
 
-        if (workflowPath.isBlank() || !CallWorkflowConnectionConfiguration.isValidWorkflowPath(workflowPath)) {
-            throw new IllegalArgumentException(
-                CallWorkflowConnectionConfiguration.invalidWorkflowPathMessage(workflowPath));
-        }
         m_errorDisplay = errorDisplay;
 
         m_connectionConfiguration = configuration.get();
         m_connectionConfiguration.setLoadTimeout(loadTimeout);
         m_connectionConfiguration.setWorkflowPath(workflowPath);
         m_connectionConfiguration.setKeepFailingJobs(false);
+        IServerConnection.validateConfiguration(m_connectionConfiguration, serverConnection);
 
         m_serverConnection = serverConnection;
 

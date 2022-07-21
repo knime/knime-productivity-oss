@@ -14,11 +14,18 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 import org.knime.workflowservices.connection.IServerConnection;
+import org.knime.workflowservices.connection.ServerConnectionUtil;
 
 /**
- * UI to customise different timeouts used when communicating with a server.
+ * UI to customize different timeouts used when communicating with a server.
+ *
+ * @deprecated {@link ConnectionTimeoutControls}. This panel was used with
+ *             {@link ServerConnectionUtil#getConnection(String, String, String, Duration, Duration)} but all current
+ *             call workflow nodes use
+ *             {@link ServerConnectionUtil#getConnection(org.knime.core.node.port.PortObjectSpec, org.knime.core.node.workflow.WorkflowManager)}.
  */
 @SuppressWarnings("serial")
+@Deprecated(since = "4.7")
 public class ConnectionTimeoutPanel extends JPanel {
 
     JSpinner m_loadTimeoutSpinner = createSpinner((int)IServerConnection.DEFAULT_LOAD_TIMEOUT.getSeconds());

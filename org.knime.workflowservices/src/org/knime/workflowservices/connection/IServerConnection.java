@@ -24,12 +24,20 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
+import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.workflowservices.IWorkflowBackend;
+import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 
 /**
- * Represents the connection details to a server, whereby 'server' could also be local execution. Class hierarchy came
- * into existence as part of AP-15518 (rewrite node based on 4.3 file handling concept).
+ * A connection provides {@link IWorkflowBackend}s, where the backend of a particular workflow allows controlling its
+ * execution. A connection also
+ *
+ * Represents the connection details to a server, whereby 'server' could also be local execution.
+ *
+ * Class hierarchy came into existence as part of AP-15518 (rewrite node based on 4.3 file handling concept).
  *
  * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
  * @noreference
@@ -78,13 +86,45 @@ public interface IServerConnection extends Closeable {
     public static final Duration DEFAULT_LOAD_TIMEOUT = Duration.ofSeconds(60);
 
     /**
-     * Creates the backend to use.
+     * Creates the backend to use. The configuration must be valid according to
+     * {@link #validate(CallWorkflowConnectionConfiguration)}.
      *
      * @param configuration contains timeouts, workflow path, etc.
      * @return The backend, not null.
      * @throws Exception ...
+     * @see #validate(CallWorkflowConnectionConfiguration)
      */
     IWorkflowBackend createWorkflowBackend(CallWorkflowConnectionConfiguration configuration) throws Exception;
+
+    /**
+     * Check whether the given configuration can be passed to
+     * {@link #createWorkflowBackend(CallWorkflowConnectionConfiguration)}
+     *
+     * @param configuration to check
+     * @return a user-facing error message in case an invalid configuration is given, empty optional if the
+     *         configuration is valid
+     */
+    default Optional<String> validate(final CallWorkflowConnectionConfiguration configuration) {
+
+        if (configuration == null) {
+            return Optional.of("Configuration is null");
+        }
+
+        // check workflow path
+        var pathProblem = CallWorkflowUtil.PlainWorkflowPathFormat.validate(configuration.getWorkflowPath());
+        if (pathProblem.isPresent()) {
+            return pathProblem;
+        }
+
+        // check report format
+        boolean isHtmlFormat = configuration.getReportFormat().map(fmt -> fmt == RptOutputFormat.HTML).orElse(false);
+        if (isHtmlFormat) {
+            return Optional.of("HTML report format is not supported.");
+        }
+
+        // everything ok
+        return Optional.empty();
+    }
 
     /**
      * Called from the dialog for some label.
@@ -126,6 +166,22 @@ public interface IServerConnection extends Closeable {
          */
         public ListWorkflowFailedException(final Throwable cause) {
             super(cause);
+        }
+    }
+
+    /**
+     * @param configuration to validate
+     * @param connection the connection to use for validation
+     * @throws InvalidSettingsException if the given connection is not null and the connection's validation method
+     *             returns an error message
+     */
+    public static void validateConfiguration(final CallWorkflowConnectionConfiguration configuration,
+        final IServerConnection connection) throws InvalidSettingsException {
+        if (connection != null) {
+            var error = connection.validate(configuration);
+            if (error.isPresent()) {
+                throw new InvalidSettingsException(error.get());
+            }
         }
     }
 

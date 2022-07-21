@@ -34,7 +34,7 @@ import org.eclipse.core.runtime.Platform;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.node.workflow.WorkflowPersistor;
 import org.knime.workflowservices.IWorkflowBackend;
-import org.knime.workflowservices.json.row.caller.local.LocalWorkflowBackend;
+import org.knime.workflowservices.LocalWorkflowBackend;
 
 /**
  * Not a server connection (despite the name) but local workflow execution.
@@ -49,6 +49,9 @@ public final class LocalExecutionServerConnection implements IServerConnection {
         m_wfm = wfm;
     }
 
+    /**
+     * @param configuration provides the workflow path
+     */
     @Override
     public IWorkflowBackend createWorkflowBackend(final CallWorkflowConnectionConfiguration configuration)
         throws Exception {

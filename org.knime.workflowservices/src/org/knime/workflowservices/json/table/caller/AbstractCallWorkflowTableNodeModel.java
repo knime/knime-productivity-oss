@@ -58,8 +58,8 @@ import org.knime.json.node.container.input.variable2.ContainerVariableMapper2;
 import org.knime.json.node.container.mappers.ContainerTableMapper;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
+import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 import org.knime.workflowservices.connection.IServerConnection;
-import org.knime.workflowservices.json.row.caller.CallWorkflowNodeModel;
 
 /**
  * Model for the Call Workflow (Table) node.
@@ -179,7 +179,7 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
             CredentialsProvider credentialsProvider = getCredentialsProvider();
 
             List<ICredentials> credentials = credentialsProvider.listNames().stream()
-                .filter(CallWorkflowNodeModel::verifyCredentialIdentifier)
+                .filter(CallWorkflowUtil::verifyCredentialIdentifier)
                 .map(name -> credentialsProvider.get(name)).collect(Collectors.toList());
 
             JsonValue jsonValue = ContainerCredentialMapper.toContainerCredentialsJsonValue(credentials);
@@ -269,7 +269,7 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        new CallWorkflowTableNodeConfiguration().loadInModel(settings);
+        new CallWorkflowTableNodeConfiguration().loadInModel(settings, m_serverConnection);
     }
 
     /**
@@ -277,7 +277,7 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
      */
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_configuration.loadInModel(settings);
+        m_configuration.loadInModel(settings, m_serverConnection);
     }
 
     /**

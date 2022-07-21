@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<knimeNode deprecated="true" icon="./callworkflow.png" type="Other" xmlns="http://knime.org/node/v2.10" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://knime.org/node/v2.10 http://knime.org/node/v2.10.xsd">
+    <name>Call Local Workflow (Row Based)</name>
+    
+    <shortDescription>
+        Calls other local workflows.
+    </shortDescription>
+    
+    <fullDescription>
+        <intro>This node can be used to call other workflows in in your local workspace. Input data can be passed to
+        Quickform Input nodes (only the new input nodes, e.g <i>Container Input (JSON)</i>) in the other workflow and results can likewise be read back as
+        a JSON value from JSON Output nodes(e.g <i>Container Output (JSON)</i>).
+        The input can either be a static JSON values provided via the dialog (which itself can be overridden by a flow
+        variable) or from a JSON column in the input table. The node will call the other workflow with every row
+        of the input table and append the results of the call to it.<br />
+        Note that the workflow you are calling must not be opened in an editor in your workbench and that the workflow
+        can not be executed in parallel. This means that multiple Call Local Workflow nodes using the same called workflow
+        will execute sequentially.
+        </intro>
+        
+        <option name="Workflow path">The path to the workflow you want to call. The path can either be absolute to the
+        local workspace if it starts with a slash or relative to the current workflow if it does not start with slash.
+        You can also use paths relative to the current workflow, e.g <tt>../Called Workflow</tt>.
+        You may also use an URL with the knime-protocol pointing to a local resource (e.g. knime://TeamspaceMount/Workflow).
+        </option>
+        <option name="Create Report">If checked the report associated with the called workflow will be generated and 
+            put into the output table. The format can be chosen in the drop-down. The output table will contain a column
+            containing the binary content of the report (column type: binary object); the column can be further processed,
+            e.g. use a &quot;Binary Objects to Files&quot; node to write the content to a file, or use a database writer
+            to write the report as BLOB into a database. Failures to generate the report 
+            (for instance, because no report is attached to the workflow) will result in a missing cell. 
+        </option>
+		<option name="Use Fully Qualified Name for Input and Output Parameters">If checked, use the full parameter name
+			to select the input and output. The parameter names are
+			defined by the user in the configuration dialog
+			of each of the parameters (like JSON In/Output node), e.g. "timeout",
+			"count", etc. Using these 'simple names'
+			may lead to duplicates, hence a 'fully qualified name' is constructed by
+			appending a suffix, e.g. "timeout-1" or "count-5:6".
+			While these suffixes guarantee unique parameter names across one workflow they may cause
+			names not to match in case you
+			call out to different workflows (e.g. in a loop). It's good practice to (manually) ensure that parameter
+			names in the called workflow are unique and hence often the 'simple name' is sufficient (= do not check the box).
+		</option>
+        <option name="Inputs">After you have loaded the input format you will see an input block for every input node in
+        the called workflow. You can select if you want to use a static value or the value of a column for the respective
+        input field or use the default value (that is the value that is set up in the workflow being called).
+        </option>
+    </fullDescription>
+    <ports>
+        <inPort index="0" name="Input">Any input, possibly with JSON column.</inPort>
+        <outPort index="0" name="Output">Output of workflow call</outPort>
+    </ports>    
+</knimeNode>

@@ -23,7 +23,9 @@ package org.knime.workflowservices.json.table.caller;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.NotConfigurableException;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
+import org.knime.workflowservices.connection.IServerConnection;
 
 /**
  * Configuration for the Call Workflow (Table) node.
@@ -79,8 +81,9 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      * @return this configuration
      * @throws InvalidSettingsException
      */
-    CallWorkflowTableNodeConfiguration loadInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
-        loadSettingsInModel(settings);
+    CallWorkflowTableNodeConfiguration loadInModel(final NodeSettingsRO settings, final IServerConnection connection)
+        throws InvalidSettingsException {
+        loadSettingsInModel(settings, connection);
         m_selectedInputParameter = settings.getString("selectedInputParameter", "");
         m_selectedOutputParameter = settings.getString("selectedOutputParameter", "");
         m_flowVariableDestination = settings.getString("flowVariableDestination", "");
@@ -95,14 +98,15 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      * @param settings settings to be loaded
      * @return this configuration
      * @throws InvalidSettingsException
+     * @throws NotConfigurableException
      */
-    CallWorkflowTableNodeConfiguration loadInDialog(final NodeSettingsRO settings) throws InvalidSettingsException {
+    CallWorkflowTableNodeConfiguration loadInDialog(final NodeSettingsRO settings) throws NotConfigurableException {
         loadSettingsInDialog(settings);
         m_selectedInputParameter = settings.getString("selectedInputParameter", "");
         m_selectedOutputParameter = settings.getString("selectedOutputParameter", "");
         m_flowVariableDestination = settings.getString("flowVariableDestination", "");
         m_flowCredentialsDestination = settings.getString("flowCredentialsDestination", "");
-        m_useFullyQualifiedIds = settings.getBoolean("useFullyQualifiedIds");
+        m_useFullyQualifiedIds = settings.getBoolean("useFullyQualifiedIds", false);
         return this;
     }
 

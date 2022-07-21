@@ -46,27 +46,28 @@
 		
 		<tab name="Workflow">
 
-			<option name="Server address (only when connected to a KNIME Server)">Displays the address of the connected server.</option>
+			<option name="Server address (only for remote execution)">Displays the address of the connected server.</option>
 
-			<option name="Short duration (only applies to execution on a KNIME Server)">
+			<option name="Short duration (only for remote execution)">
 				Choose this if the called workflow is expected to finish within ten seconds. When selected, the invocation
 				of the workflow will not poll its status but wait until the job completes (or fails). This removes the
 				polling overhead and makes this option quicker for short running workflows. Choosing this option
 				for long running workflows (&gt; a minute) will cause timeout problems.
 			</option>
 
-			<option name="Long duration (only applies to execution on a KNIME Server)">
+			<option name="Long duration (only for remote execution)">
 				Choose this if the called workflow is expected to run for more than ten seconds. When selected, the
 				invocation of the workflow will poll its status repeatedly until the job completes (or fails). 
 				The polling is implemented so that for the first few seconds there will be frequent status checks 
 				(poll interval 100ms or 500ms), whereas jobs that run minutes or hours will be checked only every few seconds.
 			</option>
 
-			<option name="Retain job on failure (only applies to execution on a KNIME Server)">
+			<option name="Retain job on failure (only for remote execution)">
 			When selected, failing jobs of the called workflow will be kept on the server. This can be
-			useful for debugging purposes. When not selected, the failing jobs will be discarded.</option>
+			useful for debugging purposes. When not selected, the failing jobs will be discarded.
+			</option>
 
-			<option name="Discard job on successful execution (only applies to execution on a KNIME Server)">
+			<option name="Discard job on successful execution (only for remote execution)">
 			When selected, successful jobs of the called workflow will be discarded from the server. When not selected, the
 			successful jobs will be kept.
 			</option>
@@ -74,22 +75,36 @@
 			<option name="Workflow path">The path of the workflow you want to call. If connected to a server, the path must be an absolute 
 			path (i.e., a path starting with "/") in the server's repository. 
 			If calling a workflow in the Local Workspace, the path may be absolute or relative (i.e., a path starting with "../"). 
-			You can either enter the path by hand or click on <i>Browse Workflows</i> and then select one of the available workflows.<br/>
-			</option>
-			
-			<option name="Fetch workflow parameters">Retrieves the parameter names defined in Workflow Service Input and
-			Workflow Service Output nodes in the workflow selected for execution. <br/>
+			You can either enter the path by hand or click on <i>Browse Workflows</i> and then select one of the workflows.
 			</option>
 
-			<option name="Load timeout">
-				The maximum amount of time the client will wait for the server to fetch the input and output parameters of the called workflow. 
-				Specified in seconds. A value of 0 means that no timeout will be used.
-			</option>
-			
+			<option name="Input Parameters">
+                After you have specified a workflow path, you will see the input parameters of the workflow.
+				Every input parameter corresponds to an input port of the node. This panel shows which input port's data is sent
+				to which input parameter. By using the arrows, you can configure the binding of input ports to input parameters.
+            </option>
+
+			<option name="Output Parameters">
+                Similar to the input parameters panel. Maps data sent back from the workflow to this node's output ports.
+            </option>
+
 			<option name="Adjust node ports"> When the node ports differ from the workflow parameters,
 			this button is used to confirm updating the node ports, which may remove connections to other nodes. 
 			</option>
 		</tab>
+		<tab name="Advanced Settings">
+            <option name="Workflow load timeout (only for remote execution)">
+                The maximum amount of time to wait for the server when trying to initialize remote workflow execution.
+				Specified in seconds. A value of 0 means that no timeout will be used.
+            </option>
+			<option name="Job Status Polling (only for remote execution)">
+                During asynchronous invocation (option "Long Duration"), if a HTTP 5XX error occurs when polling for the job status, the node will retry the request. The node will wait a certain amount of time before each retry. The time to wait before the <i>n</i>-th attempt is determined by <i>base * multiplier^n</i>. Use a multiplier of 1 for a constant backoff, or a multiplier greater than 1 for an exponential backoff. Set the number of retries to 0 to disable retrying.
+            </option>
+			<option name="Fetch parameters timeout (only for remote execution)">
+				The maximum amount of time to wait for the server when fetching the input and output parameters of the called workflow. 
+				Specified in seconds. A value of 0 means that no timeout will be used.
+			</option>
+        </tab>
 	</fullDescription>
 
 	<ports>

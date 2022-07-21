@@ -3,25 +3,33 @@
 
 <plugin>
     <extension point="org.knime.workbench.repository.nodes">
+       <!-- Call Workflow (Table Based) -->
+       <node
+             category-path="/flowabstraction/container"
+             factory-class="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory" />
+       <!-- Call Workflow (Row Based) -->
+       <node
+            category-path="/flowabstraction/container"
+            factory-class="org.knime.workflowservices.json.row.caller2.CallWorkflowRowBasedNodeFactory"
+            after="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory" />
+       
+       <!-- Deprecated Nodes -->
+       
+       <!-- Call Local Workflow (Row Based) -->
        <node
             category-path="/flowabstraction/container"
             factory-class="org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFactory"
-            after="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory" />
+            deprecated="true" />
+       <!-- Call Remote Workflow (Row Based) -->
        <node
              category-path="/flowabstraction/container"
              factory-class="org.knime.workflowservices.json.row.caller.remote.CallRemoteWorkflowNodeFactory"
-             after="org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFactory">
-       </node>
+             deprecated="true" />
+       <!-- Call Workflow (Table Based) -->
        <node
              category-path="/flowabstraction/container"
              deprecated="true"
-             factory-class="org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeFactory">
-       </node>
-       <node
-             category-path="/flowabstraction/container"
-             deprecated="false"
-             factory-class="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory">
-       </node>
+             factory-class="org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeFactory" />
     </extension>
     <extension
           point="org.knime.core.NodeFactoryClassMapper">

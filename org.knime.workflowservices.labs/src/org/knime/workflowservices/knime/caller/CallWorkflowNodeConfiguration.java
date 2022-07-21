@@ -25,7 +25,9 @@ import java.util.Optional;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.NotConfigurableException;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
+import org.knime.workflowservices.connection.IServerConnection;
 
 /**
  * Configuration for the Call Workflow node.
@@ -51,13 +53,14 @@ final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfigur
     }
 
     @Override
-    protected void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
-        super.loadSettingsInModel(settings);
+    protected void loadSettingsInModel(final NodeSettingsRO settings, final IServerConnection connection)
+        throws InvalidSettingsException {
+        super.loadSettingsInModel(settings, connection);
         loadCalleeWorkflowProperties(settings);
     }
 
     @Override
-    protected void loadSettingsInDialog(final NodeSettingsRO settings) throws InvalidSettingsException {
+    protected void loadSettingsInDialog(final NodeSettingsRO settings) throws NotConfigurableException {
         super.loadSettingsInDialog(settings);
         loadCalleeWorkflowProperties(settings);
     }
@@ -66,11 +69,11 @@ final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfigur
      * @param settings
      * @throws InvalidSettingsException
      */
-    private void loadCalleeWorkflowProperties(final NodeSettingsRO settings) throws InvalidSettingsException {
+    private void loadCalleeWorkflowProperties(final NodeSettingsRO settings) {
         WorkflowParameters calleeWorkflowProperties = null;
-        if (settings.containsKey(CFG_CALLEE_PROPERTIES)) {
-            var calleePropertiesSettings = settings.getNodeSettings(CFG_CALLEE_PROPERTIES);
-            calleeWorkflowProperties = WorkflowParameters.loadFrom(calleePropertiesSettings);
+        try {
+            calleeWorkflowProperties = WorkflowParameters.loadFrom(settings.getNodeSettings(CFG_CALLEE_PROPERTIES));
+        } catch (InvalidSettingsException e) {
         }
         m_calleeWorkflowProperties = Optional.ofNullable(calleeWorkflowProperties);
     }

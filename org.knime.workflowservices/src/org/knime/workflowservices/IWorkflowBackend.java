@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 
 import javax.json.JsonValue;
 
+import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortType;
@@ -72,7 +73,7 @@ import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 public interface IWorkflowBackend extends AutoCloseable {
     /** Wraps the workflow state - either translates to node container state (local) or the REST version. */
     public enum WorkflowState {
-        IDLE, RUNNING, EXECUTED,
+            IDLE, RUNNING, EXECUTED,
     }
 
     /**
@@ -83,7 +84,7 @@ public interface IWorkflowBackend extends AutoCloseable {
     Map<String, ExternalNodeData> getInputNodes();
 
     /**
-     * Creates a job if doesn't exists
+     * Creates a job if does not exist
      *
      * @throws Exception
      */
@@ -103,7 +104,6 @@ public interface IWorkflowBackend extends AutoCloseable {
      * @return a map between IDs and values
      */
     Map<String, JsonValue> getOutputValues();
-
 
     /**
      * @return the Input's node description as {@link ResourceContentType}
@@ -125,8 +125,8 @@ public interface IWorkflowBackend extends AutoCloseable {
     InputStream openOutputResource(final String name) throws IOException;
 
     /**
-     * Executes the workflow and returns the state after execution. The map doesn't need to contain all input values
-     * but only the ones that have changed
+     * Executes the workflow and returns the state after execution. The map doesn't need to contain all input values but
+     * only the ones that have changed
      *
      * @param input a map with the updated input data
      * @return the current workflow state
@@ -135,8 +135,8 @@ public interface IWorkflowBackend extends AutoCloseable {
     WorkflowState execute(final Map<String, ExternalNodeData> input) throws Exception;
 
     /**
-     * Executes the workflow and returns the state after execution. It is used when the
-     * Input/Output nodes of the workflow be represented as a resource.
+     * Executes the workflow and returns the state after execution. It is used when the Input/Output nodes of the
+     * workflow be represented as a resource.
      *
      * @param input a map with the updated input data
      * @return the current workflow state
@@ -153,7 +153,7 @@ public interface IWorkflowBackend extends AutoCloseable {
 
     /**
      * @param format
-     * @return
+     * @return not null
      */
     byte[] generateReport(final RptOutputFormat format) throws ReportGenerationException;
 
@@ -168,6 +168,53 @@ public interface IWorkflowBackend extends AutoCloseable {
             super(message, cause);
         }
 
+    }
+
+    /**
+     * Execute the workflow handled by this workflow backend instance. Returns all results provided by
+     * {@link IWorkflowBackend#getOutputValues()}, {@link IWorkflowBackend#getWorkflowMessage()},
+     * {@link IWorkflowBackend#generateReport(RptOutputFormat)},
+     *
+     * @param reportFormatOrNull the format (pdf, docx, etc.) in which the report for the workflow should be generated
+     * @param input bindings of the input parameters of the workflow
+     * @return output values, optional report, execution summary, execution duration
+     * @throws Exception
+     */
+    public default BackendExecutionResult executeWorkflow(final RptOutputFormat reportFormatOrNull,
+        final Map<String, ExternalNodeData> input) throws Exception {
+
+        long start = System.currentTimeMillis();
+        final var workflowState = this.execute(input);
+        long elapsedTimeMs = System.currentTimeMillis() - start;
+
+        // handle failure
+        if (!workflowState.equals(WorkflowState.EXECUTED)) {
+            return new BackendExecutionResult(failureMessage(this.getWorkflowMessage()), workflowState, elapsedTimeMs);
+        }
+
+        String errorMessageOrNull = null;
+        // generate report
+        byte[] report = null;
+        ReportGenerationException reportException = null;
+        if (reportFormatOrNull != null) {
+            try {
+                report = this.generateReport(reportFormatOrNull);
+            } catch (ReportGenerationException e) {
+                errorMessageOrNull = "Can't generate report: " + e.getMessage();
+                reportException = e;
+            }
+        }
+
+        return new BackendExecutionResult(this.getOutputValues(), report, reportException, errorMessageOrNull,
+            workflowState, elapsedTimeMs);
+    }
+
+    private static String failureMessage(final String reason) {
+        String message = "Failure, workflow was not executed.";
+        if (StringUtils.isNotBlank(reason)) {
+            message = message + "\n" + reason;
+        }
+        return message;
     }
 
     /** For all parameters in the collection get the simple ID if applicable, other the full id. For instance,
@@ -191,15 +238,22 @@ public interface IWorkflowBackend extends AutoCloseable {
         }));
     }
 
-    /*
-     * Declares knime custom content types for the input and output nodes
+    /**
+     * Declares KNIME custom content types for the input and output nodes
      *
      * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
      */
     public class ResourceContentType {
 
-        /** The content type of in/output node's {@link ExternalNodeData} starts with this and is followed by the fully
-         * qualified class name of the port type, e.g. <pre>knime-port/org.knime.core.node.port.pmml.PMMLPortObject</pre>.
+        /**
+         * The content type of in/output node's {@link ExternalNodeData} starts with this and is followed by the fully
+         * qualified class name of the port type, e.g.
+         *
+         * <pre>
+         * knime - port / org.knime.core.node.port.pmml.PMMLPortObject
+         * </pre>
+         *
+         * .
          */
         public static final String CONTENT_TYPE_DEF_PREFIX = "knime-port/";
 
