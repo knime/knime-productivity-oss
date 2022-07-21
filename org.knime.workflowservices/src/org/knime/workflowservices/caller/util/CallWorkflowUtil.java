@@ -27,7 +27,6 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.util.StringHistory;
 import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.node.workflow.IllegalFlowVariableNameException;
-import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.util.SelectWorkflowPanel;
 
 /**
@@ -71,24 +70,6 @@ public final class CallWorkflowUtil {
         public String getIdentifier() {
             return m_historyIdentifier;
         }
-    }
-
-    /**
-     * Check that polling is enabled when generating reports.
-     *
-     * This requirement is enforced through the node dialog of the deprecated Call Remote Workflow (Row Based) node.
-     * TODO It is not enforced for the Call Workflow (Table Based) node - do we still need it?
-     *
-     * @param configuration to check
-     * @return error message if a report is to be generated and polling is not enabled. Empty Optional otherwise.
-     */
-    public static Optional<String> validatePollingForReports(final CallWorkflowConnectionConfiguration configuration) {
-
-        if (configuration.getReportFormat().isPresent() && configuration.isSynchronousInvocation()) {
-            return Optional.of("When generating a report, polling must be enabled.");
-        }
-
-        return Optional.empty();
     }
 
     /**

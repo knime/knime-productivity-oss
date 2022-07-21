@@ -188,11 +188,10 @@ public interface IWorkflowBackend extends AutoCloseable {
         long elapsedTimeMs = System.currentTimeMillis() - start;
 
         // handle failure
-        if (!workflowState.equals(WorkflowState.EXECUTED)) {
+        if (workflowState != WorkflowState.EXECUTED) {
             return new BackendExecutionResult(failureMessage(this.getWorkflowMessage()), workflowState, elapsedTimeMs);
         }
 
-        String errorMessageOrNull = null;
         // generate report
         byte[] report = null;
         ReportGenerationException reportException = null;
@@ -200,13 +199,13 @@ public interface IWorkflowBackend extends AutoCloseable {
             try {
                 report = this.generateReport(reportFormatOrNull);
             } catch (ReportGenerationException e) {
-                errorMessageOrNull = "Can't generate report: " + e.getMessage();
                 reportException = e;
             }
         }
 
-        return new BackendExecutionResult(this.getOutputValues(), report, reportException, errorMessageOrNull,
-            workflowState, elapsedTimeMs);
+        return new BackendExecutionResult(this.getOutputValues(), report, reportException,
+            // report exceptions do not show up in the general workflow error message
+            null, workflowState, elapsedTimeMs);
     }
 
     private static String failureMessage(final String reason) {
@@ -217,19 +216,21 @@ public interface IWorkflowBackend extends AutoCloseable {
         return message;
     }
 
-    /** For all parameters in the collection get the simple ID if applicable, other the full id. For instance,
-     * if the argument is [string-input-1, string-input-2, int-input-3], the result will be:
+    /**
+     * For all parameters in the collection get the simple ID if applicable, other the full id. For instance, if the
+     * argument is [string-input-1, string-input-2, int-input-3], the result will be:
      * <ul>
      * <li>string-input-1 -> string-input-1
      * <li>string-input-2 -> string-input-2
      * <li>int-input-3 -> int-input
      * </ul>
+     *
      * @param fullyQualfiedIDs non-null collection with all parameters, fully qualified
      * @return the map as describe above
      */
     public static Map<String, String> getFullyQualifiedToSimpleIDMap(final Collection<String> fullyQualfiedIDs) {
         Map<String, Long> collisionMap = fullyQualfiedIDs.stream()
-                .collect(Collectors.groupingBy(ExternalNodeData::getSimpleIDFrom, Collectors.counting()));
+            .collect(Collectors.groupingBy(ExternalNodeData::getSimpleIDFrom, Collectors.counting()));
         collisionMap.values().removeIf(l -> l.longValue() > 1L);
 
         return fullyQualfiedIDs.stream().collect(Collectors.toMap(Function.identity(), name -> {

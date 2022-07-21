@@ -23,8 +23,10 @@ package org.knime.workflowservices.json.row.caller2;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
@@ -77,13 +79,26 @@ final class JsonInputParametersPanel {
      * @param inputTableSpec provides the JSON columns that can be selected as data source
      */
     public void createPanels(final Map<String, ExternalNodeData> inputNodes, final DataTableSpec inputTableSpec) {
+
         m_collapsablePanels.removeAll();
         m_panelMap.clear();
-        for (var entry : inputNodes.entrySet()) {
+        final var sortedByParameterName =
+            inputNodes.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey)).collect(Collectors.toList());
+        for (var i = 0; i < sortedByParameterName.size(); i++) {
+            var entry = sortedByParameterName.get(i);
             var p = new JSONInputPanel(entry.getKey(), entry.getValue().getJSONValue(), inputTableSpec);
+            p.setSelectedIndex(i);
             m_panelMap.put(entry.getKey(), p);
             m_collapsablePanels.addPanel(p, false);
         }
+
+        if (inputNodes.isEmpty()) {
+            m_panel.setBorder(BorderFactory.createTitledBorder("Input Parameters (workflow has none)"));
+        } else {
+            m_panel.setBorder(BorderFactory.createTitledBorder("Input Parameters"));
+        }
+        m_panel.revalidate();
+        m_panel.repaint();
     }
 
     public void clear() {
@@ -113,9 +128,10 @@ final class JsonInputParametersPanel {
         Map<String, String> parameterToJsonColumnMap = new LinkedHashMap<>();
         Map<String, ExternalNodeData> parameterToJsonConfigMap = new LinkedHashMap<>();
         for (JSONInputPanel panel : m_panelMap.values()) {
-            final var key = panel.getParameterIDSimple();
+            final var key = panel.getParameterID();
             final var jsonColumn = panel.getJSONColumn();
             final var jsonConfig = panel.getJSONConfig();
+            configuration.setDropParameterIdentifier(key, panel.isDropParameterIdentifier());
             if (jsonColumn.isPresent()) {
                 parameterToJsonColumnMap.put(key, jsonColumn.get());
             } else if (jsonConfig.isPresent()) {
@@ -138,22 +154,25 @@ final class JsonInputParametersPanel {
     }
 
     /**
-     * @param settings contains the data sources for the callee workflow input parameters (source column or fixed JSON
-     *            object)
+     * @param configuration contains the data sources for the callee workflow input parameters (source column or fixed
+     *            JSON object)
      */
-    public void loadConfiguration(final CallWorkflowRowBasedConfiguration settings) {
+    public void loadConfiguration(final CallWorkflowRowBasedConfiguration configuration) {
 
-        var columnSource = settings.getParameterToJsonColumnMap();
-        var fixedSource = settings.getParameterToJsonConfigMap();
+        var columnSource = configuration.getParameterToJsonColumnMap();
+        var fixedSource = configuration.getParameterToJsonConfigMap();
 
         for (var panel : m_panelMap.values()) {
-            final var parameterName = panel.getParameterIDSimple();
-            if (columnSource.containsKey(parameterName)) {
-                panel.setColumnName(columnSource.get(parameterName));
-            } else if (fixedSource.containsKey(parameterName)) {
-                panel.setJson(fixedSource.get(parameterName).getJSONValue());
+            final var parameterId = panel.getParameterID();
+            if (columnSource.containsKey(parameterId)) {
+                panel.setColumnName(columnSource.get(parameterId));
+            } else if (fixedSource.containsKey(parameterId)) {
+                panel.setJson(fixedSource.get(parameterId).getJSONValue());
             } else {
                 panel.setNoDataSource();
+            }
+            if(configuration.isDropParameterIdentifiers(parameterId)) {
+                panel.setDropParameterIdentifier();
             }
         }
     }

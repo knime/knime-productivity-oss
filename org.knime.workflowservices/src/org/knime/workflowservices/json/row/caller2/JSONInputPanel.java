@@ -56,6 +56,7 @@ import java.util.Optional;
 
 import javax.json.JsonValue;
 import javax.swing.ButtonGroup;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -68,6 +69,7 @@ import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.json.JSONValue;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NotConfigurableException;
+import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.ColumnSelectionPanel;
 import org.knime.json.util.JSONUtil;
@@ -90,6 +92,8 @@ public final class JSONInputPanel extends JPanel {
     private final JRadioButton m_useDefaultChecker;
 
     private final RSyntaxTextArea m_textEditArea;
+
+    private final JCheckBox m_dropParameterIdentifier = new JCheckBox("Drop node ID from parameter name", false);
 
     private final ColumnSelectionPanel m_jsonColumnSelector = new ColumnSelectionPanel((Border)null, JSONValue.class);
 
@@ -125,11 +129,25 @@ public final class JSONInputPanel extends JPanel {
 
         try {
             m_jsonColumnSelector.update(spec, "");
+            if (m_jsonColumnSelector.getNrItemsInList() > 0) {
+                m_jsonColumnSelector.setSelectedIndex(0); // by default, the last item is selected, select the first instead
+            }
         } catch (NotConfigurableException e1) {
         }
         if (m_jsonColumnSelector.getNrItemsInList() == 0) {
             m_useColumnChecker.setEnabled(false);
             m_useColumnChecker.setToolTipText("Input table has no JSON columns");
+        }
+
+        m_dropParameterIdentifier.addActionListener(e -> {
+            setName(getParameterName());
+            invalidate();
+            revalidate();
+            repaint();
+        });
+        // hide the control if it would not have any effect
+        if (ExternalNodeData.getSimpleIDFrom(parameterName).equals(parameterName)) {
+            m_dropParameterIdentifier.setVisible(false);
         }
 
         final ActionListener l = e -> onButtonClick();
@@ -175,6 +193,16 @@ public final class JSONInputPanel extends JPanel {
     }
 
     /**
+     * Selects the i-th item or the last, if i > #items-1. Useful to make all comboboxes select distinct columns as
+     * preset.
+     *
+     * @param index zero based
+     */
+    void setSelectedIndex(final int index) {
+        m_jsonColumnSelector.setSelectedIndex(Math.min(m_jsonColumnSelector.getNrItemsInList() - 1, index));
+    }
+
+    /**
      * Set nothing as data source.
      */
     void setNoDataSource() {
@@ -182,20 +210,38 @@ public final class JSONInputPanel extends JPanel {
     }
 
     /**
-     * @return the parameterIDSimple
+     * @return identifies the workflow input parameter. Independent of whether {@link #m_dropParameterIdentifier} is
+     *         selected or not.
+     * @see #getParameterName()
      */
-    String getParameterIDSimple() {
+    String getParameterID() {
         return m_parameterIDSimple;
+    }
+
+    /**
+     * @return the simplified parameter ID (without node ID suffix) if {@link #m_dropParameterIdentifier} is selected.
+     *         Otherwise the fully qualified parameter name (= id)
+     * @see #getParameterID()
+     */
+    String getParameterName() {
+        return m_dropParameterIdentifier.isSelected() ? ExternalNodeData.getSimpleIDFrom(m_parameterIDSimple)
+            : m_parameterIDSimple;
+    }
+
+    /**
+     * @return whether the user selected to use the simplified version of the parameter name (e.g., string-input instead
+     *         of string-input-6) where possible.
+     */
+    boolean isDropParameterIdentifier() {
+        return m_dropParameterIdentifier.isSelected();
     }
 
     Optional<String> getJSONColumn() throws InvalidSettingsException {
         if (m_useColumnChecker.isSelected()) {
-            // TODO this can be stale (combo box is still populated with JSON columns from an earlier configuration step)
-            // TODO disable this when no JSON columns are present
             final var selectedColumn = m_jsonColumnSelector.getSelectedColumn();
             if (selectedColumn == null) {
                 throw new InvalidSettingsException(
-                    String.format("No JSON column available to send data to %s.", getParameterIDSimple()));
+                    String.format("No JSON column available to send data to %s.", getParameterID()));
             }
             return Optional.of(selectedColumn);
         }
@@ -226,9 +272,14 @@ public final class JSONInputPanel extends JPanel {
         gbc.gridx += 1;
         add(m_useDefaultChecker, gbc);
 
+        gbc.weightx = 1;
+        gbc.anchor = GridBagConstraints.EAST;
+        gbc.gridx += 1;
+        add(m_dropParameterIdentifier, gbc);
+
         gbc.gridx = 0;
         gbc.gridy += 1;
-        gbc.gridwidth = 3;
+        gbc.gridwidth = 4;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.weightx = 1;
@@ -257,6 +308,15 @@ public final class JSONInputPanel extends JPanel {
         invalidate();
         revalidate();
         repaint();
+    }
+
+    /**
+     * Drop the node id suffix from the parameter name when sending to the backend.
+     */
+    void setDropParameterIdentifier() {
+        if (!m_dropParameterIdentifier.isSelected()) {
+            m_dropParameterIdentifier.doClick();
+        }
     }
 
 }

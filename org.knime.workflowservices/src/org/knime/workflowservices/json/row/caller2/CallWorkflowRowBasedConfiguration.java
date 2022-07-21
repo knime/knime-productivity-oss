@@ -49,9 +49,12 @@
 package org.knime.workflowservices.json.row.caller2;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.knime.core.data.DataTableSpec;
@@ -82,6 +85,8 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
     /** @see #getParameterToJsonColumnMap() */
     private Map<String, String> m_parameterToJsonColumnMap = Collections.emptyMap();
 
+    private final Set<String> m_dropParameterIdentifiers = new HashSet<>();
+
     // save & load
 
     /**
@@ -105,6 +110,9 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
             var childSettings = settings3.addNodeSettings(entry.getKey());
             childSettings.addString("json-column", entry.getValue());
         }
+
+        // drop parameter identifiers
+        settings.addStringArray("dropParameterIdentifiersFor", m_dropParameterIdentifiers.toArray(String[]::new));
     }
 
     /**
@@ -121,6 +129,7 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
 
         loadJsonConfigMap(settings, true);
         loadJsonColumnMap(settings, true);
+        loadDropParameterIdentifiers(settings);
     }
 
     /**
@@ -145,6 +154,7 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
         } catch (InvalidSettingsException e) {
             // doesn't happen when strict = false
         }
+        loadDropParameterIdentifiers(settings);
     }
 
     /**
@@ -182,6 +192,15 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
                 throw new InvalidSettingsException("Invalid JSON string: " + ex.getMessage());
             }
         }
+    }
+
+    /**
+     * Loads the parameter ids for which {@link #isDropParameterIdentifiers(String)}
+     */
+    private void loadDropParameterIdentifiers(final NodeSettingsRO settings) {
+        m_dropParameterIdentifiers.clear();
+        var names = settings.getStringArray("dropParameterIdentifiersFor", new String[0]);
+        Arrays.stream(names).forEach(m_dropParameterIdentifiers::add);
     }
 
     /**
@@ -264,5 +283,29 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
     public CallWorkflowConnectionConfiguration setParameterToJsonColumnMap(final Map<String, String> map) {
         m_parameterToJsonColumnMap = map;
         return this;
+    }
+
+    /**
+     * @param parameterIdentifier fully qualified parameter name
+     * @param drop see {@link #isDropParameterIdentifiers(String)}
+     */
+    public void setDropParameterIdentifier(final String parameterIdentifier, final boolean drop) {
+        if (drop) {
+            m_dropParameterIdentifiers.add(parameterIdentifier);
+        } else {
+            m_dropParameterIdentifiers.remove(parameterIdentifier);
+        }
+    }
+
+    /**
+     * @param parameterIdentifier fully qualified parameter name
+     * @return whether the user selected to use the simplified version of the parameter name (e.g., string-input instead
+     *         of string-input-6).
+     *
+     *         This will be ignored by the backend if parameter names clash but is useful when configuring loops over
+     *         workflow paths that contain similar input parameters (e.g. string-input-5, string-input-6, etc.)
+     */
+    public boolean isDropParameterIdentifiers(final String parameterIdentifier) {
+        return m_dropParameterIdentifiers.contains(parameterIdentifier);
     }
 }

@@ -98,14 +98,18 @@ public class BackendExecutionResult {
         return m_jsonResults;
     }
 
-    /** @return A message describing exceptions during the retrieval of the execution result of the workflow. */
+    /**
+     * @return A message describing exceptions during the retrieval of the execution result of the workflow. This does
+     *         NOT include exceptions during report generation, which can be retrieved using
+     *         {@link #getReportGenerationException()}.
+     */
     public Optional<String> getErrorMessage() {
         return m_errorMessage;
     }
 
     /**
-     * @return The result of {@link IWorkflowBackend#generateReport(RptOutputFormat)}. If this is empty,
-     *         {@link #getReportGenerationException()} is present (and vice versa).
+     * @return The result of {@link IWorkflowBackend#generateReport(RptOutputFormat)}. If this is empty, report
+     *         generation was not requested, or {@link #getReportGenerationException()} is present.
      */
     public Optional<byte[]> getReport() {
         return m_report;
@@ -113,7 +117,7 @@ public class BackendExecutionResult {
 
     /**
      * @return Exception thrown during {@link IWorkflowBackend#generateReport(RptOutputFormat)}. If this is present,
-     *         {@link #getReport()} is empty (and vice versa).
+     *         {@link #getReport()} is empty.
      */
     public Optional<ReportGenerationException> getReportGenerationException() {
         return m_reportGenerationException;

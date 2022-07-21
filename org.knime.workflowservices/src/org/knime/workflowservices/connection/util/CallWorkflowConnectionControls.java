@@ -22,6 +22,7 @@ package org.knime.workflowservices.connection.util;
 
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -101,6 +102,7 @@ public final class CallWorkflowConnectionControls {
             initRemoteExecutionPanel();
 
             m_errorLabel.setForeground(Color.red.darker());
+            m_errorLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
             m_panel.add(m_serverExecution, State.REMOTE.toString());
             m_panel.add(m_errorLabel, State.ERROR.toString());
@@ -114,6 +116,13 @@ public final class CallWorkflowConnectionControls {
          */
         public void setState(final State state) {
             m_cardLayout.show(m_panel, state.toString());
+            if(state == State.REMOTE) {
+                m_panel.setPreferredSize(new Dimension(600, 200));
+                m_panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
+            } else {
+                m_panel.setPreferredSize(new Dimension(600, 50));
+                m_panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+            }
         }
 
         private void initRemoteExecutionPanel() {

@@ -119,12 +119,6 @@ public final class SelectWorkflowPanel {
 
             m_panel.setBorder(BorderFactory.createTitledBorder("Workflow to execute"));
 
-            // doesn't respect max height, looks weird
-            //            m_panel.setLayout(new BorderLayout(5, 5));
-            //            m_panel.add(m_workflowLabel, BorderLayout.LINE_START);
-            //            m_panel.add(m_selectWorkflowPath, BorderLayout.CENTER);
-            //            m_panel.add(m_selectWorkflowButton, BorderLayout.LINE_END);
-
             // glue eats the space, text box should grow more
             m_panel.setLayout(new BoxLayout(m_panel, BoxLayout.X_AXIS));
             m_panel.add(Box.createRigidArea(new Dimension(5, 30)));
@@ -132,26 +126,6 @@ public final class SelectWorkflowPanel {
             m_panel.add(m_selectWorkflowPath);
             m_panel.add(m_selectWorkflowButton);
             m_panel.add(Box.createHorizontalGlue());
-
-            //
-            //            m_panel.setLayout(new FlowLayout(FlowLayout.LEADING, 5, 5));
-            //            m_panel.add(m_workflowLabel);
-            //            m_panel.add(m_selectWorkflowPath);
-            //            m_panel.add(m_selectWorkflowButton);
-
-            //            var gbc = new GridBagConstraints();
-            //            gbc.anchor = GridBagConstraints.WEST;
-            //
-            //            gbc.fill = GridBagConstraints.NONE;
-            //            m_panel.add(m_workflowLabel, gbc);
-            //
-            //            gbc.gridx++;
-            //            gbc.fill = GridBagConstraints.HORIZONTAL;
-            //            m_panel.add(m_selectWorkflowPath, gbc);
-            //
-            //            gbc.gridx++;
-            //            gbc.fill = GridBagConstraints.NONE;
-            //            m_panel.add(m_selectWorkflowButton, gbc);
         }
 
         void setOnChange(final Consumer<String> callback) {
@@ -185,37 +159,12 @@ public final class SelectWorkflowPanel {
                 }
             });
 
-            // doesn't react to dropdown select but to enter keypress
-            //            m_selectWorkflowPath.getComboBox().getEditor().addActionListener(e -> {
-            //                    System.out.println("action listener fired");
-            //                    callback.accept(m_selectWorkflowPath.getSelectedString());
-            //                });
-
-            // reacts only to enabled, graphics conf, ancestor, etc.
-            //            m_selectWorkflowPath.getComboBox().getEditor().getEditorComponent().addPropertyChangeListener(new PropertyChangeListener() {
-            //
-            //                @Override
-            //                public void propertyChange(final PropertyChangeEvent evt) {
-            //                    System.out.println("Property changed");
-            //                    System.out.println(evt);
-            //
-            //                }
-            //            });
-
-            // doesn't react to drop down select
-            // doesn't work with copy/paste
-            //            m_selectWorkflowPath.getComboBox().getEditor().getEditorComponent().addKeyListener(new KeyAdapter() {
-            //                @Override
-            //                public void keyTyped(final KeyEvent e) {
-            //                    System.out.println("key typed listener fired");
-            //                    callback.accept(m_selectWorkflowPath.getSelectedString());
-            //                }
-            //
-            //            });
+            // combobox workflow path editor has some problems
+            // addActionListener doesn't react to dropdown select but to enter keypress
+            // getEditorComponent().addPropertyChangeListener reacts only to enabled, graphics conf, ancestor, etc.
+            // getEditorComponent().addKeyListener doesn't react to drop down select and doesn't work with copy/paste
         }
     }
-
-    private Optional<IServerConnection> m_serverConnection = Optional.empty();
 
     /** Asynchronously fetches available workflows from a KNIME Server. */
     private final AtomicReference<ListWorkflowsWorker> m_listWorkflowsWorker = new AtomicReference<>(null);
@@ -300,8 +249,7 @@ public final class SelectWorkflowPanel {
      * @param serverConnection the serverConnection to set
      */
     public void setServerConnection(final IServerConnection serverConnection) {
-        m_serverConnection = Optional.ofNullable(serverConnection);
-        enableAllUIElements(m_serverConnection.isPresent());
+        enableAllUIElements(serverConnection != null);
     }
 
     /**

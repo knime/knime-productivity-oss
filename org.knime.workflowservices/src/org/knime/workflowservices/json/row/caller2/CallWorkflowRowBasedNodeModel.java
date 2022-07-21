@@ -239,7 +239,7 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
                 rowIndex++;
 
                 // prepare external node data objects to be sent to callee workflow
-                var workflowInput = createWorkflowInput(parameterToJsonColumnIndexMap, row);
+                var workflowInput = createWorkflowInput(parameterToJsonColumnIndexMap, m_configuration, row);
                 // if all input cells are present (none contains a missing value)
                 if (workflowInput.isPresent()) {
                     // execute the workflow and retrieve results
@@ -261,11 +261,12 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
      * Convert JSON cells in the given input row into ExternalNodeData objects to be sent to the callee workflow.
      *
      * @param parameterToJsonColumnIndexMap maps workflow input parameter name to input table column name
+     * @param configuration provides whether the parameter name should be simplified
      * @param r
      * @return An empty optional if any of the input cells is missing.
      */
     private static Optional<Map<String, ExternalNodeData>>
-        createWorkflowInput(final Map<String, Integer> parameterToJsonColumnIndexMap, final DataRow r) {
+        createWorkflowInput(final Map<String, Integer> parameterToJsonColumnIndexMap, final CallWorkflowRowBasedConfiguration configuration, final DataRow r) {
 
         Map<String, ExternalNodeData> input = new HashMap<>();
 
@@ -276,7 +277,10 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
                 return Optional.empty();
             } else {
                 var v = (JSONValue)c;
-                input.put(entry.getKey(), ExternalNodeData.builder(entry.getKey()).jsonValue(v.getJsonValue()).build());
+                String parameterId = entry.getKey();
+                String parameterName = configuration.isDropParameterIdentifiers(parameterId)
+                    ? ExternalNodeData.getSimpleIDFrom(parameterId) : parameterId;
+                input.put(parameterName, ExternalNodeData.builder(parameterName).jsonValue(v.getJsonValue()).build());
             }
         }
         return Optional.of(input);
@@ -341,6 +345,7 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
             if (report.isPresent()) {
                 reportCell = reportCellFactory.create(report.get());
             } else {
+                // report requested but could not be generated - still output a result row
                 final var reportGenerationException = result.getReportGenerationException()
                     .orElse(new ReportGenerationException("Unknown reason.", null));
                 reportCell = new MissingCell(reportGenerationException.getMessage());
