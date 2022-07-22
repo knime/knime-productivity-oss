@@ -1,2 +1,2 @@
-update.matchExp = providedCapabilities.exists(pc | pc.namespace == 'org.eclipse.equinox.p2.iu' && (pc.name == 'org.knime.features.personalproductivity.feature.group' || pc.name == 'com.knime.features.personalproductivity.feature.group' || pc.name == 'com.knime.features.localautomation.feature.group'))
+update.matchExp = providedCapabilities.exists(pc | pc.namespace == 'org.eclipse.equinox.p2.iu' && (pc.name == 'org.knime.features.personalproductivity.feature.group' || pc.name == 'com.knime.features.personalproductivity.feature.group' || pc.name == 'com.knime.features.localautomation.feature.group' || pc.name == 'org.knime.features.workflowservices.feature.group'))
 update.severity = 1

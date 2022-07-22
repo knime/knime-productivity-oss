@@ -24,11 +24,9 @@
 	<modules>
 		<module>org.knime.explorer.nodes</module>
 		<module>org.knime.features.personalproductivity</module>
-		<module>org.knime.features.workflowservices</module>
 		<module>org.knime.workbench.workflowcoach.local</module>
 		<module>org.knime.workbench.workflowdiff</module>
 		<module>org.knime.workflowservices</module>
-		<module>org.knime.workflowservices.labs</module>
 		<module>org.knime.update.personalproductivity</module>
 	</modules>
 

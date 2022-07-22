@@ -78,7 +78,9 @@ public final class CallWorkflowUtil {
      *
      * @author Carl Witt, KNIME AG, Zurich, Switzerland
      */
-    public static class PlainWorkflowPathFormat {
+    public static final class PlainWorkflowPathFormat {
+
+        private PlainWorkflowPathFormat() {}
 
         private static String invalidWorkflowPathMessage(final String workflowPath) {
             return String.format(

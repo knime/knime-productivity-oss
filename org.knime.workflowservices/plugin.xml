@@ -3,16 +3,30 @@
 
 <plugin>
     <extension point="org.knime.workbench.repository.nodes">
+       <!-- Call Workflow Service -->
+       <node
+             factory-class="org.knime.workflowservices.knime.caller.CallWorkflowNodeFactory"
+          	 category-path="/flowabstraction/container" />
+       <node
+             factory-class="org.knime.workflowservices.knime.callee.WorkflowInputNodeFactory"
+             after="org.knime.workflowservices.knime.caller.CallWorkflowNodeFactory"
+             category-path="/flowabstraction/container" />
+	   <node
+          	 factory-class="org.knime.workflowservices.knime.callee.WorkflowOutputNodeFactory"
+             after="org.knime.workflowservices.knime.callee.WorkflowInputNodeFactory"
+             category-path="/flowabstraction/container" />
        <!-- Call Workflow (Table Based) -->
        <node
+             factory-class="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory"
+             after="org.knime.workflowservices.knime.callee.WorkflowOutputNodeFactory" 
              category-path="/flowabstraction/container"
-             factory-class="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory" />
+       />
        <!-- Call Workflow (Row Based) -->
        <node
-            category-path="/flowabstraction/container"
             factory-class="org.knime.workflowservices.json.row.caller2.CallWorkflowRowBasedNodeFactory"
-            after="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory" />
-       
+            after="org.knime.workflowservices.json.table.caller.Post43CallWorkflowTableNodeFactory"
+            category-path="/flowabstraction/container"
+       />
        <!-- Deprecated Nodes -->
        
        <!-- Call Local Workflow (Row Based) -->

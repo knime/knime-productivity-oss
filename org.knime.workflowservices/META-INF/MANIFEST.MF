@@ -19,7 +19,8 @@ Require-Bundle: org.knime.base;bundle-version="[4.6.0,5.0.0)",
  com.fifesoft.languagesupport;bundle-version="[2.6.1,3.0.0)",
  com.fifesoft.rstaui;bundle-version="[2.6.0,3.0.0)",
  com.fifesoft.rsyntaxtextarea;bundle-version="[2.6.0,3.0.0)",
- com.fifesoft.spellchecker;bundle-version="[2.6.0,3.0.0)"
+ com.fifesoft.spellchecker;bundle-version="[2.6.0,3.0.0)",
+ javax.ws.rs-api;bundle-version="[2.0.1,3.0.0)"
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Automatic-Module-Name: org.knime.workflowservices
 Export-Package: org.knime.workflowservices,
@@ -30,5 +31,7 @@ Export-Package: org.knime.workflowservices,
  org.knime.workflowservices.json.row.caller.local,
  org.knime.workflowservices.json.row.caller.remote,
  org.knime.workflowservices.json.row.caller2,
- org.knime.workflowservices.json.table.caller
+ org.knime.workflowservices.json.table.caller,
+ org.knime.workflowservices.knime.callee,
+ org.knime.workflowservices.knime.util
 Bundle-ActivationPolicy: lazy
