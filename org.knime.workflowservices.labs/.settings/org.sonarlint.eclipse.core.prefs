@@ -1,6 +1,0 @@
-autoEnabled=true
-eclipse.preferences.version=1
-idePrefixKey=src/org/knime/workflowservices/knime/caller
-projectKey=org.knime\:knime-personalproductivity
-serverId=sonar.knime.com
-sqPrefixKey=org.knime.productivity.base/src/org/knime/productivity/base/callworkflow

@@ -58,12 +58,11 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
 
     private final Controls m_controls = new Controls();
 
-    private final class Controls {
+    private static final class Controls {
 
         final CallWorkflowConnectionControls m_connectionControls = new CallWorkflowConnectionControls();
 
-        final SelectWorkflowPanel m_workflowPanel = new SelectWorkflowPanel(getPanel(),
-            CallWorkflowUtil.WorkflowPathHistory.PORT_OBJECT_BASED_WORKFLOWS.getIdentifier());
+        SelectWorkflowPanel m_workflowPanel;
 
         /**
          * Displays which workflow input/output parameter is assigned to which input/output port. Uses the given method
@@ -112,6 +111,9 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
 
         m_nodeCreationConfig = (ModifiableNodeCreationConfiguration)creationConfig;
 
+        m_controls.m_workflowPanel = new SelectWorkflowPanel(getPanel(),
+            CallWorkflowUtil.WorkflowPathHistory.PORT_OBJECT_BASED_WORKFLOWS.getIdentifier());
+
         m_controls.m_parameterMappingPanel = new PanelWorkflowParameters(this::parametersCompatibleWithPorts,
             m_nodeCreationConfig.getPortConfig().orElseThrow(() -> new IllegalStateException("Coding error.")));
 
@@ -128,14 +130,9 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
      * @return the paths/identifiers of the workflows in the connected space
      */
     private List<String> listWorkflows() {
-        // TODO state invariants
-        //        if (m_serverConnection.isEmpty()) {
-        //            return List.of();
-        //        }
         try {
             return m_serverConnection.listWorkflows();
         } catch (ListWorkflowFailedException e) {
-            // TODO log
             return List.of();
         }
     }
@@ -353,8 +350,7 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
             m_parameterUpdater = null;
         }
 
-        // attempt to stop ongoing list workflows operation
-        m_controls.m_workflowPanel.cancel();
+        // TODO attempt to stop ongoing list workflows operation
 
         super.onClose();
     }

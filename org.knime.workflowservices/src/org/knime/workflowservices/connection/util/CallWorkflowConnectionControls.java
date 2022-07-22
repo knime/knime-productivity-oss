@@ -222,7 +222,7 @@ public final class CallWorkflowConnectionControls {
         configuration.setSynchronousInvocation(isSynchronousInvocation());
         configuration.setKeepFailingJobs(isKeepFailingJobs());
         configuration.setDiscardJobOnSuccessfulExecution(isDiscardJobOnSuccessfulExecution());
-
+        m_controls.m_timeoutPanel.saveToConfiguration(configuration);
         configuration.setBackoffPolicy(m_controls.m_backoffpanel.getSelectedBackoffPolicy());
     }
 

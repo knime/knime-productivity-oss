@@ -31,6 +31,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import javax.swing.Box;
@@ -48,7 +50,11 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 
+import org.knime.core.node.CanceledExecutionException;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.util.FilterableListModel;
+import org.knime.core.util.SwingWorkerWithContext;
+import org.knime.workflowservices.connection.ServerConnectionUtil;
 
 /**
  * Dialog that enables the user to select a workflow from an already populated list. Offers a text field which can be
@@ -61,6 +67,46 @@ import org.knime.core.node.util.FilterableListModel;
 public final class SelectWorkflowDialog extends JDialog {
 
     private static final long serialVersionUID = 1L;
+
+    /** Asynchronously fetches available workflows from a KNIME Server. */
+    private final AtomicReference<ListWorkflowsWorker> m_listWorkflowsWorker = new AtomicReference<>(null);
+
+    /**
+     * Extension of a swing worker that fetches all workflows available from a remote server;
+     *
+     * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
+     */
+    final class ListWorkflowsWorker extends SwingWorkerWithContext<List<String>, Void> {
+
+        @Override
+        protected List<String> doInBackgroundWithContext() throws Exception {
+            return m_getWorkflowPaths.call();
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void doneWithContext() {
+            try {
+                List<String> listedWorkflows = get();
+                m_listWorkflowsWorker.set(null);
+                setWorkflowPaths(listedWorkflows);
+            } catch (Exception ex) {
+                var pair = ServerConnectionUtil.handle(ex);
+                setErrorText(pair.getLeft());
+                NodeLogger.getLogger(ListWorkflowsWorker.class).warn(pair.getLeft(), pair.getRight());
+                if(ex instanceof InterruptedException || ex instanceof CanceledExecutionException) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+
+    }
+
+    /* State of the panel */
+
+    private State m_currentState = State.LOADING;
 
     enum State {
             /** State before triggering the first load. */
@@ -76,19 +122,18 @@ public final class SelectWorkflowDialog extends JDialog {
             READY
     }
 
+    /* Callbacks and exchangeable logic */
+
+    /** Logic to execute in order to retrieve the paths to list in the dialog. */
+    private final transient Callable<List<String>> m_getWorkflowPaths;
+
     /**
      * What to do with the selected list entry (an absolute workflow path) when closing the dialog. Fills the workflow
      * path input on the Call Workflow Service node dialog.
      */
     private final transient Consumer<String> m_setSelectedWorkflowPath;
 
-    /**
-     * Not intended to be used with threads, just a no arguments, no returns callback that will eventually call
-     * {@link #setWorkflowPaths(List)} on this instance.
-     *
-     * Run in {@link #refreshWorkflowList()}.
-     */
-    private final transient Runnable m_refreshWorkflows;
+    /* Controls */
 
     /** Shows either a loading message or the dialog to select a workflow path. */
     private final CardLayout m_cardLayout = new CardLayout();
@@ -101,25 +146,25 @@ public final class SelectWorkflowDialog extends JDialog {
     private final LoadingPanel m_panelLoading =
         new LoadingPanel("Fetching available workflows. This may take a while.");
 
-    private State m_currentState = State.LOADING;
-
     /** Contents of the list view {@link #m_workflowList}. */
     private FilterableListModel m_filteredWorkflowModel = new FilterableListModel(Collections.emptyList());
 
     /** All workflows found in the Local Workspace or on the KNIME Server, if connected. */
     private JList<String> m_workflowList = new JList<>(m_filteredWorkflowModel);
 
+    /* Methods */
+
     /**
      * @param frame parent dialog window
      * @param setSelectedWorkflowPath where to pass the selected list element (an absolute path string)
-     * @param refreshWorkflowList what to do in {@link #refreshWorkflowList()}
+     * @param getWorkflowPaths provides a list of workflow paths/identifiers to list in this dialog
      */
     public SelectWorkflowDialog(final Frame frame, final Consumer<String> setSelectedWorkflowPath,
-        final Runnable refreshWorkflowList) {
+        final Callable<List<String>> getWorkflowPaths) {
         super(frame);
 
         m_setSelectedWorkflowPath = setSelectedWorkflowPath;
-        m_refreshWorkflows = refreshWorkflowList;
+        m_getWorkflowPaths = getWorkflowPaths;
 
         setTitle("Browse workflows");
 
@@ -145,6 +190,7 @@ public final class SelectWorkflowDialog extends JDialog {
         setLocationRelativeTo(getParent());
         setSize(500, 800);
 
+        // close on ESC
         getRootPane().registerKeyboardAction(e -> closeDialog(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
             JComponent.WHEN_IN_FOCUSED_WINDOW);
     }
@@ -174,7 +220,9 @@ public final class SelectWorkflowDialog extends JDialog {
     /** Fetch all workflows from the remote side. Call {@link #setWorkflowPaths(List)} when done. */
     public void refreshWorkflowList() {
         setState(State.LOADING);
-        m_refreshWorkflows.run();
+        var worker = new ListWorkflowsWorker();
+        // will eventually set this to state ready or failure
+        worker.execute();
     }
 
     /**
@@ -389,6 +437,13 @@ public final class SelectWorkflowDialog extends JDialog {
         m_filterField.setText("");
         m_filterField.grabFocus();
         setVisible(true);
+    }
+
+    @Override
+    public void dispose() {
+        if(m_listWorkflowsWorker.get() != null) {
+            m_listWorkflowsWorker.get().cancel(true);
+        }
     }
 
 }

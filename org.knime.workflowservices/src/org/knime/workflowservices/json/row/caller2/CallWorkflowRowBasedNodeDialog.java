@@ -80,7 +80,7 @@ final class CallWorkflowRowBasedNodeDialog extends NodeDialogPane {
 
     private final CallWorkflowRowBasedConfiguration m_settings = new CallWorkflowRowBasedConfiguration();
 
-    private Controls m_controls = new Controls();
+    private final Controls m_controls;
 
     private final class Controls {
 
@@ -92,9 +92,8 @@ final class CallWorkflowRowBasedNodeDialog extends NodeDialogPane {
 
         private final CreateReportControls m_createReport;
 
-        Controls() {
-
-            m_workflowPanel = new SelectWorkflowPanel(getPanel(),
+        Controls(final JPanel jPanel) {
+            m_workflowPanel = new SelectWorkflowPanel(jPanel,
                 CallWorkflowUtil.WorkflowPathHistory.JSON_BASED_WORKFLOWS.getIdentifier());
 
             // m_serverSettings needs to be created already
@@ -149,8 +148,11 @@ final class CallWorkflowRowBasedNodeDialog extends NodeDialogPane {
     }
 
     CallWorkflowRowBasedNodeDialog() {
+        m_controls = new Controls(getPanel());
+
         addTab("Workflow", m_controls.createMainTab());
         addTab("Advanced Settings", m_controls.createAdvancedTab());
+
 
         m_controls.m_workflowPanel.setListWorkflows(this::listWorkflows);
         m_controls.m_workflowPanel.setWorkflowPathChangedCallback(this::onWorkflowPathChanged);

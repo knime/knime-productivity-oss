@@ -239,7 +239,7 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
                 rowIndex++;
 
                 // prepare external node data objects to be sent to callee workflow
-                var workflowInput = createWorkflowInput(parameterToJsonColumnIndexMap, m_configuration, row);
+                var workflowInput = createWorkflowInput(parameterToJsonColumnIndexMap, row);
                 // if all input cells are present (none contains a missing value)
                 if (workflowInput.isPresent()) {
                     // execute the workflow and retrieve results
@@ -261,12 +261,11 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
      * Convert JSON cells in the given input row into ExternalNodeData objects to be sent to the callee workflow.
      *
      * @param parameterToJsonColumnIndexMap maps workflow input parameter name to input table column name
-     * @param configuration provides whether the parameter name should be simplified
      * @param r
      * @return An empty optional if any of the input cells is missing.
      */
-    private static Optional<Map<String, ExternalNodeData>>
-        createWorkflowInput(final Map<String, Integer> parameterToJsonColumnIndexMap, final CallWorkflowRowBasedConfiguration configuration, final DataRow r) {
+    private Optional<Map<String, ExternalNodeData>>
+        createWorkflowInput(final Map<String, Integer> parameterToJsonColumnIndexMap, final DataRow r) {
 
         Map<String, ExternalNodeData> input = new HashMap<>();
 
@@ -278,7 +277,7 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
             } else {
                 var v = (JSONValue)c;
                 String parameterId = entry.getKey();
-                String parameterName = configuration.isDropParameterIdentifiers(parameterId)
+                String parameterName = m_configuration.isDropParameterIdentifiers()
                     ? ExternalNodeData.getSimpleIDFrom(parameterId) : parameterId;
                 input.put(parameterName, ExternalNodeData.builder(parameterName).jsonValue(v.getJsonValue()).build());
             }
@@ -286,12 +285,22 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
         return Optional.of(input);
     }
 
+    /**
+     * @param inSpec just to avoid column name clashes
+     * @param reportFormatOrNull if non-null, add a binary report data column
+     * @param outputParameterNames the callee workflow's output parameter names, one column is created for each. If drop
+     *            parameter identifiers is true, the column names will be derived from the simplified parameter name
+     *            (but disambiguated in case of clashes)
+     * @param emptyOutputColIndexMap maps the name of the callee workflow's output parameter to a the offset of the
+     *            column that contains the parameters return data (where 0 corresponds to the first appended column)
+     * @return
+     */
     private static DataTableSpec appendedColumnsSpec(final DataTableSpec inSpec,
-        final RptOutputFormat reportFormatOrNull, final Iterable<String> outputKeys,
+        final RptOutputFormat reportFormatOrNull, final Iterable<String> outputParameterNames,
         final Map<String, Integer> emptyOutputColIndexMap) {
         var nameGen = new UniqueNameGenerator(inSpec);
         List<DataColumnSpec> columns = new ArrayList<>();
-        for (String s : outputKeys) {
+        for (String s : outputParameterNames) {
             columns.add(nameGen.newColumn(s, JSONCellFactory.TYPE));
             emptyOutputColIndexMap.put(s, emptyOutputColIndexMap.size());
         }
@@ -304,8 +313,9 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
 
     /**
      * @param result the results of the workflow invocation
-     * @param outputColIndexMap maps a callee workflow output parameter name to the offset in the appended columns of
-     *            the result cell. Offset zero corresponds to the first cell being appended to the input row.
+     * @param outputColIndexMap maps a callee workflow output parameter name (as used in the
+     *            {@link BackendExecutionResult} to identify the output) to the offset in the appended columns of the
+     *            result cell. Offset zero corresponds to the first cell being appended to the input row.
      * @param reportFormatOrNull
      * @param reportCellFactory
      * @param rowKey key of the row in the input table for which the given results were computed
@@ -388,6 +398,21 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
         m_configuration.saveSettings(settings);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onDispose() {
+        super.onDispose();
+        try {
+            if (m_serverConnection != null) {
+                m_serverConnection.close();
+            }
+        } catch (IOException e) {
+            LOGGER.warn("Cannot close server connection: ", e);
+        }
     }
 
     @Override

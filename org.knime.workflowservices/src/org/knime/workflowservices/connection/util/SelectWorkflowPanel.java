@@ -2,13 +2,13 @@ package org.knime.workflowservices.connection.util;
 
 import java.awt.Dimension;
 import java.awt.Frame;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -24,11 +24,9 @@ import javax.swing.text.BadLocationException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.util.StringHistory;
-import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.IServerConnection.ListWorkflowFailedException;
-import org.knime.workflowservices.connection.ServerConnectionUtil;
 
 /**
  * {@link JPanel} to edit a workflow path manually or select a workflow from a list of workflows.
@@ -40,78 +38,38 @@ import org.knime.workflowservices.connection.ServerConnectionUtil;
  */
 public final class SelectWorkflowPanel {
 
-    // TODO make dialog appear on main screen
-    /**
-     * Extension of a swing worker that fetches all workflows available from a remote server;
-     *
-     * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
-     */
-    final class ListWorkflowsWorker extends SwingWorkerWithContext<List<String>, Void> {
-
-        @Override
-        protected List<String> doInBackgroundWithContext() throws Exception {
-            if (m_listWorkflows.isEmpty()) {
-                return List.of();
-            }
-
-            List<String> listedWorkflows;
-            try {
-                listedWorkflows = m_listWorkflows.get().call();
-            } catch (ListWorkflowFailedException e) {
-                Throwable rootCause = ExceptionUtils.getRootCause(e);
-                throw rootCause instanceof Exception ? (Exception)rootCause : e;
-            }
-            Collections.sort(listedWorkflows, String.CASE_INSENSITIVE_ORDER);
-            return listedWorkflows;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        protected void doneWithContext() {
-            try {
-                List<String> listedWorkflows = get();
-                m_controls.m_selectWorkflowDialog.setWorkflowPaths(listedWorkflows);
-                m_listWorkflowsWorker.set(null);
-            } catch (InterruptedException | CancellationException ex) {
-                m_controls.m_selectWorkflowDialog.clearWorkflowList();
-                Thread.currentThread().interrupt();
-            } catch (Exception ex) {
-                m_controls.m_selectWorkflowDialog.clearWorkflowList();
-                var pair = ServerConnectionUtil.handle(ex);
-                m_controls.m_selectWorkflowDialog.setErrorText(pair.getLeft());
-                // TODO logging
-                //                LOGGER.error(pair.getLeft(), pair.getRight());
-            }
-        }
-
-    }
-
     private final class Controls {
         /** contains all controls */
         private final JPanel m_panel = new JPanel();
-
-        /**
-         * Shows the identifiers (paths) of locally or remotely available workflows. An identifier can be selected in
-         * the dialog and will be entered in the text box that allows manual editing of the path.
-         */
-        private final SelectWorkflowDialog m_selectWorkflowDialog;
 
         private final JLabel m_workflowLabel = new JLabel("Workflow Path: ");
 
         /** Calls on every change. */
         private final JTextField m_selectWorkflowPath = new JTextField();
 
+        /**
+         * Shows the identifiers (paths) of locally or remotely available workflows. An identifier can be selected in
+         * the dialog and will be entered in the text box that allows manual editing of the path.
+         */
         private final JButton m_selectWorkflowButton = new JButton("Browse workflows");
 
+        private final SelectWorkflowDialog m_selectWorkflowDialog;
+
         /**
-         *
-         * @param dialogParentFrame parent frame for the browse workflows dialog
+         * Shows previously used identifiers (paths) of locally or remotely available workflows.
          */
-        Controls(final Frame dialogParentFrame) {
-            m_selectWorkflowDialog = new SelectWorkflowDialog(dialogParentFrame,
-                SelectWorkflowPanel.this::setWorkflowPath, SelectWorkflowPanel.this::fetchRemoteWorkflows);
+        private final JButton m_selectRecentWorkflowButton = new JButton("Recent choices");
+
+        private final SelectWorkflowDialog m_selectRecentWorkflowDialog;
+
+        private Controls(final JPanel jPanel) {
+
+            var parentFrame = getParentFrame(jPanel);
+            m_selectWorkflowDialog = new SelectWorkflowDialog(parentFrame, SelectWorkflowPanel.this::setWorkflowPath,
+                SelectWorkflowPanel.this::fetchRemoteWorkflows);
+
+            m_selectRecentWorkflowDialog = new SelectWorkflowDialog(parentFrame, SelectWorkflowPanel.this::setWorkflowPath,
+                SelectWorkflowPanel.this::listRecentWorkflows);
 
             m_selectWorkflowPath.setPreferredSize(new Dimension(500, 20));
             m_selectWorkflowPath.setMaximumSize(new Dimension(1000, 20));
@@ -125,10 +83,11 @@ public final class SelectWorkflowPanel {
             m_panel.add(m_workflowLabel);
             m_panel.add(m_selectWorkflowPath);
             m_panel.add(m_selectWorkflowButton);
+            m_panel.add(m_selectRecentWorkflowButton);
             m_panel.add(Box.createHorizontalGlue());
         }
 
-        void setOnChange(final Consumer<String> callback) {
+        private void setOnChange(final Consumer<String> callback) {
 
             m_selectWorkflowPath.getDocument().addDocumentListener(new DocumentListener() { //NOSONAR
                 @Override
@@ -166,9 +125,6 @@ public final class SelectWorkflowPanel {
         }
     }
 
-    /** Asynchronously fetches available workflows from a KNIME Server. */
-    private final AtomicReference<ListWorkflowsWorker> m_listWorkflowsWorker = new AtomicReference<>(null);
-
     private Optional<Callable<List<String>>> m_listWorkflows = Optional.empty();
 
     private final Controls m_controls;
@@ -176,20 +132,22 @@ public final class SelectWorkflowPanel {
     /** Stores recently used workflow paths for later quick selection. */
     private final StringHistory m_history;
 
+    private Frame m_parentFrame;
+
     /**
      * Create a panel without a callback when the user (de-)selects "Create Report"
      *
-     * @param nodeDialogPanel contains this panel
+     * @param jPanel
+     *
      * @param workflowPathHistoryId which string history to use to populate the workflowpath combobox with previous
      *            choices.
      */
-    public SelectWorkflowPanel(final JPanel nodeDialogPanel, final String workflowPathHistoryId) {
+    public SelectWorkflowPanel(final JPanel jPanel, final String workflowPathHistoryId) {
+        m_controls = new Controls(jPanel);
+        m_controls.m_selectWorkflowButton.addActionListener(e -> m_controls.m_selectWorkflowDialog.open());
+        m_controls.m_selectRecentWorkflowButton.addActionListener(e -> m_controls.m_selectRecentWorkflowDialog.open());
 
-        m_history = StringHistory.getInstance(workflowPathHistoryId);
-
-        m_controls = new Controls(getParentFrame(nodeDialogPanel));
-
-        m_controls.m_selectWorkflowButton.addActionListener(l -> m_controls.m_selectWorkflowDialog.open());
+        m_history = StringHistory.getInstance(workflowPathHistoryId, 100);
 
         // disable all user elements until a local or remote connection is given to browse workflows
         setServerConnection(null);
@@ -200,23 +158,29 @@ public final class SelectWorkflowPanel {
     /**
      * Get a list of workflow paths from the connected KNIME Server. This may take a while and is done asynchronously.
      * The worker will call {@link SelectWorkflowDialog#setWorkflowPaths(List)} on {@link #m_selectWorkflowDialog}.
+     *
+     * @throws Exception
      */
-    private void fetchRemoteWorkflows() {
-        if (m_listWorkflowsWorker.get() == null) {
-            var worker = new ListWorkflowsWorker();
-            m_listWorkflowsWorker.set(worker);
-            worker.execute();
+    private List<String> fetchRemoteWorkflows() throws Exception {
+        if (m_listWorkflows.isEmpty()) {
+            return List.of();
         }
+        List<String> listedWorkflows;
+        try {
+            listedWorkflows = m_listWorkflows.get().call();
+        } catch (ListWorkflowFailedException e) {
+            Throwable rootCause = ExceptionUtils.getRootCause(e);
+            throw rootCause instanceof Exception ? (Exception)rootCause : e;
+        }
+        Collections.sort(listedWorkflows, String.CASE_INSENSITIVE_ORDER);
+        return listedWorkflows;
     }
 
     /**
-     * Try to stop any ongoing asynchronous fetch workflow list operations.
+     * To populate the recent workflow paths dialog.
      */
-    public void cancel() {
-        if (m_listWorkflowsWorker.get() != null) {
-            m_listWorkflowsWorker.get().cancel(true);
-            m_listWorkflowsWorker.set(null);
-        }
+    private List<String> listRecentWorkflows() {
+        return Arrays.stream(m_history.getHistory()).collect(Collectors.toList());
     }
 
     // load & save
@@ -237,6 +201,13 @@ public final class SelectWorkflowPanel {
     }
 
     // getter & setter
+
+    /**
+     * @param panel the node dialog's getPanel() to display the browse/select dialogs on the same monitor as the dialog
+     */
+    public void setParentFrame(final JPanel panel) {
+        m_parentFrame = getParentFrame(panel);
+    }
 
     /**
      * @return the panel containing all controls
@@ -273,9 +244,9 @@ public final class SelectWorkflowPanel {
      * @param nodeDialogPanel
      * @return
      */
-    private static Frame getParentFrame(final JPanel nodeDialogPanel) {
+    private static Frame getParentFrame(final JPanel panel) {
         Frame frame = null;
-        var container = nodeDialogPanel.getParent();
+        var container = panel.getParent();
         while (container != null) {
             if (container instanceof Frame) {
                 frame = (Frame)container;
@@ -293,6 +264,7 @@ public final class SelectWorkflowPanel {
         m_controls.m_panel.setEnabled(enable);
         m_controls.m_workflowLabel.setEnabled(enable);
         m_controls.m_selectWorkflowButton.setEnabled(enable);
+        m_controls.m_selectRecentWorkflowButton.setEnabled(enable);
         m_controls.m_selectWorkflowPath.setEnabled(enable);
 
     }

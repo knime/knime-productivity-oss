@@ -56,7 +56,6 @@ import java.util.Optional;
 
 import javax.json.JsonValue;
 import javax.swing.ButtonGroup;
-import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -68,8 +67,8 @@ import org.fife.ui.rtextarea.RTextScrollPane;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.json.JSONValue;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NotConfigurableException;
-import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.ColumnSelectionPanel;
 import org.knime.json.util.JSONUtil;
@@ -83,6 +82,8 @@ import org.knime.json.util.JSONUtil;
  */
 public final class JSONInputPanel extends JPanel {
 
+    private static final long serialVersionUID = 379994023286435479L;
+
     private final String m_parameterIDSimple;
 
     private final JRadioButton m_useColumnChecker;
@@ -92,8 +93,6 @@ public final class JSONInputPanel extends JPanel {
     private final JRadioButton m_useDefaultChecker;
 
     private final RSyntaxTextArea m_textEditArea;
-
-    private final JCheckBox m_dropParameterIdentifier = new JCheckBox("Drop node ID from parameter name", false);
 
     private final ColumnSelectionPanel m_jsonColumnSelector = new ColumnSelectionPanel((Border)null, JSONValue.class);
 
@@ -133,21 +132,11 @@ public final class JSONInputPanel extends JPanel {
                 m_jsonColumnSelector.setSelectedIndex(0); // by default, the last item is selected, select the first instead
             }
         } catch (NotConfigurableException e1) {
+            NodeLogger.getLogger(getClass()).debug(e1);
         }
         if (m_jsonColumnSelector.getNrItemsInList() == 0) {
             m_useColumnChecker.setEnabled(false);
             m_useColumnChecker.setToolTipText("Input table has no JSON columns");
-        }
-
-        m_dropParameterIdentifier.addActionListener(e -> {
-            setName(getParameterName());
-            invalidate();
-            revalidate();
-            repaint();
-        });
-        // hide the control if it would not have any effect
-        if (ExternalNodeData.getSimpleIDFrom(parameterName).equals(parameterName)) {
-            m_dropParameterIdentifier.setVisible(false);
         }
 
         final ActionListener l = e -> onButtonClick();
@@ -170,6 +159,7 @@ public final class JSONInputPanel extends JPanel {
             m_jsonColumnSelector.setEnabled(true);
             m_useColumnChecker.setEnabled(true);
         } catch (NotConfigurableException e) {
+            NodeLogger.getLogger(getClass()).debug(e);
             // spec doesn't contain a single JSON column
             m_jsonColumnSelector.setEnabled(false);
             m_useColumnChecker.setEnabled(false);
@@ -210,30 +200,11 @@ public final class JSONInputPanel extends JPanel {
     }
 
     /**
-     * @return identifies the workflow input parameter. Independent of whether {@link #m_dropParameterIdentifier} is
-     *         selected or not.
+     * @return identifies the workflow input parameter.
      * @see #getParameterName()
      */
     String getParameterID() {
         return m_parameterIDSimple;
-    }
-
-    /**
-     * @return the simplified parameter ID (without node ID suffix) if {@link #m_dropParameterIdentifier} is selected.
-     *         Otherwise the fully qualified parameter name (= id)
-     * @see #getParameterID()
-     */
-    String getParameterName() {
-        return m_dropParameterIdentifier.isSelected() ? ExternalNodeData.getSimpleIDFrom(m_parameterIDSimple)
-            : m_parameterIDSimple;
-    }
-
-    /**
-     * @return whether the user selected to use the simplified version of the parameter name (e.g., string-input instead
-     *         of string-input-6) where possible.
-     */
-    boolean isDropParameterIdentifier() {
-        return m_dropParameterIdentifier.isSelected();
     }
 
     Optional<String> getJSONColumn() throws InvalidSettingsException {
@@ -272,14 +243,9 @@ public final class JSONInputPanel extends JPanel {
         gbc.gridx += 1;
         add(m_useDefaultChecker, gbc);
 
-        gbc.weightx = 1;
-        gbc.anchor = GridBagConstraints.EAST;
-        gbc.gridx += 1;
-        add(m_dropParameterIdentifier, gbc);
-
         gbc.gridx = 0;
         gbc.gridy += 1;
-        gbc.gridwidth = 4;
+        gbc.gridwidth = 3;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.weightx = 1;
@@ -308,15 +274,6 @@ public final class JSONInputPanel extends JPanel {
         invalidate();
         revalidate();
         repaint();
-    }
-
-    /**
-     * Drop the node id suffix from the parameter name when sending to the backend.
-     */
-    void setDropParameterIdentifier() {
-        if (!m_dropParameterIdentifier.isSelected()) {
-            m_dropParameterIdentifier.doClick();
-        }
     }
 
 }

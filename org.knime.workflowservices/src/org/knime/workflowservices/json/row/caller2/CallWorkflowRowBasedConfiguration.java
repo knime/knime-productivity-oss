@@ -49,12 +49,9 @@
 package org.knime.workflowservices.json.row.caller2;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.knime.core.data.DataTableSpec;
@@ -85,7 +82,8 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
     /** @see #getParameterToJsonColumnMap() */
     private Map<String, String> m_parameterToJsonColumnMap = Collections.emptyMap();
 
-    private final Set<String> m_dropParameterIdentifiers = new HashSet<>();
+    /** @see #isDropParameterIdentifiers() */
+    private boolean m_dropParameterIdentifiers = false;
 
     // save & load
 
@@ -97,22 +95,28 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
         super.saveSettings(settings);
 
         // constant JSON inputs
-        var settings2 = settings.addNodeSettings("parameterToJsonConfigMap");
+        var staticInputs = settings.addNodeSettings("parameterToJsonConfigMap");
         for (Map.Entry<String, ExternalNodeData> entry : m_parameterToJsonConfigMap.entrySet()) {
-            var childSettings = settings2.addNodeSettings(entry.getKey());
-            var json = entry.getValue().getJSONValue().toString();
+            String parameterId = entry.getKey();
+            String parameterName =
+                isDropParameterIdentifiers() ? ExternalNodeData.getSimpleIDFrom(parameterId) : parameterId;
+            var childSettings = staticInputs.addNodeSettings(parameterName);
+            var json = entry.getValue().getJSONValue().toString(); //NOSONAR if we put an entry, it has a JSON value
             childSettings.addString("json", json);
         }
 
         // column inputs
-        var settings3 = settings.addNodeSettings("parameterToJsonColumnMap");
+        var dynamicInputs = settings.addNodeSettings("parameterToJsonColumnMap");
         for (Map.Entry<String, String> entry : m_parameterToJsonColumnMap.entrySet()) {
-            var childSettings = settings3.addNodeSettings(entry.getKey());
+            String parameterId = entry.getKey();
+            String parameterName =
+                isDropParameterIdentifiers() ? ExternalNodeData.getSimpleIDFrom(parameterId) : parameterId;
+            var childSettings = dynamicInputs.addNodeSettings(parameterName);
             childSettings.addString("json-column", entry.getValue());
         }
 
         // drop parameter identifiers
-        settings.addStringArray("dropParameterIdentifiersFor", m_dropParameterIdentifiers.toArray(String[]::new));
+        settings.addBoolean("dropParameterIdentifiers", m_dropParameterIdentifiers);
     }
 
     /**
@@ -129,7 +133,7 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
 
         loadJsonConfigMap(settings, true);
         loadJsonColumnMap(settings, true);
-        loadDropParameterIdentifiers(settings);
+        m_dropParameterIdentifiers = settings.getBoolean("dropParameterIdentifiers", false);
     }
 
     /**
@@ -145,16 +149,14 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
 
         try {
             loadJsonConfigMap(settings, false);
-        } catch (InvalidSettingsException e) {
-            // doesn't happen when strict = false
+        } catch (InvalidSettingsException e) { // NOSONAR doesn't happen when strict = false
         }
 
         try {
             loadJsonColumnMap(settings, false);
-        } catch (InvalidSettingsException e) {
-            // doesn't happen when strict = false
+        } catch (InvalidSettingsException e) { // NOSONAR doesn't happen when strict = false
         }
-        loadDropParameterIdentifiers(settings);
+        m_dropParameterIdentifiers = settings.getBoolean("dropParameterIdentifiers", false);
     }
 
     /**
@@ -170,7 +172,6 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
         var settings2 = settings.getNodeSettings("parameterToJsonConfigMap");
         m_parameterToJsonConfigMap = new LinkedHashMap<>();
         for (String s : settings2.keySet()) {
-
             NodeSettingsRO childSettings;
             try {
                 childSettings = settings2.getNodeSettings(s);
@@ -183,7 +184,9 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
             var json = childSettings.getString("json");
             try {
                 var object = JSONUtil.parseJSONValue(json);
-                m_parameterToJsonConfigMap.put(s, ExternalNodeData.builder(s).jsonValue(object).build());
+                var parameterName = isDropParameterIdentifiers() ? ExternalNodeData.getSimpleIDFrom(s) : s;
+                m_parameterToJsonConfigMap.put(parameterName,
+                    ExternalNodeData.builder(parameterName).jsonValue(object).build());
             } catch (IOException ex) {
                 if (strict) {
                     throw new InvalidSettingsException(
@@ -192,15 +195,6 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
                 throw new InvalidSettingsException("Invalid JSON string: " + ex.getMessage());
             }
         }
-    }
-
-    /**
-     * Loads the parameter ids for which {@link #isDropParameterIdentifiers(String)}
-     */
-    private void loadDropParameterIdentifiers(final NodeSettingsRO settings) {
-        m_dropParameterIdentifiers.clear();
-        var names = settings.getStringArray("dropParameterIdentifiersFor", new String[0]);
-        Arrays.stream(names).forEach(m_dropParameterIdentifiers::add);
     }
 
     /**
@@ -228,7 +222,8 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
             try {
                 var childSettings = settings3.getNodeSettings(s);
                 var jsonColumn = childSettings.getString("json-column");
-                m_parameterToJsonColumnMap.put(s, jsonColumn);
+                var parameterName = isDropParameterIdentifiers() ? ExternalNodeData.getSimpleIDFrom(s) : s;
+                m_parameterToJsonColumnMap.put(parameterName, jsonColumn);
             } catch (InvalidSettingsException e) {
                 if (strict) {
                     throw e;
@@ -286,26 +281,14 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
     }
 
     /**
-     * @param parameterIdentifier fully qualified parameter name
-     * @param drop see {@link #isDropParameterIdentifiers(String)}
+     * @return Whether to change the keys of the input data map sent to the callee workflow. If true, node IDs will be
+     *         removed from parameter names (e.g., string-input instead of string-input-6).
+     *
+     *         This is added only for backward compatibility and is not exposed via the node dialog, just configurable
+     *         via the flow variable tab.
      */
-    public void setDropParameterIdentifier(final String parameterIdentifier, final boolean drop) {
-        if (drop) {
-            m_dropParameterIdentifiers.add(parameterIdentifier);
-        } else {
-            m_dropParameterIdentifiers.remove(parameterIdentifier);
-        }
+    public boolean isDropParameterIdentifiers() {
+        return m_dropParameterIdentifiers;
     }
 
-    /**
-     * @param parameterIdentifier fully qualified parameter name
-     * @return whether the user selected to use the simplified version of the parameter name (e.g., string-input instead
-     *         of string-input-6).
-     *
-     *         This will be ignored by the backend if parameter names clash but is useful when configuring loops over
-     *         workflow paths that contain similar input parameters (e.g. string-input-5, string-input-6, etc.)
-     */
-    public boolean isDropParameterIdentifiers(final String parameterIdentifier) {
-        return m_dropParameterIdentifiers.contains(parameterIdentifier);
-    }
 }

@@ -131,7 +131,6 @@ final class JsonInputParametersPanel {
             final var key = panel.getParameterID();
             final var jsonColumn = panel.getJSONColumn();
             final var jsonConfig = panel.getJSONConfig();
-            configuration.setDropParameterIdentifier(key, panel.isDropParameterIdentifier());
             if (jsonColumn.isPresent()) {
                 parameterToJsonColumnMap.put(key, jsonColumn.get());
             } else if (jsonConfig.isPresent()) {
@@ -170,9 +169,6 @@ final class JsonInputParametersPanel {
                 panel.setJson(fixedSource.get(parameterId).getJSONValue());
             } else {
                 panel.setNoDataSource();
-            }
-            if(configuration.isDropParameterIdentifiers(parameterId)) {
-                panel.setDropParameterIdentifier();
             }
         }
     }

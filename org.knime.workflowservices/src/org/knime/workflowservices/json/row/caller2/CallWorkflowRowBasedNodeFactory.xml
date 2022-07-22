@@ -36,11 +36,6 @@
                 For each parameter, you can select if the data that is sent is taken from a JSON column, is a static JSON value, or is
                 omitted (in this case, the value that is set up in the called workflow's Container Input node is used). 
             </option>
-            <option name="Drop node ID from parameter name">
-                Only shown for input parameters that contain the ID of the node that defines the parameter in the called workflow.
-                For instance, "string-input-6". When selecting to drop the node ID, this results in a simplified name, such as "string-input".
-                This is useful when controlling the workflow path via a flow variable and the called workflows all have similar input parameter names, except for the node IDs.   
-            </option>
             <option name="Create Report">
                 If checked, the report associated with the remote workflow will be generated and put into the output table. The format can be chosen in the drop-down. The output table will contain a column containing the binary content of the report (column type: binary object); the column can be further processed, e.g. use a &quot;Binary Objects to Files&quot; node to write the content to a file, or use a database writer to write the report as BLOB into a database. Failures to generate the report (for instance, because no report is attached to the workflow) will result in a missing cell.
             </option>
