@@ -98,9 +98,9 @@ public class CallWorkflowConnectionConfiguration {
         m_isSynchronous = strict ? //
             settings.getBoolean("isSynchronous") : //
             settings.getBoolean("isSynchronous", false);
-        m_discardJobOnSuccessfulExecution = strict ? //
-            settings.getBoolean("discardJobOnSuccessfulExecution") : //
-            settings.getBoolean("discardJobOnSuccessfulExecution", true);
+        // not part of the settings of org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeFactory
+        // (node "Call Workflow (Table Based) (deprecated)")
+        m_discardJobOnSuccessfulExecution = settings.getBoolean("discardJobOnSuccessfulExecution", true);
         m_keepFailingJobs = strict ? //
             settings.getBoolean("keepFailingJobs") : //
             settings.getBoolean("keepFailingJobs", true);
