@@ -266,9 +266,6 @@ public class NodeSettingsTreeContentProvider implements ITreeContentProvider {
                 byteArrayOutputStream.write(hash.getBytes());
             }
             settingsArray = byteArrayOutputStream.toByteArray();
-        } catch (InvalidSettingsException e1) {
-            String msg = "Invalid or no user settings: " + nc.getNameWithID() + "(" + e1.getMessage() + ")";
-            settingsArray = msg.getBytes();
         } catch (IOException e) {
             String msg = "Error while storing node settings: " + e.getMessage();
             settingsArray = msg.getBytes();
