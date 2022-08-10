@@ -7,8 +7,8 @@
 
    <description>
       This feature contains the KNIME Personal Productivity Tools including
-features such as MetaNode and WrappedNode sharing, Workflow Difference
-Viewer, and a &quot;Call Local Workflow&quot; node.
+Workflow Difference Viewer, and nodes to invoke other workflows
+(&quot;Call Workflow&quot;).
    </description>
 
    <copyright>
