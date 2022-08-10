@@ -70,6 +70,7 @@ import javax.swing.text.Document;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.knime.core.data.json.container.credentials.ContainerCredentialsJsonSchema;
 import org.knime.core.data.json.container.table.ContainerTableJsonSchema;
 import org.knime.core.node.InvalidSettingsException;
@@ -763,7 +764,13 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
 
                     Throwable cause = ExceptionUtils.getRootCause(e);
 
-                    var errorPair = ServerConnectionUtil.handle(e);
+                    Pair<String, Throwable> errorPair;
+                    if (cause instanceof InvalidSettingsException) {
+                        // addresses AP-19370: bogus error message when wrong node is in Callee
+                        errorPair = Pair.of(cause.getMessage() + " (wrong node types in use?)", cause);
+                    } else {
+                        errorPair = ServerConnectionUtil.handle(e);
+                    }
 
                     if (!(cause instanceof InvalidSettingsException)) {
                         LOGGER.debug(errorPair.getLeft(), errorPair.getRight());

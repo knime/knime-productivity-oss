@@ -49,7 +49,9 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.Arrays;
+import java.util.Objects;
 
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
@@ -139,7 +141,10 @@ final class WorkflowInputNodeModel extends AbstractPortObjectRepositoryNodeModel
 
     @Override
     public void validateInputData(final ExternalNodeData inputData) throws InvalidSettingsException {
-        CheckUtils.checkSettingNotNull(inputData.getResource(), "Input data expected to provide a binary object (via URI)");
+        URI resource = inputData.getResource();
+        CheckUtils.checkSettingNotNull(resource, "Input data expected to provide a binary object (via URI)");
+        CheckUtils.checkSetting(!Objects.equals(resource, ExternalNodeData.NO_URI_VALUE_YET),
+            "No input data specified for Workflow Service Input");
     }
 
     /**
