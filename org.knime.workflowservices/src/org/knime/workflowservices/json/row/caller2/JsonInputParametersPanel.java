@@ -37,6 +37,7 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.VerticalCollapsablePanels;
 import org.knime.json.util.JSONUtil;
+import org.knime.workflowservices.IWorkflowBackend;
 
 final class JsonInputParametersPanel {
 
@@ -84,9 +85,11 @@ final class JsonInputParametersPanel {
         m_panelMap.clear();
         final var sortedByParameterName =
             inputNodes.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey)).collect(Collectors.toList());
+        var fullyQualifiedToSimpleIDMap = IWorkflowBackend.getFullyQualifiedToSimpleIDMap(inputNodes.keySet());
         for (var i = 0; i < sortedByParameterName.size(); i++) {
             var entry = sortedByParameterName.get(i);
-            var p = new JSONInputPanel(entry.getKey(), entry.getValue().getJSONValue(), inputTableSpec);
+            var p = new JSONInputPanel(fullyQualifiedToSimpleIDMap.get(entry.getKey()), entry.getValue().getJSONValue(),
+                inputTableSpec);
             p.setSelectedIndex(i);
             m_panelMap.put(entry.getKey(), p);
             m_collapsablePanels.addPanel(p, false);
