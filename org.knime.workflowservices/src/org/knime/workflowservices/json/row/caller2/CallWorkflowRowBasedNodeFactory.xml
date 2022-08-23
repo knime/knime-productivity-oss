@@ -7,12 +7,12 @@
     <fullDescription>
         <intro>
             This node passes JSON objects to a workflow, executes the workflow, and fetches the returned JSON objects. This happens once for each row in the input table, appending the fetched results for a row as new cells to the row.
-            <br />
+            <br /><br />
             <b>Sending data.</b>
             The called workflow can receive data from this node via the Container Input nodes, e.g., JSON, Row, or Table, which all expect a JSON object but make different assumptions on the structure of the object. For instance, Container Input (JSON) accepts any JSON object, while Container Input (Row) expects a JSON object where each key corresponds to a column name and the associated value denotes the according cell content.
             <br />
             What is passed to a specific Container Input node can be configured in this node's dialog. There are three options: pass the JSON contained in a selected column of the current input row, pass a static JSON (that can be overwritten by a flow variable), or send nothing, causing the default JSON object defined by the according Container Input node to be used.
-            <br />
+            <br /><br />
             <b>Receiving data.</b>
             The called workflow can send back data via Container Output nodes (Row, Table, or JSON). Each Container Output node will result in a column being appended to the output table.
             <br />
