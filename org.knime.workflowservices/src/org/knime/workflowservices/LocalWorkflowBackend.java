@@ -63,6 +63,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.WeakHashMap;
@@ -81,14 +82,20 @@ import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.dialog.ExternalNodeData;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.NodeContainerState;
 import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.NodeMessage;
 import org.knime.core.node.workflow.UnsupportedWorkflowVersionException;
-import org.knime.core.node.workflow.WorkflowContext;
 import org.knime.core.node.workflow.WorkflowLoadHelper;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.node.workflow.WorkflowPersistor.WorkflowLoadResult;
+import org.knime.core.node.workflow.contextv2.AnalyticsPlatformExecutorInfo;
+import org.knime.core.node.workflow.contextv2.HubSpaceLocationInfo;
+import org.knime.core.node.workflow.contextv2.LocationInfo;
+import org.knime.core.node.workflow.contextv2.RestLocationInfo;
+import org.knime.core.node.workflow.contextv2.ServerLocationInfo;
+import org.knime.core.node.workflow.contextv2.WorkflowContextV2;
 import org.knime.core.util.FileUtil;
 import org.knime.core.util.KNIMETimer;
 import org.knime.core.util.LockFailedException;
@@ -104,7 +111,6 @@ import org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFac
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
 /**
@@ -122,15 +128,12 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
 
     private static final Cache<URI, LocalWorkflowBackend> CACHE = CacheBuilder.newBuilder()
         .expireAfterAccess(1L, TimeUnit.MINUTES).maximumSize(5)
-        .removalListener(new RemovalListener<URI, LocalWorkflowBackend>() {
-            @Override
-            public void onRemoval(final RemovalNotification<URI, LocalWorkflowBackend> notification) {
-                LocalWorkflowBackend value = notification.getValue();
-                if (value.isInUse()) {
-                    value.setDiscardAfterUse();
-                } else {
-                    value.discard();
-                }
+        .removalListener((final RemovalNotification<URI, LocalWorkflowBackend> notification) -> {
+            final LocalWorkflowBackend value = notification.getValue();
+            if (value.isInUse()) {
+                value.setDiscardAfterUse();
+            } else {
+                value.discard();
             }
         }).build();
 
@@ -202,61 +205,97 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
      * @param originalUrl the original URL as configured by the user, e.g. knime://knime.workflow/../Called
      * @return a new local backend
      */
-    private static LocalWorkflowBackend loadWorkflow(final URI localUri, final URL originalUrl)
-        throws IOException, InvalidSettingsException, CanceledExecutionException, UnsupportedWorkflowVersionException,
-        LockFailedException, CoreException {
+    private static LocalWorkflowBackend loadWorkflow(final URI localUri,
+        final URL originalUrl) throws IOException, InvalidSettingsException, CanceledExecutionException,
+            UnsupportedWorkflowVersionException, LockFailedException, CoreException {
         File file = new File(localUri);
+
+        CheckUtils.checkState(NodeContext.getContext() != null, "NodeContext not set while loading callee workflow");
+        final WorkflowContextV2 callerContext = NodeContext.getContext().getWorkflowManager().getContextV2();
+        var execInfo = callerContext.getExecutorInfo();
 
         if (Boolean.getBoolean("java.awt.headless")) {
             // running as an executor on the server or as batch executor
-            WorkflowContext.Factory ctxFac;
 
-            if (NodeContext.getContext() != null) {
-                WorkflowContext callerContext = NodeContext.getContext().getWorkflowManager().getContext();
-                ctxFac = callerContext.createCopy();
+            final LocationInfo location = callerContext.getLocationInfo();
+            //ctxFac = callerContext.createCopy();
 
-                // compute the new path in the server repository base on the caller's path and the URL type
-                if (callerContext.getRemoteRepositoryAddress().isPresent()
-                    && callerContext.getRelativeRemotePath().isPresent()) {
-                     String relPath;
-                     if (ExplorerURLStreamHandler.WORKFLOW_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
-                        relPath = callerContext.getRelativeRemotePath().get() + "/" + originalUrl.getPath();
-                     } else if (ExplorerURLStreamHandler.MOUNTPOINT_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
-                         relPath = originalUrl.getPath();
-                     } else {
-                         // this shouldn't happen
-                         relPath = originalUrl.getPath();
-                     }
+            WorkflowContextV2 ctx;
+            /* This 'if' block is _only_ relevant for the "Call Local Workflow" node, deprecated since 4.7 (Dec '22).
+             * All other new implementations use org.knime.workflowservices.connection.ServerConnectionUtil, which
+             * will facilite a RunningOnServerItselfServerConnection, which will instantiate a real server connection.
+             */
+            // compute the new path in the server repository base on the caller's path and the URL type
+            if (location instanceof RestLocationInfo) {
+                // callerContext.getRemoteRepositoryAddress().isPresent() && callerContext.getRelativeRemotePath().isPresent()
+                final RestLocationInfo remoteInfo = (RestLocationInfo) location;
+                String relPath;
+                if (ExplorerURLStreamHandler.WORKFLOW_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
+                    // relPath = callerContext.getRelativeRemotePath().get() + "/" + originalUrl.getPath();
+                    relPath = remoteInfo.getWorkflowPath() + "/" + originalUrl.getPath();
+                } else if (ExplorerURLStreamHandler.MOUNTPOINT_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
+                    relPath = originalUrl.getPath();
+                } else {
+                    // this shouldn't happen
+                    relPath = originalUrl.getPath();
+                }
 
-                    ctxFac.setRemoteAddress(callerContext.getRemoteRepositoryAddress().get(),
-                        FilenameUtils.normalize(relPath, true));
-                 }
-                 ctxFac.setCurrentLocation(file);
+                relPath = FilenameUtils.normalize(relPath, true);
+                final RestLocationInfo targetLocation;
+                if (remoteInfo instanceof ServerLocationInfo) {
+                    targetLocation = ServerLocationInfo.builder()
+                            .withRepositoryAddress(remoteInfo.getRepositoryAddress())
+                            .withWorkflowPath(relPath)
+                            .withAuthenticator(remoteInfo.getAuthenticator())
+                            .withDefaultMountId(remoteInfo.getDefaultMountId())
+                            .build();
+                } else if (remoteInfo instanceof HubSpaceLocationInfo) {
+                    throw new IllegalStateException(
+                        "Hub Execution not supported for deprecated 'Call Local Workflow' node, update the calling "
+                        + "workflow to use a non-deprecated variant.");
+                } else {
+                    throw new IllegalStateException(
+                        "Location info of type " + remoteInfo.getClass().getName() + " not implemented");
+                }
+
+                ctx = WorkflowContextV2.builder()
+                        .withExecutor(execInfo)
+                        .withLocation(targetLocation)
+                        .build();
             } else {
-                ctxFac = new WorkflowContext.Factory(file);
+                ctx = WorkflowContextV2.forTemporaryWorkflow(file.toPath(), null);
             }
-            WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
-                new WorkflowLoadHelper(ctxFac.createContext()));
+            final var l = WorkflowManager.loadProject(file, new ExecutionMonitor(), new WorkflowLoadHelper(ctx));
             return new LocalWorkflowBackend(localUri, l.getWorkflowManager());
         } else {
             // running in GUI mode
             WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(localUri);
+            CheckUtils.checkState(execInfo instanceof AnalyticsPlatformExecutorInfo,
+                "Not running in an instance of %s", AnalyticsPlatformExecutorInfo.class.getName());
             if (m == null) {
-                WorkflowContext.Factory ctxFac = new WorkflowContext.Factory(file);
-
-                LocalExplorerFileStore fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
-                if (fs != null) {
-                    File mountpointRoot = fs.getContentProvider().getRootStore().toLocalFile();
-                    ctxFac.setMountpointRoot(mountpointRoot);
-                    ctxFac.setMountpointURI(fs.toURI());
-                } else if (NodeContext.getContext() != null) {
-                    // use context from current workflow if available
-                    WorkflowContext tmp = NodeContext.getContext().getWorkflowManager().getContext();
-                    ctxFac.setMountpointRoot(tmp.getMountpointRoot());
-                }
-
+                // two cases really:
+                // - regular open in KNIME GUI -- mount table is present and "ExplorerFileStore" can be located
+                // - test cases: mimic mount table by setting mountpoint (id and path) for callee
+                Optional<Pair<URI, Path>> mpOptional = ((AnalyticsPlatformExecutorInfo)execInfo).getMountpoint();
+                final var localWorkflowPath = file.toPath();
+                final LocalExplorerFileStore fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
+                final var mountpoint = fs == null ?
+                    mpOptional.map(p -> Pair.create(p.getFirst().getAuthority(), p.getSecond())).orElse(null) :
+                    Pair.create(fs.getMountID(), fs.getContentProvider().getRootStore().toLocalFile().toPath());
+                final WorkflowContextV2 ctx = WorkflowContextV2.builder()
+                        .withAnalyticsPlatformExecutor(exec -> {
+                            final var exec2 = exec
+                                    .withCurrentUserAsUserId()
+                                    .withLocalWorkflowPath(localWorkflowPath);
+                            if (mountpoint != null) {
+                                exec2.withMountpoint(mountpoint.getFirst(), mountpoint.getSecond());
+                            }
+                            return exec2;
+                        })
+                        .withLocalLocation()
+                        .build();
                 WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
-                    new WorkflowLoadHelper(ctxFac.createContext()));
+                    new WorkflowLoadHelper(ctx));
                 m = l.getWorkflowManager();
                 ProjectWorkflowMap.putWorkflow(localUri, m);
             }

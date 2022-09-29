@@ -75,6 +75,7 @@ import org.knime.core.node.workflow.WorkflowLoadHelper;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.node.workflow.WorkflowPersistor.MetaNodeLinkUpdateResult;
 import org.knime.core.node.workflow.WorkflowPersistor.WorkflowLoadResult;
+import org.knime.core.node.workflow.contextv2.WorkflowContextV2;
 import org.knime.core.util.LockFailedException;
 import org.knime.core.util.ProgressMonitorAdapter;
 import org.knime.core.util.pathresolve.ResolverUtil;
@@ -155,8 +156,9 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
 					LOGGER.debug("Downloading flow for comparison: " + m_left.getMountIDWithFullPath());
 					leftLocalFile = m_left.resolveToLocalFile(monitor);
 				}
-				WorkflowLoadResult leftLoadResult = WorkflowManager.ROOT.load(leftLocalFile, m,
-						new WorkflowLoadHelper(leftLocalFile), false);
+				final WorkflowContextV2 context = WorkflowContextV2.forTemporaryWorkflow(leftLocalFile.toPath(), null);
+				final WorkflowLoadResult leftLoadResult =
+				        WorkflowManager.ROOT.load(leftLocalFile, m, new WorkflowLoadHelper(context), false);
 				left = leftLoadResult.getWorkflowManager();
 				m_leftTree = creator.getStructure(left.getID());
 			} else {
@@ -190,8 +192,9 @@ public class WorkflowCompareEditorInput extends CompareEditorInput {
 					LOGGER.debug("Downloading flow for comparison: " + m_right.getMountIDWithFullPath());
 					rightLocalFile = m_right.resolveToLocalFile(monitor);
 				}
-				WorkflowLoadResult rightLoadResult = WorkflowManager.ROOT.load(rightLocalFile, m,
-						new WorkflowLoadHelper(rightLocalFile), false);
+				final WorkflowContextV2 context = WorkflowContextV2.forTemporaryWorkflow(rightLocalFile.toPath(), null);
+				final WorkflowLoadResult rightLoadResult =
+				        WorkflowManager.ROOT.load(rightLocalFile, m, new WorkflowLoadHelper(context), false);
 				right = rightLoadResult.getWorkflowManager();
 				m_rightTree = creator.getStructure(right.getID());
 			} else {
