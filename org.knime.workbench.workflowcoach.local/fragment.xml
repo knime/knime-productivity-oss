@@ -17,7 +17,7 @@
       </initializer>
    </extension>
    <extension
-         point="org.knime.workbench.workflowcoach.nodetriples">
+         point="org.knime.core.ui.nodetriples">
       <tripleprovider
             factory-class="org.knime.workbench.workflowcoach.local.data.WorkspaceTripleProviderFactory">
       </tripleprovider>

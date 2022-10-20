@@ -51,8 +51,8 @@ package org.knime.workbench.workflowcoach.local.data;
 import java.util.Collections;
 import java.util.List;
 
-import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
-import org.knime.workbench.workflowcoach.data.NodeTripleProviderFactory;
+import org.knime.core.ui.workflowcoach.data.NodeTripleProvider;
+import org.knime.core.ui.workflowcoach.data.NodeTripleProviderFactory;
 import org.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferencePage;
 
 /**

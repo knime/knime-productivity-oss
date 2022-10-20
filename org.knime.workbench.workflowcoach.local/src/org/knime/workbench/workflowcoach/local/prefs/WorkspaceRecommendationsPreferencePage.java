@@ -79,8 +79,8 @@ import org.knime.core.internal.KNIMEPath;
 import org.knime.core.node.NodeFrequencies;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.recommendation.WorkspaceAnalyzer;
-import org.knime.workbench.workflowcoach.NodeRecommendationManager;
-import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
+import org.knime.core.ui.workflowcoach.NodeRecommendationManager;
+import org.knime.core.ui.workflowcoach.data.NodeTripleProvider;
 import org.knime.workbench.workflowcoach.local.data.WorkspaceTripleProvider;
 import org.osgi.framework.FrameworkUtil;
 

@@ -63,7 +63,7 @@ import org.knime.core.node.KNIMEConstants;
 import org.knime.core.node.NodeFrequencies;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeTriple;
-import org.knime.workbench.workflowcoach.data.NodeTripleProvider;
+import org.knime.core.ui.workflowcoach.data.NodeTripleProvider;
 import org.knime.workbench.workflowcoach.local.prefs.WorkspaceRecommendationsPreferenceInitializer;
 import org.osgi.framework.FrameworkUtil;
 
