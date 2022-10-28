@@ -5,9 +5,9 @@
     <dependency name="net.minidev.json-smart" componentType="osgi.bundle"/>
     <dependency name="net.minidev.asm" componentType="osgi.bundle"/>
     <dependency name="org.slf4j.api" componentType="osgi.bundle"/>
-    <dependency name="com.github.fge.btf" componentType="osgi.bundle"/>
-    <dependency name="com.github.fge.msg-simple" componentType="osgi.bundle"/>
-    <dependency name="com.github.fge.uri-template" componentType="osgi.bundle"/>
+    <dependency name="com.github.java-json-tools.btf" componentType="osgi.bundle"/>
+    <dependency name="com.github.java-json-tools.msg-simple" componentType="osgi.bundle"/>
+    <dependency name="com.github.java-json-tools.uri-template" componentType="osgi.bundle"/>
     <dependency name="com.googlecode.libphonenumber" componentType="osgi.bundle"/>
     <dependency name="net.sf.jopt-simple.jopt-simple" componentType="osgi.bundle"/>
     <dependency name="joda-time" componentType="osgi.bundle"/>
