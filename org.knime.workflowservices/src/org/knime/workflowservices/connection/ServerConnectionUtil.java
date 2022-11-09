@@ -28,6 +28,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.WorkflowManager;
+import org.knime.core.node.workflow.contextv2.HubSpaceLocationInfo;
+import org.knime.core.node.workflow.contextv2.WorkflowContextV2;
 import org.knime.filehandling.core.connections.meta.FSType;
 import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
 import org.osgi.framework.Bundle;
@@ -152,13 +154,14 @@ public final class ServerConnectionUtil {
      * Sanity check for the arguments to be passed to {@link #getConnection(PortObjectSpec, WorkflowManager)}. Does not
      * guarantee that getConnection will succeed but helps to sort out common problems early.
      *
-     * @param wfm to check
-     * @param portObjectSpec to check
-     * @return error message if the workflow manager represents a temporary copy of the workflow or the port object is
-     *         not of type {@link FileSystemPortObjectSpec}
+     * @param wfm of the workflow trying to establish a connection
+     * @param portObjectSpec provides details about the connection to establish. Nullable, e.g., for local connection.
+     * @return error message if the workflow manager represents a temporary copy of the workflow
      */
     public static Optional<String> validate(final WorkflowManager wfm, final PortObjectSpec portObjectSpec) {
-        if (wfm.getContext().isTemporaryCopy()) {
+        final WorkflowContextV2 contextV2 = wfm.getContextV2();
+        var locationInfo = contextV2.getLocationInfo();
+        if (contextV2.isTemporyWorkflowCopyMode() && !(locationInfo instanceof HubSpaceLocationInfo)) {
             return Optional.of("This node cannot be configured in a temporary copy of the workflow.");
         }
         return Optional.empty();

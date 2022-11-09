@@ -70,7 +70,7 @@ import org.knime.json.util.JSONUtil;
  *
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  */
-@Deprecated(since = "4.7")
+@Deprecated(since = "4.7.0")
 public abstract class CallWorkflowConfiguration {
     private Map<String, ExternalNodeData> m_parameterToJsonConfigMap = Collections.emptyMap();
 

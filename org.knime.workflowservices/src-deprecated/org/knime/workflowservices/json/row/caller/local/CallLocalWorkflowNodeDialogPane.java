@@ -113,7 +113,7 @@ import org.knime.workflowservices.json.row.caller.JSONInputPanel;
  * Dialog to node.
  *
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
- * @deprecated use {@link CallWorkflowRowBasedNodeDialog}, it unifies local and remote row-based execution
+ * @deprecated use {@link CallWorkflowRowBased3NodeDialog}, it unifies local and remote row-based execution
  */
 @Deprecated(since = "4.7")
 final class CallLocalWorkflowNodeDialogPane extends NodeDialogPane {

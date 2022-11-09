@@ -40,7 +40,7 @@ import org.knime.workflowservices.connection.IServerConnection;
 /**
  * Provides controls to edit the values in a {@link CallWorkflowConnectionConfiguration}.
  *
- * Shows the address of the connected server, check boxes for discarding or keeping jobs, and expected job execution
+ * Shows the address of the connected remote executor, check boxes for discarding or keeping jobs, and expected job execution
  * durations. See {@link #getMainPanel()}
  *
  * Provides controls for backoff policy parameters: retries, delays, etc. See {@link #getBackoffPanel()}.
@@ -73,9 +73,9 @@ public final class CallWorkflowConnectionControls {
         /** For advanced settings tab: create workflow job time out and fetch workflow parameter timeout */
         private final ConnectionTimeoutControls m_timeoutPanel = new ConnectionTimeoutControls();
 
-        private final JPanel m_serverExecution = new JPanel(new GridBagLayout());
+        private final JPanel m_remoteExecution = new JPanel(new GridBagLayout());
 
-        final JLabel m_serverAddress = new JLabel("No server connection");
+        final JLabel m_remoteExecutorAddress = new JLabel("No remote connection");
 
         final JRadioButton m_syncInvocationChecker =
             new JRadioButton("Short duration: the workflow is expected to run quickly (less than 10 seconds)");
@@ -96,7 +96,7 @@ public final class CallWorkflowConnectionControls {
         private final CardLayout m_cardLayout = new CardLayout();
 
         public Controls() {
-            m_panel.setBorder(BorderFactory.createTitledBorder("KNIME Server Call Settings"));
+            m_panel.setBorder(BorderFactory.createTitledBorder("Execution Settings"));
             m_panel.setLayout(m_cardLayout);
 
             initRemoteExecutionPanel();
@@ -104,9 +104,9 @@ public final class CallWorkflowConnectionControls {
             m_errorLabel.setForeground(Color.red.darker());
             m_errorLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-            m_panel.add(m_serverExecution, State.REMOTE.toString());
+            m_panel.add(m_remoteExecution, State.REMOTE.toString());
             m_panel.add(m_errorLabel, State.ERROR.toString());
-            m_panel.add(new JLabel("Local Workflow Execution"), State.LOCAL.toString());
+            m_panel.add(new JLabel("No settings for local workflow execution."), State.LOCAL.toString());
 
             setState(State.LOCAL);
         }
@@ -134,24 +134,24 @@ public final class CallWorkflowConnectionControls {
             gbc.weighty = 1.0;
             gbc.fill = GridBagConstraints.NONE;
 
-            m_serverExecution.add(m_serverAddress, gbc);
+            m_remoteExecution.add(m_remoteExecutorAddress, gbc);
 
             gbc.gridy++;
-            m_serverExecution.add(m_errorLabel, gbc);
+            m_remoteExecution.add(m_errorLabel, gbc);
 
             var invocationPanel = createInvocationPanel();
             gbc.gridx = 0;
             gbc.gridy++;
             gbc.gridwidth = 2;
-            m_serverExecution.add(invocationPanel, gbc);
+            m_remoteExecution.add(invocationPanel, gbc);
 
             gbc.gridx = 0;
             gbc.gridy++;
             gbc.gridwidth = 1;
-            m_serverExecution.add(m_retainJobOnFailure, gbc);
+            m_remoteExecution.add(m_retainJobOnFailure, gbc);
 
             gbc.gridy++;
-            m_serverExecution.add(m_discardJobOnSuccesfulExecution, gbc);
+            m_remoteExecution.add(m_discardJobOnSuccesfulExecution, gbc);
         }
 
         /**
@@ -185,7 +185,7 @@ public final class CallWorkflowConnectionControls {
     }
 
     /**
-     * Creates a new panel with all controls disabled (until a server is connected)
+     * Creates a new panel with all controls disabled (until a remote executor is connected)
      */
     public CallWorkflowConnectionControls() {
         enableAllUIElements(false);
@@ -214,7 +214,9 @@ public final class CallWorkflowConnectionControls {
     }
 
     /**
-     * Saves the currently selected options to a configuration.
+     * Saves the currently selected options to a configuration, that is:
+     *
+     * synchronous invocation, keep failing jobs, discard jobs on successful execution, timeouts, backoff policy
      *
      * @param configuration to update
      */
@@ -233,12 +235,17 @@ public final class CallWorkflowConnectionControls {
      */
     public void loadConfiguration(final CallWorkflowConnectionConfiguration configuration) {
         if (configuration.isSynchronousInvocation()) {
+            m_controls.m_syncInvocationChecker.setSelected(true);
             m_controls.m_syncInvocationChecker.doClick();
         } else {
+            m_controls.m_asyncInvocationChecker.setSelected(true);
             m_controls.m_asyncInvocationChecker.doClick();
         }
+
         m_controls.m_retainJobOnFailure.setSelected(configuration.isKeepFailingJobs());
         m_controls.m_discardJobOnSuccesfulExecution.setSelected(configuration.isDiscardJobOnSuccessfulExecution());
+
+        m_controls.m_timeoutPanel.loadFromConfiguration(configuration);
 
         // load backoff policy
         m_controls.m_backoffpanel
@@ -258,7 +265,7 @@ public final class CallWorkflowConnectionControls {
     }
 
     /**
-     * @return the panel containing the server address, job polling, and job keep/discard settings
+     * @return the panel containing the remote executor's address, job polling, and job keep/discard settings
      */
     public JPanel getMainPanel() {
         return m_controls.m_panel;
@@ -298,17 +305,17 @@ public final class CallWorkflowConnectionControls {
     }
 
     /**
-     * Updates the server address label. Clears any error that was previously set. Disables the backoff policy and
+     * Updates the remote executor address label. Clears any error that was previously set. Disables the backoff policy and
      * timeout controls if the execution is not remote.
      *
-     * @param serverConnection specifies the server's host name.
-     * @param isRemoteExecution whether the server connection will lead to remote execution
+     * @param remoteConnection specifies the remote executors host name.
+     * @param isRemoteExecution whether the remote executor connection will lead to remote execution
      */
-    public void setServerConnection(final IServerConnection serverConnection, final boolean isRemoteExecution) {
-        if (serverConnection == null || !isRemoteExecution) {
-            m_controls.m_serverAddress.setText("Local execution");
+    public void setRemoteConnection(final IServerConnection remoteConnection, final boolean isRemoteExecution) {
+        if (remoteConnection == null || !isRemoteExecution) {
+            m_controls.m_remoteExecutorAddress.setText("Local execution");
         } else {
-            m_controls.m_serverAddress.setText("Server address: " + serverConnection.getHost());
+            m_controls.m_remoteExecutorAddress.setText("Remote executor address: " + remoteConnection.getHost());
         }
 
         m_controls.m_backoffpanel.setEnabled(isRemoteExecution);

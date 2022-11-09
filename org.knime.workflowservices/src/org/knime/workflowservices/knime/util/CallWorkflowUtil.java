@@ -58,13 +58,15 @@ public final class CallWorkflowUtil {
     }
 
     /**
-     * Prepare an {@link ExternalNodeData} instance for each of the Workflow Input nodes in the callee workflow. The
-     * port objects will be written to files and set as resource on the created {@link ExternalNodeData} instances. The
-     * same is done for the given flow variables, if there is at least one flow variable input parameter in the callee
-     * workflow.
+     * Prepare an {@link ExternalNodeData} instance for each of the Workflow Input nodes in the callee workflow.
      *
-     * @param inputs the input and output parameters of the workflow to be called
-     * @param portObjects the data provided to this node's input ports
+     * The port objects will be written to files and set as resource on the created {@link ExternalNodeData} instances.
+     * The same is done for the given flow variables, if there is at least one flow variable input parameter in the
+     * callee workflow.
+     *
+     * @param inputs the input parameters of the workflow to be called
+     * @param dataPortObjects the data provided to this node's input ports, the i-th element corresponds to the i-th
+     *            element in <code>inputs</code>
      * @param flowVariables flow variables to send to callee workflow if it contains an input parameter of type
      *            {@link FlowVariablePortObject}.
      * @param exec to write port objects
@@ -75,8 +77,9 @@ public final class CallWorkflowUtil {
      * @throws CanceledExecutionException
      * @throws IOException on
      */
-    public static Map<String, ExternalNodeData> createWorkflowInput(final List<WorkflowParameter> inputs,
-        final PortObject[] portObjects, final Collection<FlowVariable> flowVariables, final ExecutionContext exec)
+    public static Map<String, ExternalNodeData> createWorkflowInput(
+        final List<WorkflowParameter> inputs, final PortObject[] dataPortObjects,
+        final Collection<FlowVariable> flowVariables, final ExecutionContext exec)
         throws IOException, CanceledExecutionException {
 
         Map<String, ExternalNodeData> workflowInput = new HashMap<>();
@@ -92,13 +95,11 @@ public final class CallWorkflowUtil {
         }
 
         // PERFORMANCE writing to disk can be expensive, parallelize this?
-        // skip the optional FileSystemPortObject at index 0
-        // for all other ports: serialize for transfer to callee workflow
-        for (var input = 1; input < portObjects.length; input++) {
-            final var portObject = portObjects[input];
+        for (var input = 0; input < dataPortObjects.length; input++) {
+            final var portObject = dataPortObjects[input];
 
             // identifier of the external node data object is the node id of the callee workflow Input node
-            WorkflowParameter portDesc = inputs.get(input - 1);
+            WorkflowParameter portDesc = inputs.get(input);
             String key = portDesc.getParameterName();
 
             File tempFile = null;

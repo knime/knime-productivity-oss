@@ -27,7 +27,7 @@ import org.knime.core.node.NodeView;
 /**
  *
  * @author wiswedel
- * @deprecated use {@link CallWorkflowRowBasedNodeFactory}, it unifies local and remote row-based execution
+ * @deprecated use {@link CallWorkflowRowBased3NodeFactory}, it unifies local and remote row-based execution
  */
 @Deprecated(since = "4.7")
 public final class CallRemoteWorkflowNodeFactory extends NodeFactory<CallRemoteWorkflowNodeModel> {

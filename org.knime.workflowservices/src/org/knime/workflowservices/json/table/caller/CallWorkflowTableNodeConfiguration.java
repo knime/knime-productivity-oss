@@ -24,15 +24,18 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
+import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
+import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeFactory;
 
 /**
- * Configuration for the Call Workflow (Table) node.
+ * Configuration for the Call Workflow (Table) node. Used by the deprecated nodes as well as
+ * {@link CallWorkflowTable2NodeFactory}.
  *
  * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
  */
-final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionConfiguration {
+public final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionConfiguration {
 
     private String m_selectedInputParameter;
 
@@ -45,12 +48,29 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
     private boolean m_useFullyQualifiedIds;
 
     /**
+     * @deprecated use {@link #CallWorkflowTableNodeConfiguration(NodeCreationConfiguration, String)}
+     */
+    @Deprecated(since = "4.7.0")
+    public CallWorkflowTableNodeConfiguration() {
+
+    }
+
+    /**
+     * @param nodeCreationConfiguration see super constructor
+     * @param portGroupName see super constructor
+     * @see CallWorkflowConnectionConfiguration#CallWorkflowConnectionConfiguration(NodeCreationConfiguration, String)
+     */
+    public CallWorkflowTableNodeConfiguration(final NodeCreationConfiguration nodeCreationConfiguration, final String portGroupName) {
+        super(nodeCreationConfiguration, portGroupName);
+    }
+
+    /**
      * Saves the configuration to the node settings.
      *
      * @param settings settings to which the configuration should be saved
      * @return this configuration
      */
-    CallWorkflowTableNodeConfiguration save(final NodeSettingsWO settings) {
+    public CallWorkflowTableNodeConfiguration save(final NodeSettingsWO settings) {
         saveSettings(settings);
 
         if (m_selectedInputParameter != null) {
@@ -100,7 +120,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      * @throws InvalidSettingsException
      * @throws NotConfigurableException
      */
-    CallWorkflowTableNodeConfiguration loadInDialog(final NodeSettingsRO settings) throws NotConfigurableException {
+    public CallWorkflowTableNodeConfiguration loadInDialog(final NodeSettingsRO settings) throws NotConfigurableException {
         loadSettingsInDialog(settings);
         m_selectedInputParameter = settings.getString("selectedInputParameter", "");
         m_selectedOutputParameter = settings.getString("selectedOutputParameter", "");
@@ -115,7 +135,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      *
      * @param inputParameter the parameter
      */
-    void setSelectedInputParameter(final String inputParameter) {
+    public void setSelectedInputParameter(final String inputParameter) {
         m_selectedInputParameter = inputParameter;
     }
 
@@ -124,7 +144,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      *
      * @return the parameter the input table is assigned to
      */
-    String getSelectedInputParameter() {
+    public String getSelectedInputParameter() {
         return m_selectedInputParameter;
     }
 
@@ -133,7 +153,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      *
      * @param selectedOutputParameter the parameter
      */
-    void setSelectedOutputParameter(final String selectedOutputParameter) {
+    public void setSelectedOutputParameter(final String selectedOutputParameter) {
         m_selectedOutputParameter = selectedOutputParameter;
     }
 
@@ -142,7 +162,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      *
      * @return the parameter the output table is filled from
      */
-    String getSelectedOutputParameter() {
+    public String getSelectedOutputParameter() {
         return m_selectedOutputParameter;
     }
 
@@ -151,7 +171,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      *
      * @return the flowVariableDestination
      */
-    String getFlowVariableDestination() {
+    public String getFlowVariableDestination() {
         return m_flowVariableDestination;
     }
 
@@ -160,7 +180,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      *
      * @param flowVariableDestination the flowVariableDestination to set
      */
-    void setFlowVariableDestination(final String flowVariableDestination) {
+    public void setFlowVariableDestination(final String flowVariableDestination) {
         m_flowVariableDestination = flowVariableDestination;
     }
 
@@ -169,7 +189,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      *
      * @return the flowCredentialsDestination
      */
-    String getFlowCredentialsDestination() {
+    public String getFlowCredentialsDestination() {
         return m_flowCredentialsDestination;
     }
 
@@ -187,7 +207,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      *
      * @param useFullyQualifiedIds the choice made
      */
-    void setUseQualifiedId(final boolean useFullyQualifiedIds) {
+    public void setUseQualifiedId(final boolean useFullyQualifiedIds) {
         m_useFullyQualifiedIds = useFullyQualifiedIds;
     }
 
@@ -196,7 +216,7 @@ final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionCon
      *
      * @return the user setting to use fully qualified id or not
      */
-    boolean isUseFullyQualifiedId() {
+    public boolean isUseFullyQualifiedId() {
         return m_useFullyQualifiedIds;
     }
 

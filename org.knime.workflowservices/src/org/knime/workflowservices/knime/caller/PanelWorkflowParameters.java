@@ -24,6 +24,8 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.GridBagLayout;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Predicate;
 
 import javax.swing.Box;
@@ -34,12 +36,13 @@ import javax.swing.JPanel;
 
 import org.knime.base.node.viz.plotter.Axis;
 import org.knime.core.node.InvalidSettingsException;
-import org.knime.core.node.context.ports.ModifiablePortsConfiguration;
+import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.port.PortType;
 import org.knime.filehandling.core.defaultnodesettings.status.DefaultStatusMessage;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
-import org.knime.workflowservices.connection.util.LoadingPanel;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusView;
+import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
+import org.knime.workflowservices.connection.util.LoadingPanel;
 
 /**
  * Takes the input and output parameters of a workflow (parameter name, type) and displays them. Allows reordering of
@@ -47,7 +50,7 @@ import org.knime.filehandling.core.defaultnodesettings.status.StatusView;
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-final class PanelWorkflowParameters {
+public final class PanelWorkflowParameters {
 
     private static final DefaultStatusMessage PARAMETERS_OUT_OF_SYNC = new DefaultStatusMessage(MessageType.WARNING,
         "The node ports do not match the parameters of the workflow. Adjust?");
@@ -55,7 +58,8 @@ final class PanelWorkflowParameters {
     private static final DefaultStatusMessage PARAMETERS_IN_SYNC =
         new DefaultStatusMessage(MessageType.INFO, "The node ports match the parameters of the workflow.");
 
-    enum State {
+    /** What this panel currently shows */
+    public enum State {
             /** Initial state. Nothing to display, no workflow selected. */
             NO_WORKFLOW_SELECTED,
             /**
@@ -106,7 +110,14 @@ final class PanelWorkflowParameters {
      * The ports configuration of the Call Workflow Service node. Used to find a valid default ordering of workflow
      * parameters.
      */
-    private final ModifiablePortsConfiguration m_nodePortsConfiguration;
+    private final PortsConfiguration m_nodePortsConfiguration;
+
+    /**
+     * The deprecated Call Workflow Service node always has a file system input port - we want to ignore it in
+     * #update(WorkflowParameters). The Call Workflow Service node with the dynamic file system input port may or may
+     * not have the port. If a connector port is present, its offset is stored here, otherwise null;
+     */
+    private final CallWorkflowConnectionConfiguration m_connectionConfiguration;
 
     private State m_currentState;
 
@@ -124,14 +135,18 @@ final class PanelWorkflowParameters {
 
     /**
      * @param workflowParametersInSync a function to check whether the workflow parameters match the node's ports
+     * @param configuration provides the offset of the file system connector/callee location port if one is present
+     * @param nodePortsConfiguration
      */
-    PanelWorkflowParameters(final Predicate<WorkflowParameters> workflowParametersInSync,
-        final ModifiablePortsConfiguration nodePortsConfiguration) {
+    public PanelWorkflowParameters(final Predicate<WorkflowParameters> workflowParametersInSync,
+        final CallWorkflowConnectionConfiguration configuration, final PortsConfiguration nodePortsConfiguration) {
 
         m_workflowParametersInSync = workflowParametersInSync;
         m_nodePortsConfiguration = nodePortsConfiguration;
+        m_connectionConfiguration = configuration;
 
-        m_inputMapping = new PanelOrderableParameters("Input Parameters", //
+        m_inputMapping =
+            new PanelOrderableParameters("Input Parameters", //
             (parameter, portIndex) -> String.format("Input Port %s (%s)", portIndex + 1,
                 parameter.getPortType().getName()), //
             (parameter, portIndex) -> parameter.getParameterName(), //
@@ -155,7 +170,7 @@ final class PanelWorkflowParameters {
     private static JPanel createNoWorkflowSelectedPanel() {
         var noWorkflowSelectedPanel = new JPanel(new GridBagLayout());
         noWorkflowSelectedPanel
-            .add(new JLabel("Please select a workflow by entering a path or clicking \"Browse Workflows\"."));
+            .add(new JLabel("Please select a workflow by entering a path or clicking \"Browse...\"."));
         return noWorkflowSelectedPanel;
     }
 
@@ -184,7 +199,7 @@ final class PanelWorkflowParameters {
     /**
      * @return the panel that contains all components of this GUI element.
      */
-    JPanel getContentPane() {
+    public JPanel getContentPane() {
         return m_panel;
     }
 
@@ -192,7 +207,7 @@ final class PanelWorkflowParameters {
      * Called during loadSettings of the Call Worflow Serivce node dialog. Since the user-defined order is stored in the
      * node settings, it must not be changed when initializing the panel.
      */
-    void load(final WorkflowParameters workflowParameters) {
+    public void load(final WorkflowParameters workflowParameters) {
         m_userDefinedOrder = true;
         m_currentProperties = workflowParameters.copy();
         update(workflowParameters);
@@ -207,9 +222,9 @@ final class PanelWorkflowParameters {
      *
      * Called asynchronously after successfully fetching parameters for a workflow.
      *
-     * @param the new workflow input/output parameters
+     * @param workflowParameters new workflow input/output parameters
      */
-    void update(final WorkflowParameters workflowParameters) {
+    public void update(final WorkflowParameters workflowParameters) {
 
         // if a user-defined order exists, try to apply it
         if (m_userDefinedOrder) {
@@ -226,9 +241,11 @@ final class PanelWorkflowParameters {
         if (!m_userDefinedOrder) {
             m_currentProperties = workflowParameters.copy();
 
-            PortType[] inputPorts = m_nodePortsConfiguration.getInputPorts();
-            PortType[] withoutFilesystemPort = Arrays.copyOfRange(inputPorts, 1, inputPorts.length);
-            m_currentProperties.sort(withoutFilesystemPort, m_nodePortsConfiguration.getOutputPorts());
+            // the data ports, i.e., excluding the file system connector
+            List<PortType> inputPorts = new LinkedList<>(Arrays.asList(m_nodePortsConfiguration.getInputPorts()));
+            // remove the i-th port that corresponds to the file system connector
+            m_connectionConfiguration.getConnectorPortIndex().ifPresent(i -> inputPorts.remove(i.intValue()));
+            m_currentProperties.sort(inputPorts.toArray(PortType[]::new), m_nodePortsConfiguration.getOutputPorts());
         }
 
         m_inputMapping.update(m_currentProperties.getInputParameters());
@@ -271,18 +288,18 @@ final class PanelWorkflowParameters {
     /**
      * @return the names of the parameters in the order they are currently in the dialog
      */
-    String[] getInputParameterOrder() {
+    public String[] getInputParameterOrder() {
         return m_inputMapping.getParameterOrder();
     }
 
     /**
      * @return the names of the parameters in the order they are currently in the dialog
      */
-    String[] getOutputParameterOrder() {
+    public String[] getOutputParameterOrder() {
         return m_outputMapping.getParameterOrder();
     }
 
-    void setErrorMessage(final String message) {
+    public void setErrorMessage(final String message) {
         m_errorLabel.setText("Error: " + message);
         setState(State.ERROR);
     }
@@ -290,7 +307,7 @@ final class PanelWorkflowParameters {
     /**
      * @param state adjust display according to a given state.
      */
-    void setState(final State state) {
+    public void setState(final State state) {
 
         // display the READY panel both for state READY and PARAMETER_CONFLICT
         String panel = state == State.PARAMETER_CONFLICT ? State.READY.name() : state.name();
@@ -304,7 +321,7 @@ final class PanelWorkflowParameters {
         m_currentState = state;
     }
 
-    State getState() {
+    public State getState() {
         return m_currentState;
     }
 

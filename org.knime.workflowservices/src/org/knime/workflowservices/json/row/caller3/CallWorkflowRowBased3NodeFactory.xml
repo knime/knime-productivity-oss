@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<knimeNode icon="./callworkflow.png" type="Other"
+    xmlns="http://knime.org/node/v4.1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://knime.org/node/v4.1 http://knime.org/node/v4.1.xsd">
+    <name>Call Workflow (Row Based)</name>
+    <shortDescription> Calls a remote or local workflow for each row in the input table, passing a JSON object and appending results as new columns. </shortDescription>
+    <fullDescription>
+        <intro>
+            This node passes JSON objects to a workflow, executes the workflow, and fetches the returned JSON objects. This happens once for each row in the input table, appending the fetched results for the row as new cells to the row.
+            <br /><br />
+            <b>Sending data.</b>
+            The called workflow can receive data from this node via the Container Input nodes, e.g., JSON, Row, or Table, which all expect a JSON object but make different assumptions on the structure of the object. For instance, Container Input (JSON) accepts any JSON object, while Container Input (Row) expects a JSON object where each key corresponds to a column name and the associated value denotes the according cell content.
+            <br />
+            What is passed to a specific Container Input node can be configured in this node's dialog. There are three options: pass the JSON contained in a selected column of the current input row, pass a static JSON (that can be overwritten by a flow variable), or send nothing, causing the default JSON object defined by the according Container Input node to be used.
+            <br /><br />
+            <b>Receiving data.</b>
+            The called workflow can send back data via Container Output nodes (Row, Table, or JSON). Each Container Output node will result in a column being appended to the output table.
+            <br /><br />
+            <b>Concurrent execution.</b> Note that if the called workflow is local, concurrent calls to it will not be processed in parallel, i.e., each call we be executed sequentially. 
+            If the called workflow is remote, each call will result in a new job which can be executed in parallel with other jobs.
+        </intro>
+        <tab name="Workflow">
+            <option name="Remote execution address">Displays the address of the connected remote executor.</option>
+
+			<option name="Short duration (only for remote execution)">
+				Choose this if the called workflow is expected to finish within ten seconds. When selected, the invocation
+				of the workflow will not poll its status but wait until the job completes (or fails). This removes the
+				polling overhead and makes this option quicker for short running workflows. Choosing this option
+				for long running workflows (&gt; a minute) will cause timeout problems.
+			</option>
+
+			<option name="Long duration (only for remote execution)">
+				Choose this if the called workflow is expected to run for more than ten seconds. When selected, the
+				invocation of the workflow will poll its status repeatedly until the job completes (or fails). 
+				The polling is implemented so that for the first few seconds there will be frequent status checks 
+				(poll interval 100ms or 500ms), whereas jobs that run minutes or hours will be checked only every few seconds.
+			</option>
+
+			<option name="Retain job on failure (only for remote execution)">
+			When selected, failing jobs of the called workflow will be kept on the remote executor. This can be
+			useful for debugging purposes. When not selected, the failing jobs will be discarded.
+			</option>
+
+			<option name="Discard job on successful execution (only for remote execution)">
+			When selected, successful jobs of the called workflow will be discarded from the remote executor. When not selected, the
+			successful jobs will be kept.
+			</option>
+
+			<option name="Workflow path">The path to the workflow you want to call. Use the "Browse..." button to select.
+			The selected path can be set via a path flow variable or exported to a path flow variable.
+			</option>
+			
+            <option name="Input Parameters">
+                After you have selected a workflow, you will see the input parameters of the workflow.
+                For each parameter, you can select if the data that is sent is taken from a JSON column, is a static JSON value, or is
+                omitted (in this case, the value that is set up in the called workflow's Container Input node is used). 
+            </option>
+            
+            <option name="Create Report">
+                If checked, the report associated with the remote workflow will be generated and put into the output table. The format can be chosen in the drop-down. The output table will contain a column containing the binary content of the report (column type: binary object); the column can be further processed, e.g. use a &quot;Binary Objects to Files&quot; node to write the content to a file, or use a database writer to write the report as BLOB into a database. Failures to generate the report (for instance, because no report is attached to the workflow) will result in a missing cell.
+            </option>
+        </tab>
+        <tab name="Advanced Settings">
+            <option name="Workflow load timeout (only for remote execution)">
+                The maximum amount of time to wait for the remote executor when trying to initialize remote workflow execution.
+				Specified in seconds. A value of 0 means that no timeout will be used.
+            </option>
+            <option name="Fetch workflow parameters timeout (only for remote execution)">
+				The maximum amount of time to wait for the remote executor when fetching the input and output parameters of the called workflow. 
+				Specified in seconds. A value of 0 means that no timeout will be used.
+			</option>
+            <option name="Job Status Polling (only for remote execution)">
+                During asynchronous invocation (option "Long Duration"), if a HTTP 5XX error occurs when polling for the job status, the node will retry the request. The node will wait a certain amount of time before each retry. The time to wait before the <i>n</i>-th attempt is determined by <i>base * multiplier^n</i>. Use a multiplier of 1 for a constant backoff, or a multiplier greater than 1 for an exponential backoff. Set the number of retries to 0 to disable retrying.
+            </option>
+        </tab>
+    </fullDescription>
+    <ports>
+        <inPort index="0" name="Input table">The callee workflow is invoked for each row in this table. Cells in JSON columns can be sent to specific input nodes in the callee workflow.</inPort>
+    	<dynInPort insert-before="0" name="File system connection"
+			group-identifier="File System Connection">
+			An optional connection to a file system that contains the callee workflow. The callee workflow will be executed on the machine on which the workflow is located.
+		</dynInPort>
+        <outPort index="0" name="Output">Input table with the results returned by the callee workflow appended as new cells to each row.</outPort>
+    </ports>
+</knimeNode>

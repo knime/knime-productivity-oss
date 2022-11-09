@@ -54,10 +54,10 @@ public final class ConnectionTimeoutControls  {
         gbc.anchor = GridBagConstraints.FIRST_LINE_START;
         gbc.insets = new Insets(5, 0, 5, 5);
 
-        addLabeledSpinner("Workflow load timeout",
+        addLabeledSpinner("Workflow load timeout (seconds)",
             "The timeout to use when initializing the remote execution of a workflow", m_loadTimeoutSpinner, gbc);
 
-        addLabeledSpinner("Fetch workflow parameters timeout",
+        addLabeledSpinner("Fetch workflow parameters timeout (seconds)",
             "The timeout to use when fetching the input and output parameters of a remote workflow",
             m_fetchWorkflowParameterTimeout, gbc);
 

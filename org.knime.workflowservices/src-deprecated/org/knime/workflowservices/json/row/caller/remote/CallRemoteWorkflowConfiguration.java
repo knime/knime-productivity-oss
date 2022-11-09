@@ -34,7 +34,7 @@ import org.knime.workflowservices.json.row.caller.CallWorkflowConfiguration;
  * Config object to node. Holds (remote) workflow URI and parameters.
  *
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
- * @deprecated use {@link CallWorkflowRowBasedConfiguration}
+ * @deprecated use {@link CallWorkflowRowBased3Configuration}
  */
 @Deprecated(since = "4.7")
 final class CallRemoteWorkflowConfiguration extends CallWorkflowConfiguration {

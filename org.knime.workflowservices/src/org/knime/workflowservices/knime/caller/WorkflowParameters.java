@@ -46,7 +46,7 @@ import org.knime.workflowservices.IWorkflowBackend.ResourceContentType;
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-class WorkflowParameters {
+public class WorkflowParameters {
 
     private static final String CFG_OUTPUTS = "outputs";
 

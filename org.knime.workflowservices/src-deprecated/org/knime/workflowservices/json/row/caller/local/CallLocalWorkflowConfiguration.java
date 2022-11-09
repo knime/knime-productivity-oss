@@ -53,7 +53,7 @@ import org.knime.workflowservices.json.row.caller.CallWorkflowConfiguration;
 /**
  *
  * @author Thorsten Meinl, KNIME AG, Zurich, Switzerland
- * @deprecated use {@link CallWorkflowRowBasedConfiguration}
+ * @deprecated use {@link CallWorkflowRowBased3Configuration}
  */
 @Deprecated(since = "4.7")
 public class CallLocalWorkflowConfiguration extends CallWorkflowConfiguration {

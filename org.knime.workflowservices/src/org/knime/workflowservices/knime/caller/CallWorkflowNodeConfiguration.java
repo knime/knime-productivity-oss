@@ -26,6 +26,7 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
+import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 
@@ -34,7 +35,7 @@ import org.knime.workflowservices.connection.IServerConnection;
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfiguration {
+public final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfiguration {
 
     private static final String CFG_CALLEE_PROPERTIES = "calleeProperties";
 
@@ -43,8 +44,24 @@ final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfigur
      */
     private Optional<WorkflowParameters> m_calleeWorkflowProperties = Optional.empty();
 
+    /**
+     * Only for the deprecated {@link CallWorkflowNodeFactory} which doesn't have a dynamic file system connection port.
+     */
+    @Deprecated(since = "4.7.0")
+    public CallWorkflowNodeConfiguration() {
+    }
+
+    /**
+     * @param ncc provides the configured ports of the node
+     * @param inputPortGroupName the name of the input port group in the {@link NodeCreationConfiguration} that contains
+     *            the file system connection port if configured by the user
+     */
+    public CallWorkflowNodeConfiguration(final NodeCreationConfiguration ncc, final String inputPortGroupName) {
+        super(ncc, inputPortGroupName);
+    }
+
     @Override
-    protected void saveSettings(final NodeSettingsWO settings) {
+    public void saveSettings(final NodeSettingsWO settings) {
         super.saveSettings(settings);
         m_calleeWorkflowProperties.ifPresent(c -> {
             var workflowPropSettings = settings.addNodeSettings(CFG_CALLEE_PROPERTIES);
@@ -53,14 +70,14 @@ final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfigur
     }
 
     @Override
-    protected void loadSettingsInModel(final NodeSettingsRO settings, final IServerConnection connection)
+    public void loadSettingsInModel(final NodeSettingsRO settings, final IServerConnection connection)
         throws InvalidSettingsException {
         super.loadSettingsInModel(settings, connection);
         loadCalleeWorkflowProperties(settings);
     }
 
     @Override
-    protected void loadSettingsInDialog(final NodeSettingsRO settings) throws NotConfigurableException {
+    public void loadSettingsInDialog(final NodeSettingsRO settings) throws NotConfigurableException {
         super.loadSettingsInDialog(settings);
         loadCalleeWorkflowProperties(settings);
     }
@@ -81,14 +98,14 @@ final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionConfigur
     /**
      * @return the properties of the workflow selected for execution when the dialog was last closed
      */
-    Optional<WorkflowParameters> getCalleeWorkflowProperties() {
+    public Optional<WorkflowParameters> getCalleeWorkflowProperties() {
         return m_calleeWorkflowProperties;
     }
 
     /**
      * @param remoteWorkflowProperties null for no properties
      */
-    void setCalleeWorkflowProperties(final WorkflowParameters remoteWorkflowProperties) {
+    public void setCalleeWorkflowProperties(final WorkflowParameters remoteWorkflowProperties) {
         m_calleeWorkflowProperties = Optional.ofNullable(remoteWorkflowProperties);
     }
 

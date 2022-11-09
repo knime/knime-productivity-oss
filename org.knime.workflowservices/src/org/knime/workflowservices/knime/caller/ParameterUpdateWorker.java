@@ -39,7 +39,7 @@ import org.knime.workflowservices.connection.ServerConnectionUtil;
  * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
-final class ParameterUpdateWorker extends SwingWorkerWithContext<WorkflowParameters, Void> {
+public final class ParameterUpdateWorker extends SwingWorkerWithContext<WorkflowParameters, Void> {
 
     private final CallWorkflowConnectionConfiguration m_connectionConfiguration;
 
@@ -59,7 +59,7 @@ final class ParameterUpdateWorker extends SwingWorkerWithContext<WorkflowParamet
      * @throws InvalidSettingsException if the configuration cannot be used to instantiate an {@link IWorkflowBackend}
      *             from the serverConnection.
      */
-    ParameterUpdateWorker(final String workflowPath, final Consumer<String> errorDisplay, final Duration loadTimeout,
+    public ParameterUpdateWorker(final String workflowPath, final Consumer<String> errorDisplay, final Duration loadTimeout,
         final IServerConnection serverConnection, final Consumer<WorkflowParameters> whenDone,
         final Supplier<CallWorkflowConnectionConfiguration> configuration) throws InvalidSettingsException {
 
@@ -70,7 +70,7 @@ final class ParameterUpdateWorker extends SwingWorkerWithContext<WorkflowParamet
 
         m_errorDisplay = errorDisplay;
 
-        m_connectionConfiguration = configuration.get();
+        m_connectionConfiguration = configuration.get().createParameterFetchConfiguration();
         m_connectionConfiguration.setLoadTimeout(loadTimeout);
         m_connectionConfiguration.setWorkflowPath(workflowPath);
         m_connectionConfiguration.setKeepFailingJobs(false);

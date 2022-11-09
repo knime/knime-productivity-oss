@@ -45,14 +45,10 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObject;
-import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.inactive.InactiveBranchPortObject;
-import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.CredentialsProvider;
 import org.knime.core.node.workflow.ICredentials;
-import org.knime.core.node.workflow.NodeContext;
-import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.json.node.container.input.credentials.ContainerCredentialMapper;
 import org.knime.json.node.container.input.variable2.ContainerVariableMapper2;
 import org.knime.json.node.container.mappers.ContainerTableMapper;
@@ -60,24 +56,43 @@ import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 import org.knime.workflowservices.connection.IServerConnection;
+import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeFactory;
 
 /**
- * Model for the Call Workflow (Table) node.
+ * Model for the Call Workflow (Table Based) nodes.
+ *
+ * Used for the {@link CallWorkflowTable2NodeFactory}.
+ *
+ * Also used by the deprecated nodes {@link CallWorkflowTableNodeFactory} and
+ * {@link Post43CallWorkflowTableNodeFactory}.
  *
  * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
  */
-abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
+public abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
 
-    private final CallWorkflowTableNodeConfiguration m_configuration = new CallWorkflowTableNodeConfiguration();
+    protected final CallWorkflowTableNodeConfiguration m_configuration;
 
-    private IServerConnection m_serverConnection;
+    protected IServerConnection m_serverConnection;
 
     /**
      * Creates a new model.
+     *
+     * @deprecated only for old call workflow nodes that have a fixed optional file system port object
      */
-    AbstractCallWorkflowTableNodeModel(final PortType connectionType) {
-        super(new PortType[]{connectionType, BufferedDataTable.TYPE_OPTIONAL},
-            new PortType[]{BufferedDataTable.TYPE});
+    @Deprecated
+    protected AbstractCallWorkflowTableNodeModel(final PortType connectionType) {
+        super(new PortType[]{connectionType, BufferedDataTable.TYPE_OPTIONAL}, new PortType[]{BufferedDataTable.TYPE});
+        m_configuration = new CallWorkflowTableNodeConfiguration();
+    }
+
+    /**
+     * @param inputPorts TODO
+     * @param outputPorts
+     */
+    protected AbstractCallWorkflowTableNodeModel(final PortType[] inputPorts, final PortType[] outputPorts,
+        final CallWorkflowTableNodeConfiguration configuration) {
+        super(inputPorts, outputPorts);
+        m_configuration = configuration;
     }
 
     /**
@@ -103,7 +118,7 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
     }
 
     private PortObject[] executeInternal(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        final BufferedDataTable table = (BufferedDataTable)inObjects[1];
+        final BufferedDataTable table = getInputTable(inObjects);
         try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(m_configuration)) {
             if (backend != null) {
                 backend.loadWorkflow();
@@ -124,6 +139,12 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
             }
         }
     }
+
+    /**
+     * @param inObjects the connected input port objects
+     * @return the port object that provides access to the data to process
+     */
+    protected abstract BufferedDataTable getInputTable(PortObject[] inObjects);
 
     private Map<String, ExternalNodeData> createWorkflowInput(final BufferedDataTable table)
         throws InvalidSettingsException {
@@ -178,9 +199,9 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
         if (StringUtils.isNotBlank(id)) {
             CredentialsProvider credentialsProvider = getCredentialsProvider();
 
-            List<ICredentials> credentials = credentialsProvider.listNames().stream()
-                .filter(CallWorkflowUtil::verifyCredentialIdentifier)
-                .map(name -> credentialsProvider.get(name)).collect(Collectors.toList());
+            List<ICredentials> credentials =
+                credentialsProvider.listNames().stream().filter(CallWorkflowUtil::verifyCredentialIdentifier)
+                    .map(name -> credentialsProvider.get(name)).collect(Collectors.toList());
 
             JsonValue jsonValue = ContainerCredentialMapper.toContainerCredentialsJsonValue(credentials);
 
@@ -228,20 +249,6 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
     }
 
     @Override
-    protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
-        CheckUtils.checkSetting(StringUtils.isNotEmpty(m_configuration.getWorkflowPath()), "No workflow path provided");
-
-        var currentWfm = NodeContext.getContext().getWorkflowManager();
-        var connectionSpec = inSpecs[0];
-
-        m_serverConnection = onConfigure(connectionSpec, currentWfm);
-        return new PortObjectSpec[] {null};
-    }
-
-    abstract IServerConnection onConfigure(final PortObjectSpec connectionSpec,
-        final WorkflowManager currentWfm) throws InvalidSettingsException;
-
-    @Override
     protected void loadInternals(final File nodeInternDir, final ExecutionMonitor exec)
         throws IOException, CanceledExecutionException {
         // no internals
@@ -269,7 +276,7 @@ abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        new CallWorkflowTableNodeConfiguration().loadInModel(settings, m_serverConnection);
+        m_configuration.validateConfigurationForModel(settings);
     }
 
     /**

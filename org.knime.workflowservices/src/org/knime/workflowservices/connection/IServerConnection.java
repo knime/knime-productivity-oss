@@ -29,7 +29,6 @@ import java.util.Optional;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.workflowservices.IWorkflowBackend;
-import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 
 /**
  * A connection provides {@link IWorkflowBackend}s, where the backend of a particular workflow allows controlling its
@@ -111,9 +110,9 @@ public interface IServerConnection extends Closeable {
         }
 
         // check workflow path
-        var pathProblem = CallWorkflowUtil.PlainWorkflowPathFormat.validate(configuration.getWorkflowPath());
-        if (pathProblem.isPresent()) {
-            return pathProblem;
+        var problem = configuration.validateForCreateWorkflowBackend();
+        if (problem.isPresent()) {
+            return problem;
         }
 
         // check report format

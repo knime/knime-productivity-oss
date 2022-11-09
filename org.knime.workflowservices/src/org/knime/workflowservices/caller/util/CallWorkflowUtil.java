@@ -82,6 +82,8 @@ public final class CallWorkflowUtil {
 
         private PlainWorkflowPathFormat() {}
 
+        /** @deprecated only used in {@link #validate(String)} */
+        @Deprecated(since = "4.7.0")
         private static String invalidWorkflowPathMessage(final String workflowPath) {
             return String.format(
                 "Invalid workflow path: \"%s\". Path must start with \"/\" or \"..\" and must not end with \"/\"",
@@ -94,7 +96,9 @@ public final class CallWorkflowUtil {
          *
          * @param workflowPath the path to validate
          * @return a user-facing error message in case an invalid workflow path is given, empty optional if valid
+         * @deprecated the new call workflow nodes use the file handling framework which takes care of validation
          */
+        @Deprecated(since = "4.7.0")
         public static Optional<String> validate(final String workflowPath) {
             var valid = StringUtils.startsWithAny(workflowPath, "/", "..") && !workflowPath.endsWith("/");
             return valid ? Optional.empty() : Optional.of(invalidWorkflowPathMessage(workflowPath));

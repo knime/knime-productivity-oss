@@ -123,7 +123,7 @@ import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  * @author Thorsten Meinl, KNIME AG, Zurich, Switzerland
  */
-@Deprecated(since = "4.7")
+@Deprecated(since = "4.7.0")
 public abstract class CallWorkflowNodeModel extends NodeModel {
     /**
      *

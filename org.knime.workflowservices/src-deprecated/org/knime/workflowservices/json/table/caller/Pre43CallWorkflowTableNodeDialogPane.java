@@ -36,7 +36,7 @@ import org.knime.workflowservices.connection.ServerConnectionUtil;
 final class Pre43CallWorkflowTableNodeDialogPane extends AbstractCallWorkflowTableNodeDialogPane { // NOSONAR
 
     @Override
-    IServerConnection readServerConnection(final PortObjectSpec spec, final WorkflowManager currentWFM)
+    protected IServerConnection readServerConnection(final PortObjectSpec spec, final WorkflowManager currentWFM)
             throws InvalidSettingsException {
         return ServerConnectionUtil.getConnection(spec, currentWFM);
     }

@@ -25,18 +25,18 @@ package org.knime.workflowservices.json.table.caller;
  *
  * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
  */
-class ParameterId implements Comparable<ParameterId> {
+public class ParameterId implements Comparable<ParameterId> {
 
     private final String m_fullyQualifiedId;
 
     private final String m_simpleId;
 
-    ParameterId(final String fullyQualifiedId, final String simpleId) {
+    public ParameterId(final String fullyQualifiedId, final String simpleId) {
         m_fullyQualifiedId = fullyQualifiedId;
         m_simpleId = simpleId;
     }
 
-    String getId(final boolean useFullyQualifiedName) {
+    public String getId(final boolean useFullyQualifiedName) {
         return useFullyQualifiedName ? m_fullyQualifiedId : m_simpleId;
     }
 

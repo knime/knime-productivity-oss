@@ -47,7 +47,7 @@ public final class BackoffPanel extends JPanel {
         gbc.anchor = GridBagConstraints.FIRST_LINE_START;
         gbc.insets = new Insets(5, 0, 5, 5);
 
-        addLabeledSpinner("Base timeout [ms]",
+        addLabeledSpinner("Base timeout (milliseconds)",
             "The base timeout to use when polling for the job status during asynchronous invokation.", m_baseSpinner,
             gbc);
 

@@ -142,7 +142,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
     /**
      * Creates a new local workflow backend.
      *
-     * @param path path to the workflow
+     * @param path path to the workflow (for absolute paths the current mountpoint is the root)
      * @param callingWorkflow the calling workflow
      * @return a new local workflow backend
      * @throws Exception if the path does not point to a workflow

@@ -46,7 +46,7 @@ import org.knime.workflowservices.json.row.caller.CallWorkflowNodeModel;
 /**
  *
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
- * @deprecated use {@link CallWorkflowRowBasedNodeModel}, it unifies local and remote row-based execution
+ * @deprecated use {@link CallWorkflowRowBased3NodeModel}, it unifies local and remote row-based execution
  */
 @Deprecated(since = "4.7")
 class CallRemoteWorkflowNodeModel extends CallWorkflowNodeModel {

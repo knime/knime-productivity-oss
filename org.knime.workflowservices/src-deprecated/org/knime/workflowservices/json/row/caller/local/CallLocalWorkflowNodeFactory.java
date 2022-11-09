@@ -55,7 +55,7 @@ import org.knime.core.node.NodeView;
 /**
  * Factory to node.
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
- * @deprecated use {@link CallWorkflowRowBasedNodeFactory}, it unifies local and remote row-based execution
+ * @deprecated use {@link CallWorkflowRowBased3NodeFactory}, it unifies local and remote row-based execution
  */
 @Deprecated(since = "4.7")
 public class CallLocalWorkflowNodeFactory extends NodeFactory<CallLocalWorkflowNodeModel> {

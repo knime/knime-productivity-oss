@@ -82,7 +82,7 @@ import org.knime.json.util.JSONUtil;
  * It allows the user to switch between using a hard-coded JSON value, the column driven value or the default.
  *
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
- * @deprecated use {@link org.knime.workflowservices.json.row.caller2.JSONInputPanel}
+ * @deprecated use {@link org.knime.workflowservices.json.row.caller3.JSONInputPanel}
  */
 @Deprecated(since = "4.7")
 public final class JSONInputPanel extends JPanel {
