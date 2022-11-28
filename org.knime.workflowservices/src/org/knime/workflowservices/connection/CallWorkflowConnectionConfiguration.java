@@ -317,6 +317,9 @@ public class CallWorkflowConnectionConfiguration {
             if(Objects.equals(relativeToSpecifier.orElse(null), RelativeTo.MOUNTPOINT.getSettingsValue())) {
                 return "/" + path;
             }
+            if(Objects.equals(relativeToSpecifier.orElse(null), RelativeTo.SPACE.getSettingsValue())) {
+                return "/" + path;
+            }
         }
         return path;
     }
