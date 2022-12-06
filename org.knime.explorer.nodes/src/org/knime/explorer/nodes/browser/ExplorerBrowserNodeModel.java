@@ -70,6 +70,7 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObjectSpec;
 import org.knime.core.node.util.CheckUtils;
+import org.knime.core.util.exception.ResourceAccessException;
 import org.knime.core.util.pathresolve.ResolverUtil;
 
 /**
@@ -141,7 +142,7 @@ public class ExplorerBrowserNodeModel extends NodeModel {
             } else {
                 LOGGER.warn("URI \"" + uri + "\" could not be resolved to a local file.");
             }
-        } catch (Exception e) {
+        } catch (ResourceAccessException e) {
             LOGGER.warn("URI \"" + uri + "\" could not be resolved to a local file.", e);
         }
         pushFlowVariableString("explorer_url", urlString);

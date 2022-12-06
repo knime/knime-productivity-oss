@@ -7,6 +7,7 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.util.CheckUtils;
+import org.knime.core.util.exception.ServerErrorAccessException;
 
 /**
  * Utility class for retrying a task with incrementally increasing backoff delay.
@@ -68,23 +69,26 @@ public final class BackoffPolicy {
      *
      * @param <R> The return type of the task.
      * @param policy The backoff policy describing how delays are determined
-     * @param task The task to run, should throw {@link HTTP5xxException} for server errors.
+     * @param task The task to run, should throw {@link ServerErrorAccessException} for server errors.
      * @return The result of the task.
      * @throws Exception
      */
     public static <R> R doWithBackoff(final BackoffPolicy policy, final Callable<R> task) throws Exception {
-        HTTP5xxException lastExecException = null;
+        ServerErrorAccessException lastExecException = null;
         for (int retry = 0; retry <= policy.getRetries(); retry++) {
             if (retry > 0 && lastExecException != null) { // NOSONAR: not always null
                 Thread.sleep(policy.getBackoffAt(retry));
             }
             try {
                 return task.call(); // return and do not retry
-            } catch (HTTP5xxException e) { // NOSONAR: this kind of exception is handled
+            } catch (ServerErrorAccessException e) {
                 lastExecException = e;
             }
         }
-        throw (Exception)lastExecException.getCause(); // NOSONAR: can not be null
+        if (lastExecException != null) {
+            throw lastExecException;
+        }
+        return null;
     }
 
     public static Optional<BackoffPolicy> loadFromSettings(final NodeSettingsRO settings) {
@@ -105,18 +109,5 @@ public final class BackoffPolicy {
         childSettings.addLong("backoffBase", getBase());
         childSettings.addLong("backoffMultiplier", getMultiplier());
         childSettings.addInt("backoffRetries", getRetries());
-    }
-
-    /**
-     * Thrown by Callable passed to {@link BackoffPolicy#doWithBackoff(BackoffPolicy, Callable)} to indicate a
-     * ServerError (see AP-15486 and <code>javax.ws.rs.core.Response.Status.Family.SERVER_ERROR</code>).
-     */
-    @SuppressWarnings("serial")
-    public static final class HTTP5xxException extends Exception {
-
-        public HTTP5xxException(final Throwable cause) {
-            super(CheckUtils.checkArgumentNotNull(cause));
-        }
-
     }
 }
