@@ -26,7 +26,7 @@
 			<br/>
 			<br/>
 			<b>Send Table. </b>
-			The data table provided at the optional input of the <i>Call Workflow (Table Based)</i> node can be sent to 
+			The data table provided at the input of the <i>Call Workflow (Table Based)</i> node can be sent to 
 			a <i>Container Input (Table)</i> node in the called workflow via the input parameter defined in the 
 			<i>Container Input (Table)</i> node
 			<br/>
