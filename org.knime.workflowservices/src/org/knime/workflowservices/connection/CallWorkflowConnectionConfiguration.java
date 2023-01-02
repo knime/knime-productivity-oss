@@ -20,14 +20,16 @@
  */
 package org.knime.workflowservices.connection;
 
+import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
 import java.util.EnumSet;
-import java.util.Objects;
 import java.util.Optional;
 
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
@@ -36,8 +38,6 @@ import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
-import org.knime.filehandling.core.connections.FSCategory;
-import org.knime.filehandling.core.connections.RelativeTo;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.SettingsModelWorkflowChooser;
 import org.knime.filehandling.core.defaultnodesettings.status.NodeModelStatusConsumer;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
@@ -60,8 +60,8 @@ import org.knime.workflowservices.connection.util.ConnectionUtil.SuccessfulJobRe
 public class CallWorkflowConnectionConfiguration {
 
     /**
-     * Since this class has been tightly interwoven with {@link IServerConnection}, it is reused for deprecated and
-     * newer Call Workflow nodes.
+     * Since this class has been tightly interwoven with {@link IServerConnection}, it was extended for newer Call
+     * Workflow nodes which use file system connector ports.
      */
     private enum Version {
             /**
@@ -69,6 +69,7 @@ public class CallWorkflowConnectionConfiguration {
              * {@link CallWorkflowConnectionConfiguration#setWorkflowPath(String)}.
              *
              * All call workflow nodes using this version have a file system connector port at index 0.
+             * It is also used for temporary connection configurations used to fetch workflow parameters.
              */
             VERSION_1,
             /**
@@ -300,34 +301,19 @@ public class CallWorkflowConnectionConfiguration {
         if (m_version == Version.VERSION_1) {
             return m_workflowPath;
         } else {
-            return getWorkflowPathFromChooser();
-        }
-    }
-
-    /**
-     * Only used in {@link Version#VERSION_2}.
-     *
-     * @return a path that's compatible with what
-     *         {@link IServerConnection#createWorkflowBackend(CallWorkflowConnectionConfiguration)} expects.
-     *         Specifically, mountpoint-relative callee paths have to be absolute ("/Path/To/Callee") and
-     *         workflow-relative paths have to start with a reference to the parent directory ("../Path/To/Relative")
-     */
-    private String getWorkflowPathFromChooser() {
-        CheckUtils.checkState(m_version != Version.VERSION_1, "Coding error.");
-        final String path = m_workflowChooserModel.getLocation().getPath();
-        // by LocalWorkflowBackend convention, a workflow specified relative to a mountpoint must be specified as
-        // absolute path, e.g., "/Callees/SomeWorkflow". However, selecting a mountpoint-relative workflow in a
-        // workflow chooser won't give "/" as prefix, e.g., "Callees/SomeWorkflow"
-        if (m_workflowChooserModel.getLocation().getFSCategory() == FSCategory.RELATIVE) {
-            var relativeToSpecifier = m_workflowChooserModel.getLocation().getFileSystemSpecifier();
-            if (Objects.equals(relativeToSpecifier.orElse(null), RelativeTo.MOUNTPOINT.getSettingsValue())) {
-                return "/" + path;
+            try (var connection = m_workflowChooserModel.getConnection()) {
+                @SuppressWarnings("resource") // closing the connection also closes the file system
+                var fsLocationSpec = connection.getFileSystem().getFSLocationSpec();
+                // the local workflow backend requires the path in a custom format, or knime uri
+                if (!ConnectionUtil.isRemoteConnection(fsLocationSpec.getFSType())) {
+                    return m_workflowChooserModel.getCalleeKnimeUri().map(URI::toString)//
+                        .orElse(m_workflowChooserModel.getPath());
+                }
+            } catch (IOException ex) {
+                NodeLogger.getLogger(getClass()).warn(ex);
             }
-            if (Objects.equals(relativeToSpecifier.orElse(null), RelativeTo.SPACE.getSettingsValue())) {
-                return "/" + path;
-            }
+            return m_workflowChooserModel.getPath();
         }
-        return path;
     }
 
     /**
@@ -500,7 +486,9 @@ public class CallWorkflowConnectionConfiguration {
     }
 
     /**
+     * Configures the callee workflow chooser settings model by passing the input port object specs to it.
      * @param specs
+     * @throws InvalidSettingsException
      */
     public void configureCalleeModel(final PortObjectSpec[] specs) throws InvalidSettingsException {
         m_workflowChooserModel.configureInModel(specs, m_statusConsumer);

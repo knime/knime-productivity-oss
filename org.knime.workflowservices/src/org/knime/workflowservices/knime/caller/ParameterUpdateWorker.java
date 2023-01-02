@@ -98,7 +98,7 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
 
         m_errorDisplay = errorDisplay;
 
-        m_connectionConfiguration = configuration;
+        m_connectionConfiguration = configuration.createParameterFetchConfiguration();
         m_connectionConfiguration.setLoadTimeout(loadTimeout);
         m_connectionConfiguration.setWorkflowPath(workflowPath);
         m_connectionConfiguration.setKeepFailingJobs(false);

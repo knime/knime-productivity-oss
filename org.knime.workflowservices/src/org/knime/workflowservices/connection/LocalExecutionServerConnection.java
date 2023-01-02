@@ -134,6 +134,11 @@ public final class LocalExecutionServerConnection implements IServerConnection, 
     @Deprecated (since = "4.7.1")
     @Override
     public String getHost() {
-        return "No server connection";
+        return "No remote connection";
+    }
+
+    @Override
+    public boolean isRemote() {
+        return false;
     }
 }

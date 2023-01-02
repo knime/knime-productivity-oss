@@ -263,9 +263,8 @@ final class CallWorkflowRowBasedNodeDialog extends NodeDialogPane {
         // establish connection
         try {
             m_serverConnection = Optional.of(ServerConnectionUtil.getConnection(specs[0], wfm));
-            final var isRemoteExecution = spaceConnector.isPresent();
             m_controls.setEnabled(true);
-            m_controls.m_connection.setRemoteConnection(m_serverConnection.get(), isRemoteExecution);
+            m_controls.m_connection.setRemoteConnection(m_serverConnection.get());
             m_controls.m_workflowPanel.setServerConnection(m_serverConnection.get());
         } catch (InvalidSettingsException e) {
             getLogger().debug(e.getMessage(), e);

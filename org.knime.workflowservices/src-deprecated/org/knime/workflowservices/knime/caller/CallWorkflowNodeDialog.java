@@ -243,16 +243,14 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
         enableAllUIElements(true);
         try {
             m_serverConnection = ServerConnectionUtil.getConnection(specs[0], wfm);
-            final boolean isRemoteExecution = specs[0] != null;
-            m_controls.m_connectionControls.setRemoteConnection(m_serverConnection, isRemoteExecution);
+            m_controls.m_connectionControls.setRemoteConnection(m_serverConnection);
         } catch (InvalidSettingsException e) {
-            getLogger().debug(e.getMessage(), e);
-
             if (spaceConnector.isPresent()) {
                 m_controls.m_connectionControls
                     .setError("Please execute the KNIME Connector node that provides the remote connection.");
             } else {
                 m_controls.m_connectionControls.setError(e.getMessage());
+                getLogger().info(e.getMessage(), e);
             }
             enableAllUIElements(false);
             m_serverConnection = null;

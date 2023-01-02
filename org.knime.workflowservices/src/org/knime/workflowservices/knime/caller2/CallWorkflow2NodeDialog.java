@@ -276,23 +276,14 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
 
         m_controls.m_connectionControls.loadConfiguration(m_configuration);
 
-        var connectionSpec = m_configuration.getConnectorPortIndex().map(i -> inSpecs[i]).orElse(null);
-
         // configure remote execution if a server connection is present
         enableAllUIElements(true);
         m_controls.m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
         try {
             m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
         } catch (InvalidSettingsException e) {
-            getLogger().debug(e.getMessage(), e);
-
-            if (connectionSpec != null) {
-                m_controls.m_connectionControls
-                    .setError("Please execute the KNIME Connector node that provides the remote connection.");
-            } else {
-                m_controls.m_connectionControls.setError(e.getMessage());
-            }
             enableAllUIElements(false);
+            throw new NotConfigurableException(e.getMessage(), e);
         }
 
         // display workflow input/output parameters
