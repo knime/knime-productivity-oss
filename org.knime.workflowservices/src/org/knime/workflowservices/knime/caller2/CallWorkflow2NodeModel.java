@@ -67,8 +67,6 @@ class CallWorkflow2NodeModel extends AbstractPortObjectRepositoryNodeModel {
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         m_configuration.configureCalleeModel(inSpecs);
-
-        CheckUtils.checkSetting(StringUtils.isNotEmpty(m_configuration.getWorkflowPath()), "No workflow path provided");
         ConnectionUtil.validateConfiguration(m_configuration);
         return new PortObjectSpec[]{null};
     }

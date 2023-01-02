@@ -95,6 +95,10 @@ import org.knime.workflowservices.connection.LocalExecutionServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
+import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane.ListWorkflowsWorker;
+import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane.ParameterRenderer;
+import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane.ParameterSelection;
+import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane.ParameterUpdater;
 
 /**
  * Shared dialog components for Call Workflow nodes.
@@ -479,7 +483,7 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
 
     private void configureLocalExecution(final WorkflowManager wfm) {
         m_serverConnection = new LocalExecutionServerConnection(wfm);
-        m_serverSettings.setRemoteConnection(m_serverConnection, false);
+        m_serverSettings.setRemoteConnection(m_serverConnection);
         fillWorkflowList();
     }
 
@@ -497,7 +501,7 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
             m_serverConnection = readServerConnection(specs[0],
                 Optional.ofNullable(NodeContext.getContext()).map(NodeContext::getWorkflowManager).orElse(null));
             m_stateErrorLabel.setText("");
-            m_serverSettings.setRemoteConnection(m_serverConnection, true);
+            m_serverSettings.setRemoteConnection(m_serverConnection);
             fillWorkflowList();
         } catch (InvalidSettingsException e) {
             getLogger().debug(e.getMessage(), e);

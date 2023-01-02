@@ -190,7 +190,7 @@ public final class CallWorkflowConnectionControls {
      */
     public CallWorkflowConnectionControls() {
         enableAllUIElements(false);
-        setError("Not initialized.");
+        setError("Please execute the KNIME Connector node that provides the remote connection.");
     }
 
     /**
@@ -306,24 +306,28 @@ public final class CallWorkflowConnectionControls {
     }
 
     /**
-     * Updates the remote executor address label. Clears any error that was previously set. Disables the backoff policy and
-     * timeout controls if the execution is not remote.
+     * Updates the remote executor address label. Clears any error that was previously set. Disables the backoff policy
+     * and timeout controls if the execution is not remote.
      *
-     * @param remoteConnection specifies the remote executors host name.
-     * @param isRemoteExecution whether the remote executor connection will lead to remote execution
+     * @param connection connection to the host that executes the callee workflow, can be local or remote. If null, does
+     *            nothing.
      */
     @Deprecated
-    public void setRemoteConnection(final IServerConnection remoteConnection, final boolean isRemoteExecution) {
-        if (remoteConnection == null || !isRemoteExecution) {
-            m_controls.m_remoteExecutorAddress.setText("Local execution");
+    public void setRemoteConnection(final IServerConnection connection) {
+        if (connection == null) {
+            return;
+        }
+        final boolean isRemote = connection.isRemote();
+        if (isRemote) {
+            m_controls.m_remoteExecutorAddress.setText("Remote execution on" + connection.getHost());
         } else {
-            m_controls.m_remoteExecutorAddress.setText("Remote executor address: " + remoteConnection.getHost());
+            m_controls.m_remoteExecutorAddress.setText("Local execution");
         }
 
-        m_controls.m_backoffpanel.setEnabled(isRemoteExecution);
-        m_controls.m_timeoutPanel.setEnabled(isRemoteExecution);
+        m_controls.m_backoffpanel.setEnabled(isRemote);
+        m_controls.m_timeoutPanel.setEnabled(isRemote);
 
-        m_controls.setState(isRemoteExecution ? State.REMOTE : State.LOCAL);
+        m_controls.setState(isRemote ? State.REMOTE : State.LOCAL);
     }
 
     /**
@@ -337,8 +341,13 @@ public final class CallWorkflowConnectionControls {
         if (!isRemoteConnection) {
             m_controls.m_remoteExecutorAddress.setText("Local execution");
         } else {
-            m_controls.m_remoteExecutorAddress.setText("Remote executor type: " + location.getFSType().getName());
+            m_controls.m_remoteExecutorAddress.setText("Remote execution");
         }
+
+        m_controls.m_asyncInvocationChecker.setEnabled(isRemoteConnection);
+        m_controls.m_syncInvocationChecker.setEnabled(isRemoteConnection);
+        m_controls.m_retainJobOnFailure.setEnabled(isRemoteConnection);
+        m_controls.m_discardJobOnSuccesfulExecution.setEnabled(isRemoteConnection);
 
         m_controls.m_backoffpanel.setEnabled(isRemoteConnection);
         m_controls.m_timeoutPanel.setEnabled(isRemoteConnection);

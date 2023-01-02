@@ -163,7 +163,9 @@ public final class ConnectionUtil {
     }
 
     /**
-     * Returns whether this connection connects is remote or not.
+     * Returns whether this connection is remote or not. This depends on the workflow context. For instance, a location
+     * that is specified relative to the current hub space acts like a LOCAL mount point connection if the workflow is
+     * not viewed or executed in a hub space.
      *
      * @param fsType the connection location type (e.g FSType.HUB).
      *

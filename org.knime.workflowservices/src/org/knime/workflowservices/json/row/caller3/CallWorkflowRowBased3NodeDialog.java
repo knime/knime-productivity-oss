@@ -183,10 +183,17 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
      */
     private void fetchCalleeWorkflowParameters() {
 
-        var status = m_configuration.getWorkflowChooserModel().getStatusMessage();
-        if(status.getType() == StatusMessage.MessageType.ERROR) {
-            NodeLogger.getLogger(getClass()).warn(status.getMessage());
-            m_controls.m_inputParameters.setError(status.getMessage());
+        // check if a valid callee has been selected
+        try {
+            // throws illegal state exception if a connector is connected but not executed
+            var status = m_configuration.getWorkflowChooserModel().getStatusMessage();
+            if (status.getType() == StatusMessage.MessageType.ERROR) {
+                NodeLogger.getLogger(getClass()).warn(status.getMessage());
+                m_controls.m_inputParameters.setError(status.getMessage());
+                return;
+            }
+        } catch (IllegalStateException ex) {
+            NodeLogger.getLogger(getClass()).debug(ex);
             return;
         }
 
@@ -256,17 +263,12 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
         // load settings
         m_controls.m_createReport.loadFromConfiguration(m_configuration);
 
-        if (ConnectionUtil.isRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation().getFSType())) {
-            m_controls.setEnabled(true);
-            // disable timeouts and backoff controls if connection is local
-            m_controls.m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
-            try {
-                m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
-            } catch (InvalidSettingsException e) {
-               throw new NotConfigurableException(e.getMessage(), e);
-            }
-        } else {
-            m_controls.setEnabled(false);
+        // disable timeouts and backoff controls if connection is local
+        m_controls.m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
+        try {
+            m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
+        } catch (InvalidSettingsException e) {
+            throw new NotConfigurableException(e.getMessage(), e);
         }
 
         // fetch input and output parameters of callee workflow

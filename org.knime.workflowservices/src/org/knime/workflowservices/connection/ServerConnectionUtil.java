@@ -22,12 +22,16 @@ package org.knime.workflowservices.connection;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.WorkflowManager;
+import org.knime.core.node.workflow.contextv2.WorkflowContextV2;
+import org.knime.core.node.workflow.contextv2.WorkflowContextV2.LocationType;
+import org.knime.filehandling.core.connections.FSLocationSpec;
 import org.knime.filehandling.core.connections.meta.FSType;
 import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
 import org.osgi.framework.Bundle;
@@ -42,9 +46,21 @@ public final class ServerConnectionUtil {
 
     private static ServiceTracker<KNIMEServerAwareConnectionService, KNIMEServerAwareConnectionService> serviceTracker;
 
-    private static final String RELATIVE_MOUNTPOINT = FSType.RELATIVE_TO_MOUNTPOINT.getTypeId();
-
-    private static final String LOCAL_MOUNTPOINT = FSType.MOUNTPOINT.getTypeId() + ":LOCAL";
+    private static final Set<String> LOCAL_FILE_SYSTEM_SPECIFIERS = Set.of(
+        // "knime-relative-mountpoint"
+        // Used when
+        // - no connector is present and the user has selected a callee relative to the current mount point
+        // - a mountpoint connector is connected and configured to Current Mountpoint
+        // - a mountpoint connector is connected and configured to Other Mountpoint: LOCAL
+        FSType.RELATIVE_TO_MOUNTPOINT.getTypeId(),
+        // "knime-mountpoint:LOCAL"
+        // I think this is not used in current code, but I'm not sure about legacy code
+        FSType.MOUNTPOINT.getTypeId() + ":LOCAL",
+        // "knime-relative-space"
+        // Used when
+        // - no connector is present and the user has selected a callee relative to the current Hub Space
+        // - a Space Connector is connected and configured to Current Space
+        FSType.RELATIVE_TO_SPACE.getTypeId());
 
     static {
         Bundle coreBundle = FrameworkUtil.getBundle(ServerConnectionUtil.class);
@@ -82,7 +98,9 @@ public final class ServerConnectionUtil {
         // all the 'nice' method chaining on Optional not possible due to "throws" declaration
         IServerConnection serverConnection = null;
         // if the spec identifies a local mountpoint, don't create a server connection
-        if (service.isPresent() && !isLocalMountpoint(spec)) {
+        var fsLocationSpec =
+            spec instanceof FileSystemPortObjectSpec ? ((FileSystemPortObjectSpec)spec).getFSLocationSpec() : null;
+        if (service.isPresent() && !isLocalCallee(fsLocationSpec, manager.getContextV2())) {
             serverConnection = service.get().createKNIMEServerConnection(spec, manager.getContext()).orElse(null);
         }
         // non-present service OR local mountpoint connections will use the LocalExecutionServerConnection
@@ -133,17 +151,22 @@ public final class ServerConnectionUtil {
     }
 
     /**
-     * Determines if a spec specifies a local mountpoint connection by the following criteria: 1. has to be a
-     * FileSystemPortObjectSpec 2. file system specifier matches the relative mountpoint identifier
      *
-     * @param spec connector spec, can be null.
-     * @return is relative mountpoint connection or false for null.
+     *
+     * @param calleeFsLocationSpec specifies the location of the callee, e.g.,
+     *            <code>(CONNECTED, knime-relative-mountpoint)</code> indicates that the callee is provided by a mount
+     *            point connector configured to the LOCAL mount point
+     * @param wfc the workflow context changes the target file system (callee location) if no connector is present or if
+     *            it is a hub space connector (current space behaves in AP like a mount point connector configured to
+     *            LOCAL)
+     * @return whether to use a local workflow backend for callee execution or false for calleeFsLocationSpec = null.
+     * @noreference This method is not intended to be referenced by clients.
      */
-    private static boolean isLocalMountpoint(final PortObjectSpec spec) {
-        if (spec instanceof FileSystemPortObjectSpec) {
-            var fsSpecifier = ((FileSystemPortObjectSpec)spec).getFSLocationSpec().getFileSystemSpecifier();
-            return fsSpecifier.isPresent()
-                && (fsSpecifier.get().equals(RELATIVE_MOUNTPOINT) || fsSpecifier.get().equals(LOCAL_MOUNTPOINT));
+    public static boolean isLocalCallee(final FSLocationSpec calleeFsLocationSpec, final WorkflowContextV2 wfc) {
+        if (calleeFsLocationSpec != null) {
+            var optFsSpecifier = calleeFsLocationSpec.getFileSystemSpecifier();
+            return (optFsSpecifier.isPresent() && LOCAL_FILE_SYSTEM_SPECIFIERS.contains(optFsSpecifier.get())
+                && LocationType.LOCAL == wfc.getLocationType());
         }
         return false;
     }

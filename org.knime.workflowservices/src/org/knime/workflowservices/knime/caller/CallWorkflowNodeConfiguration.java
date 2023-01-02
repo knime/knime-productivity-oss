@@ -30,7 +30,7 @@ import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 
 /**
- * Configuration for the Call Workflow node.
+ * Configuration for the Call Workflow Service node.
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */

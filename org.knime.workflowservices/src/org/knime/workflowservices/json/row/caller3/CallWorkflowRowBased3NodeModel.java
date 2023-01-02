@@ -75,7 +75,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.commons.lang3.StringUtils;
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataRow;
@@ -104,7 +103,6 @@ import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
-import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.StringFormat;
 import org.knime.core.util.UniqueNameGenerator;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
@@ -161,7 +159,6 @@ public class CallWorkflowRowBased3NodeModel extends NodeModel {
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         m_configuration.configureCalleeModel(inSpecs);
 
-        CheckUtils.checkSetting(StringUtils.isNotEmpty(m_configuration.getWorkflowPath()), "No workflow path provided");
         ConnectionUtil.validateConfiguration(m_configuration);
 
         return new PortObjectSpec[]{null};

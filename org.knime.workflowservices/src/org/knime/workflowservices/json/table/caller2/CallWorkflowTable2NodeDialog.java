@@ -75,6 +75,9 @@ import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane;
 import org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.json.table.caller.ParameterId;
+import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterRenderer;
+import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterSelection;
+import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterUpdater;
 
 /**
  * Dialog for Call Workflow (Table Based) node as of 4.7.0
@@ -286,8 +289,8 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
     @Override
     protected final void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
         throws NotConfigurableException {
-        m_configuration.loadInDialog(settings);
         m_workflowChooser.loadSettingsFrom(settings, specs);
+        m_configuration.loadInDialog(settings);
         loadConfiguration(m_configuration, specs);
     }
 
@@ -335,15 +338,6 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         m_serverSettings.getBackoffPanel()
             .setSelectedBackoffPolicy(configuration.getBackoffPolicy().orElse(BackoffPolicy.DEFAULT_BACKOFF_POLICY));
         m_serverSettings.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
-        final var isRemote = ConnectionUtil.isRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation().getFSType());
-        m_serverSettings.getTimeoutControls().setEnabled(isRemote);
-        m_serverSettings.getBackoffPanel().setEnabled(isRemote); // server connection present?
-        if (isRemote) {
-            enableAllUIElements();
-        } else {
-            disableAllUIElements();
-        }
-
     }
 
     private void disableAllUIElements() {

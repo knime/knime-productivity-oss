@@ -98,7 +98,10 @@ public interface IServerConnection extends Closeable {
      *
      * @return a list of workflows
      * @throws ListWorkflowFailedException if an error occurs
+     * @deprecated only used in deprecated Call Workflow nodes. Current versions use the file handling framework to
+     *             allow users to browse a file system to select a callee workflow.
      */
+    @Deprecated(since = "4.7.0")
     default List<String> listWorkflows() throws ListWorkflowFailedException {
         throw new IllegalStateException("Not to be called on  " + getClass().getSimpleName());
     }
@@ -142,5 +145,13 @@ public interface IServerConnection extends Closeable {
             }
         }
     }
+
+    /**
+     * Method that affects for instance whether configuration options for remote connections (timeouts, retries, etc.)
+     * are displayed in Call Workflow nodes.
+     *
+     * @return true if this connection communicates with a host other than the machine from which it was instantiated.
+     */
+    public boolean isRemote();
 
 }

@@ -142,6 +142,8 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
     /**
      * Creates a new local workflow backend.
      *
+     * In case the given path is resolved to a http URL, the workflow is downloaded and extracted.
+     *
      * @param path path to the workflow (for absolute paths the current mountpoint is the root)
      * @param callingWorkflow the calling workflow
      * @return a new local workflow backend
@@ -163,7 +165,8 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
             }
         }
 
-        // resolve relative URLs into absolute URLs, usually either file or http
+        // resolve relative URLs into absolute URLs, usually either file or http, may also return a KNIME URI in some
+        // legacy code paths
         URL resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(originalUrl);
 
         Path workflowDir;
