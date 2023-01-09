@@ -277,32 +277,23 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
         var connectionSpec = m_configuration.getConnectorPortIndex().map(i -> inSpecs[i]).orElse(null);
 
         var wfm = NodeContext.getContext().getWorkflowManager();
-        var error = ServerConnectionUtil.validate(wfm, connectionSpec);
+        // configure remote execution if a server connection is present
+        enableAllUIElements(true);
+        try {
+            m_serverConnection = ServerConnectionUtil.getConnection(connectionSpec, wfm);
+            m_controls.m_connectionControls.setRemoteConnection(m_serverConnection,
+                m_configuration.isConnectorPresent());
+        } catch (InvalidSettingsException e) {
+            getLogger().debug(e.getMessage(), e);
 
-        if (error.isPresent()) {
-            m_serverConnection = null;
-            enableAllUIElements(false);
-            m_controls.m_parameterMappingPanel.setErrorMessage(error.get());
-            return;
-        } else {
-            // configure remote execution if a server connection is present
-            enableAllUIElements(true);
-            try {
-                m_serverConnection = ServerConnectionUtil.getConnection(connectionSpec, wfm);
-                m_controls.m_connectionControls.setRemoteConnection(m_serverConnection,
-                    m_configuration.isConnectorPresent());
-            } catch (InvalidSettingsException e) {
-                getLogger().debug(e.getMessage(), e);
-
-                if (connectionSpec != null) {
-                    m_controls.m_connectionControls
-                        .setError("Please execute the KNIME Connector node that provides the remote connection.");
-                } else {
-                    m_controls.m_connectionControls.setError(e.getMessage());
-                }
-                enableAllUIElements(false);
-                m_serverConnection = null;
+            if (connectionSpec != null) {
+                m_controls.m_connectionControls
+                    .setError("Please execute the KNIME Connector node that provides the remote connection.");
+            } else {
+                m_controls.m_connectionControls.setError(e.getMessage());
             }
+            enableAllUIElements(false);
+            m_serverConnection = null;
         }
 
         // display workflow input/output parameters

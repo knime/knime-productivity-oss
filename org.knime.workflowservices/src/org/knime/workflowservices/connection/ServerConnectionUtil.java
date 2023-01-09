@@ -28,7 +28,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.WorkflowManager;
-import org.knime.core.node.workflow.contextv2.WorkflowContextV2;
 import org.knime.filehandling.core.connections.meta.FSType;
 import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
 import org.osgi.framework.Bundle;
@@ -149,21 +148,5 @@ public final class ServerConnectionUtil {
         return false;
     }
 
-    /**
-     * Sanity check for the arguments to be passed to {@link #getConnection(PortObjectSpec, WorkflowManager)}. Does not
-     * guarantee that getConnection will succeed but helps to sort out common problems early.
-     *
-     * @param wfm of the workflow trying to establish a connection
-     * @param portObjectSpec provides details about the connection to establish. Nullable, e.g., for local connection.
-     * @return error message if the workflow manager represents a temporary copy of the workflow
-     */
-    public static Optional<String> validate(final WorkflowManager wfm, final PortObjectSpec portObjectSpec) {
-        final WorkflowContextV2 contextV2 = wfm.getContextV2();
-        // Configuring a Call Workflow node requires contacting the callee to fetch its input/output parameters.
-        // At the time of writing, this is not possible on the community hub thus we disable configuration here.
-        if (contextV2.isTemporyWorkflowCopyMode()) {
-            return Optional.of("This node cannot be configured in a temporary copy of the workflow.");
-        }
-        return Optional.empty();
-    }
+
 }
