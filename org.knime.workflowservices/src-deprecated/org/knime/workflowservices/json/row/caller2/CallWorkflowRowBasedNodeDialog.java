@@ -260,13 +260,6 @@ final class CallWorkflowRowBasedNodeDialog extends NodeDialogPane {
 
         // fail if this is a temporary copy of a workflow
         var wfm = NodeContext.getContext().getWorkflowManager();
-        var error = ServerConnectionUtil.validate(wfm, specs[0]);
-        if (error.isPresent()) {
-            m_serverConnection = Optional.empty();
-            m_controls.setEnabled(false);
-            m_controls.m_connection.setError(error.get());
-            return;
-        }
 
         // establish connection
         try {

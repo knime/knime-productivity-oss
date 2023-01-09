@@ -277,15 +277,6 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
         var wfm = NodeContext.getContext().getWorkflowManager();
         final var connectionSpec = m_settings.isConnectorPresent() ? inSpecs[0] : null;
 
-        // fail if this is a temporary copy of a workflow
-        var error = ServerConnectionUtil.validate(wfm, connectionSpec);
-        if (error.isPresent()) {
-            m_serverConnection = null;
-            m_controls.setEnabled(false);
-            m_controls.m_connectionControls.setError(error.get());
-            return;
-        }
-
         // establish connection
         final var isRemoteExecution = m_settings.isConnectorPresent();
 
