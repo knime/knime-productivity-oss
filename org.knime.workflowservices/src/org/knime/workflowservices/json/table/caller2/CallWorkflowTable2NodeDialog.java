@@ -287,19 +287,20 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
     protected final void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
         throws NotConfigurableException {
         m_configuration.loadInDialog(settings);
-        loadConfiguration(m_configuration, specs);
         m_workflowChooser.loadSettingsFrom(settings, specs);
+        loadConfiguration(m_configuration, specs);
     }
 
-    /** Synchronize the user interface with the current configuration */
+    /** Synchronize the user interface with the current configuration
+     * @throws InvalidSettingsException
+     * @throws NotConfigurableException */
     private void loadConfiguration(final CallWorkflowTableNodeConfiguration configuration,
-        final PortObjectSpec[] inSpecs) {
+        final PortObjectSpec[] inSpecs) throws NotConfigurableException {
 
         m_serverSettings.loadConfiguration(configuration);
 
         m_useFullyQualifiedNamesChecker.setSelected(configuration.isUseFullyQualifiedId());
 
-        var fsConnSpec = m_configuration.getConnectorPortIndex().map(i -> inSpecs[i]).orElse(null);
         var tableSpec = inSpecs[CallWorkflowTable2NodeFactory.getDataPortIndex(configuration)];
 
         if (tableSpec == null) {
@@ -310,19 +311,6 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
             m_hasInputTable = true;
         }
 
-        if (fsConnSpec == null) {
-            var nodeContext = NodeContext.getContext();
-            var wfm = nodeContext.getWorkflowManager();
-            var context = wfm.getContext();
-            if (context.isTemporaryCopy()) {
-                m_serverConnection = null;
-                disableAllUIElements();
-            } else {
-                configureLocalExecution(wfm);
-            }
-        } else {
-            configureRemoteExecution(fsConnSpec);
-        }
 
         // If we open the dialog a second time and an panelUpdater is currently running (probably waiting
         // for the workflow lock because the workflow to call is already executing) we need to cancel it to avoid
@@ -450,25 +438,19 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
             var tempConfig = new CallWorkflowConnectionConfiguration();
             m_serverSettings.saveToConfiguration(tempConfig);
 
+            tempConfig.setWorkflowChooserModel(m_configuration.getWorkflowChooserModel());
             tempConfig.setWorkflowPath(m_workflowPath);
             tempConfig.setKeepFailingJobs(false);
-            IServerConnection.validateConfiguration(tempConfig, m_serverConnection);
+            ConnectionUtil.validateConfiguration(tempConfig);
 
-            if (m_serverConnection != null) {
-                try (var backend = m_serverConnection.createWorkflowBackend(tempConfig)) {
-                    if (backend != null) {
-                        backend.loadWorkflow();
-                        // The input nodes needs to be set to make sure the output values are present
-                        var inputNodes = backend.getInputNodes();
-                        backend.updateWorkflow(inputNodes);
-                        return Arrays.asList(getInputNodeValues(backend), backend.getOutputValues());
-                    } else {
-                        return null;
-                    }
+            try (var backend = ConnectionUtil.createWorkflowBackend(tempConfig)) {
+                if (backend != null) {
+                    return Arrays.asList(getInputNodeValues(backend), backend.getOutputValues());
+                } else {
+                    return null;
                 }
-            } else {
-                return null;
             }
+
         }
 
         private Map<String, JsonValue> getInputNodeValues(final IWorkflowBackend backend) {

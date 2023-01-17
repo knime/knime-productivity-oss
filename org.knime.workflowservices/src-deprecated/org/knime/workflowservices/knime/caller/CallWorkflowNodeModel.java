@@ -152,12 +152,12 @@ class CallWorkflowNodeModel extends AbstractPortObjectRepositoryNodeModel {
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_configuration.loadSettingsInModel(settings, m_serverConnection);
+        m_configuration.loadSettingsInModel(settings);
     }
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        new CallWorkflowNodeConfiguration().loadSettingsInModel(settings, m_serverConnection);
+        new CallWorkflowNodeConfiguration().loadSettingsInModel(settings);
     }
 
     @Override

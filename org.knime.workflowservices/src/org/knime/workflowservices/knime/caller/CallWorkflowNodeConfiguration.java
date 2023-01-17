@@ -28,7 +28,6 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
-import org.knime.workflowservices.connection.IServerConnection;
 
 /**
  * Configuration for the Call Workflow node.
@@ -70,9 +69,9 @@ public final class CallWorkflowNodeConfiguration extends CallWorkflowConnectionC
     }
 
     @Override
-    public void loadSettingsInModel(final NodeSettingsRO settings, final IServerConnection connection)
+    public void loadSettingsInModel(final NodeSettingsRO settings)
         throws InvalidSettingsException {
-        super.loadSettingsInModel(settings, connection);
+        super.loadSettingsInModel(settings);
         loadCalleeWorkflowProperties(settings);
     }
 

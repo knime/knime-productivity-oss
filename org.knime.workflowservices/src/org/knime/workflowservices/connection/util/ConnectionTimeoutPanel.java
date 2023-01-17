@@ -13,7 +13,6 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
-import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 
 /**
@@ -28,11 +27,11 @@ import org.knime.workflowservices.connection.ServerConnectionUtil;
 @Deprecated(since = "4.7")
 public class ConnectionTimeoutPanel extends JPanel {
 
-    JSpinner m_loadTimeoutSpinner = createSpinner((int)IServerConnection.DEFAULT_LOAD_TIMEOUT.getSeconds());
+    JSpinner m_loadTimeoutSpinner = createSpinner((int)ConnectionUtil.DEFAULT_LOAD_TIMEOUT.getSeconds());
 
-    JSpinner m_connectionTimeoutSpinner = createSpinner((int)IServerConnection.DEFAULT_TIMEOUT.getSeconds());
+    JSpinner m_connectionTimeoutSpinner = createSpinner((int)ConnectionUtil.DEFAULT_TIMEOUT.getSeconds());
 
-    JSpinner m_readTimeoutSpinner = createSpinner((int)IServerConnection.DEFAULT_TIMEOUT.getSeconds());
+    JSpinner m_readTimeoutSpinner = createSpinner((int)ConnectionUtil.DEFAULT_TIMEOUT.getSeconds());
 
     @SuppressWarnings("java:S1699") // calling public methods in constructor
     public ConnectionTimeoutPanel() {

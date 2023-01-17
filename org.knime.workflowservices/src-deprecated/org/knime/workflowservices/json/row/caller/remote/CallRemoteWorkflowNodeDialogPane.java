@@ -72,6 +72,7 @@ import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.BackoffPanel;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
 import org.knime.workflowservices.connection.util.ConnectionTimeoutPanel;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.row.caller.CallWorkflowNodeModel;
 import org.knime.workflowservices.json.row.caller.JSONInputPanel;
 
@@ -473,13 +474,13 @@ final class CallRemoteWorkflowNodeDialogPane extends NodeDialogPane {
         m_hostField.setSelectedString(m_settings.getRemoteHostAndPort());
 
         m_connectionTimeoutPanel.setSelectedLoadTimeout(
-                m_settings.getLoadTimeout().orElse(IServerConnection.DEFAULT_LOAD_TIMEOUT)
+                m_settings.getLoadTimeout().orElse(ConnectionUtil.DEFAULT_LOAD_TIMEOUT)
         );
         m_connectionTimeoutPanel.setSelectedConnectionTimeout(
-                m_settings.getConnectTimeout().orElse(IServerConnection.DEFAULT_TIMEOUT)
+                m_settings.getConnectTimeout().orElse(ConnectionUtil.DEFAULT_TIMEOUT)
         );
         m_connectionTimeoutPanel.setSelectedReadTimeout(
-                m_settings.getReadTimeout().orElse(IServerConnection.DEFAULT_TIMEOUT)
+                m_settings.getReadTimeout().orElse(ConnectionUtil.DEFAULT_TIMEOUT)
         );
 
         m_backoffPanel.setSelectedBackoffPolicy(

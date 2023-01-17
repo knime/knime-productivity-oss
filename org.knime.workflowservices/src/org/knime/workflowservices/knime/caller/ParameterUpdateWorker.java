@@ -26,12 +26,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 
 /**
  * Asynchronously fetch the input and output parameter groups from a local or remote workflow.
@@ -59,6 +61,7 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
      * @throws InvalidSettingsException if the configuration cannot be used to instantiate an {@link IWorkflowBackend}
      *             from the serverConnection.
      */
+    @Deprecated
     public ParameterUpdateWorker(final String workflowPath, final Consumer<String> errorDisplay, final Duration loadTimeout,
         final IServerConnection serverConnection, final Consumer<WorkflowParameters> whenDone,
         final Supplier<CallWorkflowConnectionConfiguration> configuration) throws InvalidSettingsException {
@@ -79,23 +82,50 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
         m_serverConnection = serverConnection;
 
         m_whenDone = whenDone;
+    }
 
+    /**
+     * @param workflowPath
+     * @param errorDisplay
+     * @param loadTimeout
+     * @param settingsModel
+     * @param whenDone
+     * @param configuration
+     * @throws InvalidSettingsException
+     */
+    public ParameterUpdateWorker(final String workflowPath, final Consumer<String> errorDisplay, final Duration loadTimeout, final Consumer<WorkflowParameters> whenDone,
+        final CallWorkflowConnectionConfiguration configuration) throws InvalidSettingsException {
+
+        m_errorDisplay = errorDisplay;
+
+        m_connectionConfiguration = configuration;
+        m_connectionConfiguration.setLoadTimeout(loadTimeout);
+        m_connectionConfiguration.setWorkflowPath(workflowPath);
+        m_connectionConfiguration.setKeepFailingJobs(false);
+        ConnectionUtil.validateConfiguration(m_connectionConfiguration);
+
+        m_serverConnection = null;
+
+        m_whenDone = whenDone;
     }
 
     @Override
     protected WorkflowParameters doInBackgroundWithContext() throws Exception {
-
-        try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(m_connectionConfiguration)) {
-            if (backend != null) {
+        try (IWorkflowBackend backend = createWorkflowBackend()) {
                 var inputResourceDescription = backend.getInputResourceDescription();
                 var outputResourceDescription = backend.getOutputResourceDescription();
                 return new WorkflowParameters(inputResourceDescription, outputResourceDescription);
-            } else {
-                return null;
-            }
         } catch (Exception e) {
             m_errorDisplay.accept(e.getMessage());
             return null;
+        }
+    }
+
+    private IWorkflowBackend createWorkflowBackend() throws Exception {
+        if (ObjectUtils.isEmpty(m_serverConnection)) {
+            return ConnectionUtil.createWorkflowBackend(m_connectionConfiguration);
+        } else {
+            return m_serverConnection.createWorkflowBackend(m_connectionConfiguration);
         }
     }
 

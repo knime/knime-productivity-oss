@@ -94,6 +94,7 @@ import org.knime.workflowservices.connection.IServerConnection.ListWorkflowFaile
 import org.knime.workflowservices.connection.LocalExecutionServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 
 /**
  * Shared dialog components for Call Workflow nodes.
@@ -226,7 +227,7 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
         m_selectWorkflowButton.addActionListener(l -> openSelectWorkflowDialog());
         panel.add(m_selectWorkflowButton, gbc);
 
-        m_loadTimeoutSpinner = new JSpinner(new SpinnerNumberModel((int)IServerConnection.DEFAULT_LOAD_TIMEOUT.getSeconds(), 0, null, 30));
+        m_loadTimeoutSpinner = new JSpinner(new SpinnerNumberModel((int)ConnectionUtil.DEFAULT_LOAD_TIMEOUT.getSeconds(), 0, null, 30));
         ((JSpinner.DefaultEditor)m_loadTimeoutSpinner.getEditor()).getTextField().setColumns(4);
         gbc.gridx = 0;
         gbc.gridy++;
@@ -430,7 +431,7 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
     }
 
     protected void loadConfiguration(final CallWorkflowTableNodeConfiguration configuration, final PortObjectSpec[] specs) {
-        Duration loadTimeout = configuration.getLoadTimeout().orElse(IServerConnection.DEFAULT_LOAD_TIMEOUT);
+        Duration loadTimeout = configuration.getLoadTimeout().orElse(ConnectionUtil.DEFAULT_LOAD_TIMEOUT);
         m_loadTimeoutSpinner.setValue(loadTimeout.getSeconds());
 
         m_serverSettings.loadConfiguration(configuration);
@@ -678,10 +679,9 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
 
                 try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(tempConfig)) {
                     if (backend != null) {
-                        backend.loadWorkflow();
                         // The input nodes needs to be set to make sure the output values are present
-                        Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
-                        backend.updateWorkflow(inputNodes);
+//                        Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
+//                        backend.updateWorkflow(inputNodes);
                         return Arrays.asList(getInputNodeValues(backend), backend.getOutputValues());
                     } else {
                         return null;

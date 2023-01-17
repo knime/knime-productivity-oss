@@ -182,7 +182,6 @@ final class CallWorkflowRowBasedNodeDialog extends NodeDialogPane {
             .setWorkflowPath(workflowPathTrimmed);
 
         try (var backend = m_serverConnection.get().createWorkflowBackend(conf)) {
-            backend.loadWorkflow();
             var inputNodes = backend.getInputNodes();
             m_controls.m_inputParameters.createPanels(inputNodes, m_inputTableSpec);
             m_controls.m_inputParameters.loadConfiguration(m_settings);

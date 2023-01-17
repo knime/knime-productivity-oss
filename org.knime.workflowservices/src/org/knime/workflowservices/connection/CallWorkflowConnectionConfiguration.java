@@ -43,10 +43,11 @@ import org.knime.filehandling.core.defaultnodesettings.status.NodeModelStatusCon
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
-import org.knime.workflowservices.connection.IServerConnection.FailingJobRetentionPolicy;
-import org.knime.workflowservices.connection.IServerConnection.SuccessfulJobRetentionPolicy;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
+import org.knime.workflowservices.connection.util.ConnectionUtil.FailingJobRetentionPolicy;
+import org.knime.workflowservices.connection.util.ConnectionUtil.SuccessfulJobRetentionPolicy;
 
 /**
  * This can be passed to {@link IServerConnection#createWorkflowBackend(CallWorkflowConnectionConfiguration)} to create
@@ -122,7 +123,7 @@ public class CallWorkflowConnectionConfiguration {
      *
      * @see #getWorkflowPath()
      */
-    private final SettingsModelWorkflowChooser m_workflowChooserModel;
+    private SettingsModelWorkflowChooser m_workflowChooserModel;
 
     /** @see #getReportFormat() */
     private final CallWorkflowReportConfiguration m_reportConfiguration = new CallWorkflowReportConfiguration();
@@ -178,7 +179,8 @@ public class CallWorkflowConnectionConfiguration {
 
         m_portsConfiguration = portConfig.get();
 
-        m_workflowChooserModel = new SettingsModelWorkflowChooser("calleeWorkflow", inputPortGroupName, portConfig.get());
+        m_workflowChooserModel =
+            new SettingsModelWorkflowChooser("calleeWorkflow", inputPortGroupName, portConfig.get());
         // if more than the mandatory input table is present, we have a connector
 
         m_statusConsumer = new NodeModelStatusConsumer(EnumSet.of(MessageType.ERROR, MessageType.WARNING));
@@ -278,11 +280,11 @@ public class CallWorkflowConnectionConfiguration {
      * @param connection to validate the settings
      * @throws InvalidSettingsException
      */
-    protected void loadSettingsInModel(final NodeSettingsRO settings, final IServerConnection connection)
+    protected void loadSettingsInModel(final NodeSettingsRO settings)
         throws InvalidSettingsException {
         loadBaseSettings(settings, true);
         m_reportConfiguration.loadInModel(settings);
-        IServerConnection.validateConfiguration(this, connection);
+        ConnectionUtil.validateConfiguration(this);
     }
 
     // getters & setters
@@ -316,12 +318,12 @@ public class CallWorkflowConnectionConfiguration {
         // by LocalWorkflowBackend convention, a workflow specified relative to a mountpoint must be specified as
         // absolute path, e.g., "/Callees/SomeWorkflow". However, selecting a mountpoint-relative workflow in a
         // workflow chooser won't give "/" as prefix, e.g., "Callees/SomeWorkflow"
-        if(m_workflowChooserModel.getLocation().getFSCategory() == FSCategory.RELATIVE) {
+        if (m_workflowChooserModel.getLocation().getFSCategory() == FSCategory.RELATIVE) {
             var relativeToSpecifier = m_workflowChooserModel.getLocation().getFileSystemSpecifier();
-            if(Objects.equals(relativeToSpecifier.orElse(null), RelativeTo.MOUNTPOINT.getSettingsValue())) {
+            if (Objects.equals(relativeToSpecifier.orElse(null), RelativeTo.MOUNTPOINT.getSettingsValue())) {
                 return "/" + path;
             }
-            if(Objects.equals(relativeToSpecifier.orElse(null), RelativeTo.SPACE.getSettingsValue())) {
+            if (Objects.equals(relativeToSpecifier.orElse(null), RelativeTo.SPACE.getSettingsValue())) {
                 return "/" + path;
             }
         }
@@ -337,9 +339,6 @@ public class CallWorkflowConnectionConfiguration {
      *             connected to the settings model for the callee workflow path.
      */
     public CallWorkflowConnectionConfiguration setWorkflowPath(final String workflowPath) {
-        if (m_version != Version.VERSION_1) {
-            throw new IllegalStateException();
-        }
         m_workflowPath = workflowPath;
         return this;
     }
@@ -491,6 +490,13 @@ public class CallWorkflowConnectionConfiguration {
      */
     public SettingsModelWorkflowChooser getWorkflowChooserModel() {
         return m_workflowChooserModel;
+    }
+
+    /**
+     * @param workflowChooserModel sets the workflow chooser
+     */
+    public void setWorkflowChooserModel(final SettingsModelWorkflowChooser workflowChooserModel) {
+         m_workflowChooserModel = workflowChooserModel;
     }
 
     /**

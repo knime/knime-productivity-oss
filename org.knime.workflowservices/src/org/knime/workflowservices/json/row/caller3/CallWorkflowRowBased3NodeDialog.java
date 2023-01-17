@@ -22,7 +22,6 @@ package org.knime.workflowservices.json.row.caller3;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.io.IOException;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -40,18 +39,16 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.port.PortObjectSpec;
-import org.knime.core.node.workflow.NodeContext;
-import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.filehandling.core.data.location.variable.FSLocationVariableType;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.DialogComponentWorkflowChooser;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.SettingsModelWorkflowChooser;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage;
-import org.knime.workflowservices.IWorkflowBackend;
+import org.knime.workflowservices.ExecutionContextSelector;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
-import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.connection.util.CreateReportControls;
 
 /**
@@ -63,17 +60,6 @@ import org.knime.workflowservices.connection.util.CreateReportControls;
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
 final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
-
-    /**
-     * Used to list workflows available for execution and obtain {@link IWorkflowBackend} instances to control the
-     * execution of callee workflows.
-     *
-     * Empty only if a problem occurs during {@link #loadSettingsFrom(NodeSettingsRO, PortObjectSpec[])}, e.g., the
-     * connected port object at the server connector port cannot be used create a connection via
-     * {@link ServerConnectionUtil#getConnection(PortObjectSpec, org.knime.core.node.workflow.WorkflowManager)}
-     */
-    private IServerConnection m_serverConnection = null;
-
     /**
      * A JSON column in the input table can be selected as input for a callee workflow input parameter.
      *
@@ -178,13 +164,13 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
     }
 
     CallWorkflowRowBased3NodeDialog(final CallWorkflowRowBased3Configuration callWorkflowRowBasedConfiguration) {
-        m_settings = callWorkflowRowBasedConfiguration;
+        m_configuration = callWorkflowRowBasedConfiguration;
 
         final var flowVariableModel = createFlowVariableModel(
-            m_settings.getWorkflowChooserModel().getKeysForFSLocation(), FSLocationVariableType.INSTANCE);
-        m_controls = new Controls(m_settings.getWorkflowChooserModel(), flowVariableModel);
+            m_configuration.getWorkflowChooserModel().getKeysForFSLocation(), FSLocationVariableType.INSTANCE);
+        m_controls = new Controls(m_configuration.getWorkflowChooserModel(), flowVariableModel);
 
-        m_settings.getWorkflowChooserModel()
+        m_configuration.getWorkflowChooserModel()
             .addChangeListener(e -> this.fetchCalleeWorkflowParameters());
 
         addTab("Workflow", m_controls.createMainTab());
@@ -197,33 +183,23 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
      */
     private void fetchCalleeWorkflowParameters() {
 
-        var status = m_settings.getWorkflowChooserModel().getStatusMessage();
+        var status = m_configuration.getWorkflowChooserModel().getStatusMessage();
         if(status.getType() == StatusMessage.MessageType.ERROR) {
             NodeLogger.getLogger(getClass()).warn(status.getMessage());
             m_controls.m_inputParameters.setError(status.getMessage());
             return;
         }
 
-        var workflowPathTrimmed = StringUtils.trim(m_settings.getWorkflowPath());
+        var workflowPathTrimmed = StringUtils.trim(m_configuration.getWorkflowPath());
         // something went wrong during #loadSettingsFrom - this shouldn't be enabled anyways
-        if (StringUtils.isEmpty(workflowPathTrimmed) || m_serverConnection == null) {
+        if (StringUtils.isEmpty(workflowPathTrimmed)) {
             return;
         }
 
-        final var conf = new CallWorkflowConnectionConfiguration()//
-            .setKeepFailingJobs(false) //
-            .setSynchronousInvocation(true) //
-            .setDiscardJobOnSuccessfulExecution(true) //
-            .setBackoffPolicy(m_controls.m_connectionControls.getBackoffPanel().getSelectedBackoffPolicy()) //
-            .setLoadTimeout(m_controls.m_connectionControls.getTimeoutControls().getSelectedLoadTimeout()) //
-            .setFetchParametersTimeout(m_controls.m_connectionControls.getTimeoutControls().getSelectedFetchParametersTimeout())//
-            .setWorkflowPath(workflowPathTrimmed);
-
-        try (var backend = m_serverConnection.createWorkflowBackend(conf)) {
-            backend.loadWorkflow();
+        try (var backend = ConnectionUtil.createWorkflowBackend(m_configuration)) {
             var inputNodes = backend.getInputNodes();
             m_controls.m_inputParameters.createPanels(inputNodes, m_inputTableSpec);
-            m_controls.m_inputParameters.loadConfiguration(m_settings);
+            m_controls.m_inputParameters.loadConfiguration(m_configuration);
             m_controls.m_inputParameters.clearError();
         } catch (Exception ex) {
             var cause = (ex.getCause() != null) ? ExceptionUtils.getRootCause(ex) : ex;
@@ -303,38 +279,9 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
         }
     }
 
-    /**
-     * @param wfm
-     * @param connectionSpec
-     * @param isRemoteExecution
-     */
-    private void initServerConnection(final WorkflowManager wfm, final PortObjectSpec connectionSpec,
-        final boolean isRemoteExecution) {
-        try {
-            m_serverConnection = ServerConnectionUtil.getConnection(connectionSpec, wfm);
-        } catch (InvalidSettingsException e) {
-            getLogger().debug(e.getMessage(), e);
-            if (isRemoteExecution) {
-                m_controls.m_connectionControls
-                    .setError("Please execute the KNIME Connector node that provides the remote connection.");
-            } else {
-                m_controls.m_connectionControls.setError(e.getMessage());
-            }
-            m_serverConnection = null;
-        }
-    }
-
     /** {@inheritDoc} */
     @Override
     public void onClose() {
-        if (m_serverConnection != null) {
-            try {
-                m_serverConnection.close();
-            } catch (IOException e) {
-                NodeLogger.getLogger(getClass()).warn(e);
-            }
-            m_serverConnection = null;
-        }
     }
 
 }
