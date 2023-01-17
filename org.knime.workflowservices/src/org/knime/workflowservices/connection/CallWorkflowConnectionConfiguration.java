@@ -141,6 +141,8 @@ public class CallWorkflowConnectionConfiguration {
 
     private final Version m_version;
 
+    private String m_executionContext;
+
     // constructor
 
     /**
@@ -193,6 +195,7 @@ public class CallWorkflowConnectionConfiguration {
         settings.addBoolean("discardJobOnSuccessfulExecution", m_discardJobOnSuccessfulExecution);
         settings.addBoolean("isSynchronous", m_isSynchronous);
         settings.addBoolean("keepFailingJobs", m_keepFailingJobs);
+        settings.addString("executionContext", m_executionContext);
 
         if (m_version == Version.VERSION_1) {
             settings.addString("workflow", getWorkflowPath());
@@ -233,6 +236,7 @@ public class CallWorkflowConnectionConfiguration {
         // non-strict for backwards compatibility
         m_discardJobOnSuccessfulExecution = settings.getBoolean("discardJobOnSuccessfulExecution", true);
         m_keepFailingJobs = settings.getBoolean("keepFailingJobs", true);
+        m_executionContext = settings.getString("executionContext", "");
 
         // base, multiplier, and retries
         m_backoffPolicy = BackoffPolicy.loadFromSettings(settings);
@@ -589,10 +593,28 @@ public class CallWorkflowConnectionConfiguration {
      * @return an error message if the configuration is not suitable to create an {@link IWorkflowBackend}
      */
     public Optional<String> validateForCreateWorkflowBackend() {
-        if(m_version == Version.VERSION_1) {
+        if (m_version == Version.VERSION_1) {
             CallWorkflowUtil.PlainWorkflowPathFormat.validate(getWorkflowPath());
         }
         return Optional.empty();
+    }
+
+    /**
+     * Sets the execution context to be used (only valid for Hub).
+     *
+     * @param executionContext the ID of the execution context
+     */
+    public void setExecutionContext(final String executionContext) {
+        m_executionContext = executionContext;
+    }
+
+    /**
+     * Returns the execution context to be used (only valid for Hub).
+     *
+     * @return the ID of the execution context
+     */
+    public String getExecutionContext() {
+        return m_executionContext;
     }
 
 }

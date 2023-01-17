@@ -31,14 +31,12 @@ import org.knime.core.node.context.ports.ModifiablePortsConfiguration;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.util.CheckUtils;
-import org.knime.core.node.workflow.NodeContext;
 import org.knime.filehandling.core.data.location.variable.FSLocationVariableType;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.DialogComponentWorkflowChooser;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.SettingsModelWorkflowChooser;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
+import org.knime.workflowservices.ExecutionContextSelector;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
-import org.knime.workflowservices.connection.IServerConnection;
-import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
 import org.knime.workflowservices.knime.caller.CallWorkflowNodeConfiguration;
 import org.knime.workflowservices.knime.caller.PanelWorkflowParameters;
@@ -55,8 +53,6 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
     /*
      * State
      */
-
-    private IServerConnection m_serverConnection;
 
     private final CallWorkflowNodeConfiguration m_configuration;
 
@@ -82,6 +78,8 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
 
         private final DialogComponentWorkflowChooser m_workflowChooser;
 
+        final ExecutionContextSelector m_executionContextSelector;
+
         /** Control group to select the callee workflow. */
         private final JPanel m_workflowPanel;
 
@@ -96,6 +94,8 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
             final FlowVariableModel flowVariableModel) {
             m_workflowChooser = new DialogComponentWorkflowChooser(settingsModelCalleeWorkflowChooser,
                 CallWorkflowUtil.WorkflowPathHistory.JSON_BASED_WORKFLOWS.getIdentifier(), flowVariableModel);
+
+            m_executionContextSelector = new ExecutionContextSelector();
 
             m_workflowPanel = createWorkflowChooserPanel();
 
@@ -132,6 +132,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
             mainPanel.add(m_connectionControls.getMainPanel());
             // text field for workflow path input and browse workflows button
             mainPanel.add(m_workflowPanel);
+            mainPanel.add(m_executionContextSelector.createSelectionPanel());
             mainPanel.add(m_parameterMappingPanel.getContentPane());
             return new JScrollPane(mainPanel);
         }
@@ -250,6 +251,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
             "Please select a workflow to execute.");
 
         m_controls.m_connectionControls.saveToConfiguration(m_configuration);
+        m_controls.m_executionContextSelector.saveToConfiguration(m_configuration);
 
         // update the order of the parameters
         if (m_configuration.getCalleeWorkflowProperties().isPresent()) {
@@ -276,13 +278,11 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
 
         var connectionSpec = m_configuration.getConnectorPortIndex().map(i -> inSpecs[i]).orElse(null);
 
-        var wfm = NodeContext.getContext().getWorkflowManager();
         // configure remote execution if a server connection is present
         enableAllUIElements(true);
+        m_controls.m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
         try {
-            m_serverConnection = ServerConnectionUtil.getConnection(connectionSpec, wfm);
-            m_controls.m_connectionControls.setRemoteConnection(m_serverConnection,
-                m_configuration.isConnectorPresent());
+            m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
         } catch (InvalidSettingsException e) {
             getLogger().debug(e.getMessage(), e);
 
@@ -293,7 +293,6 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
                 m_controls.m_connectionControls.setError(e.getMessage());
             }
             enableAllUIElements(false);
-            m_serverConnection = null;
         }
 
         // display workflow input/output parameters
@@ -347,14 +346,10 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
         m_controls.m_parameterMappingPanel.setState(PanelWorkflowParameters.State.LOADING);
 
         try {
-            m_parameterUpdater = new ParameterUpdateWorker(//
-                trimmedWorkflowPath, //
-                m_controls.m_parameterMappingPanel::setErrorMessage, //
-                m_configuration.getFetchParametersTimeout().orElse(Duration.ofSeconds(30)), //
-                m_serverConnection, //
-                this::onWorkflowPropertiesLoad, //
-                () -> new CallWorkflowNodeConfiguration(m_nodeCreationConfig,
-                    CallWorkflow2NodeFactory.CONNECTION_INPUT_PORT_GRP_NAME));
+            m_parameterUpdater =
+                new ParameterUpdateWorker(trimmedWorkflowPath, m_controls.m_parameterMappingPanel::setErrorMessage,
+                    m_configuration.getFetchParametersTimeout().orElse(Duration.ofSeconds(30)),
+                    this::onWorkflowPropertiesLoad, m_configuration);
 
             m_configuration.setCalleeWorkflowProperties(null);
             m_parameterUpdater.execute();

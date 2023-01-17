@@ -81,12 +81,14 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
      */
     private DataTableSpec m_inputTableSpec;
 
-    private final CallWorkflowRowBased3Configuration m_settings;
+    private final CallWorkflowRowBased3Configuration m_configuration;
 
     private final Controls m_controls;
 
     private static final class Controls {
         private final DialogComponentWorkflowChooser m_workflowChooser;
+
+        private final ExecutionContextSelector m_executionContextSelector;
 
         private final CallWorkflowConnectionControls m_connectionControls = new CallWorkflowConnectionControls();
 
@@ -103,6 +105,7 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
                 CallWorkflowUtil.WorkflowPathHistory.JSON_BASED_WORKFLOWS.getIdentifier(), flowVariableModel);
 
             m_workflowPanel = createWorkflowChooserPanel();
+            m_executionContextSelector = new ExecutionContextSelector();
 
             // m_serverSettings needs to be created already
             m_createReport = new CreateReportControls(runReport -> {
@@ -155,6 +158,7 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
 
             p.add(m_connectionControls.getMainPanel());
             p.add(m_workflowPanel);
+            p.add(m_executionContextSelector.createSelectionPanel());
             p.add(m_inputParameters.getPanel());
             p.add(m_createReport.getPanel());
 
@@ -240,11 +244,12 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         // apply GUI state to model state
-        m_controls.m_connectionControls.saveToConfiguration(m_settings);
-        m_controls.m_inputParameters.saveToConfiguration(m_settings);
-        m_controls.m_createReport.saveToConfiguration(m_settings);
+        m_controls.m_connectionControls.saveToConfiguration(m_configuration);
+        m_controls.m_inputParameters.saveToConfiguration(m_configuration);
+        m_controls.m_createReport.saveToConfiguration(m_configuration);
+        m_controls.m_executionContextSelector.saveToConfiguration(m_configuration);
         // persist model state
-        m_settings.saveSettings(settings);
+        m_configuration.saveSettings(settings);
         m_controls.m_workflowChooser.saveSettingsTo(settings);
     }
 
@@ -266,25 +271,24 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
         throws NotConfigurableException {
 
         m_controls.m_workflowChooser.loadSettingsFrom(settings, inSpecs);
-        m_settings.loadSettingsInDialog(settings);
+        m_configuration.loadSettingsInDialog(settings);
 
-        m_inputTableSpec = (DataTableSpec)inSpecs[CallWorkflowRowBased3NodeFactory.getDataPortIndex(m_settings)];
+        m_controls.m_connectionControls.loadConfiguration(m_configuration);
+
+        m_inputTableSpec = (DataTableSpec)inSpecs[CallWorkflowRowBased3NodeFactory.getDataPortIndex(m_configuration)];
 
         // load settings
-        m_controls.m_connectionControls.loadConfiguration(m_settings);
-        m_controls.m_createReport.loadFromConfiguration(m_settings);
+        m_controls.m_createReport.loadFromConfiguration(m_configuration);
 
-        var wfm = NodeContext.getContext().getWorkflowManager();
-        final var connectionSpec = m_settings.isConnectorPresent() ? inSpecs[0] : null;
-
-        // establish connection
-        final var isRemoteExecution = m_settings.isConnectorPresent();
-
-        initServerConnection(wfm, connectionSpec, isRemoteExecution);
-        if (m_serverConnection != null) {
+        if (ConnectionUtil.isRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation().getFSType())) {
             m_controls.setEnabled(true);
             // disable timeouts and backoff controls if connection is local
-            m_controls.m_connectionControls.setRemoteConnection(m_serverConnection, isRemoteExecution);
+            m_controls.m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
+            try {
+                m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
+            } catch (InvalidSettingsException e) {
+               throw new NotConfigurableException(e.getMessage(), e);
+            }
         } else {
             m_controls.setEnabled(false);
         }

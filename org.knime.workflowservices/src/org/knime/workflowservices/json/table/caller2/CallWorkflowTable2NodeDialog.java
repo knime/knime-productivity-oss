@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
 
@@ -62,25 +61,20 @@ import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.VerticalCollapsablePanels;
-import org.knime.core.node.workflow.NodeContext;
-import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.filehandling.core.data.location.variable.FSLocationVariableType;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.DialogComponentWorkflowChooser;
+import org.knime.workflowservices.ExecutionContextSelector;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
-import org.knime.workflowservices.connection.IServerConnection;
-import org.knime.workflowservices.connection.LocalExecutionServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane;
 import org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.json.table.caller.ParameterId;
-import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterRenderer;
-import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterSelection;
-import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterUpdater;
 
 /**
  * Dialog for Call Workflow (Table Based) node as of 4.7.0
@@ -97,9 +91,9 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
     private final CallWorkflowConnectionControls m_serverSettings = new CallWorkflowConnectionControls();
 
-    private IServerConnection m_serverConnection;
-
     private final DialogComponentWorkflowChooser m_workflowChooser;
+
+    private final ExecutionContextSelector m_executionContextSelector;
 
     /** For errors when fetching workflow parameters */
     private final JLabel m_workflowErrorLabel = new JLabel();
@@ -138,6 +132,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
             FSLocationVariableType.INSTANCE);
         m_workflowChooser = new DialogComponentWorkflowChooser(config.getWorkflowChooserModel(),
             CallWorkflowUtil.WorkflowPathHistory.JSON_BASED_WORKFLOWS.getIdentifier(), flowVariableModel);
+        m_executionContextSelector = new ExecutionContextSelector();
 
         m_configuration.getWorkflowChooserModel().addChangeListener(e -> {
             removeConfiguredSelections();
@@ -162,6 +157,11 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         gbc.gridy++;
 
         panel.add(createWorkflowChooserPanel(), gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+
+        panel.add(m_executionContextSelector.createSelectionPanel(), gbc);
 
         gbc.gridx = 0;
         gbc.gridy++;
@@ -235,6 +235,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         storeUiStateInConfiguration();
         m_configuration.save(settings);
         m_workflowChooser.saveSettingsTo(settings);
+        m_executionContextSelector.saveToConfiguration(m_configuration);
     }
 
     /**
@@ -338,32 +339,23 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         m_configuredFlowVariableDestination = configuration.getFlowVariableDestination();
         m_configuredFlowCredentialsDestination = configuration.getFlowCredentialsDestination();
 
+        try {
+            m_executionContextSelector.loadSettingsInDialog(m_configuration);
+        } catch (InvalidSettingsException e) {
+            throw new NotConfigurableException(e.getMessage(), e);
+        }
         m_serverSettings.getBackoffPanel()
             .setSelectedBackoffPolicy(configuration.getBackoffPolicy().orElse(BackoffPolicy.DEFAULT_BACKOFF_POLICY));
-
-        final var isRemote = fsConnSpec != null;
+        m_serverSettings.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
+        final var isRemote = ConnectionUtil.isRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation().getFSType());
         m_serverSettings.getTimeoutControls().setEnabled(isRemote);
         m_serverSettings.getBackoffPanel().setEnabled(isRemote); // server connection present?
-    }
-
-    private void configureLocalExecution(final WorkflowManager wfm) {
-        m_serverConnection = new LocalExecutionServerConnection(wfm);
-        m_serverSettings.setRemoteConnection(m_serverConnection, false);
-    }
-
-    private void configureRemoteExecution(final PortObjectSpec fsConnSpec) {
-        enableAllUIElements();
-        try {
-            m_serverConnection = ServerConnectionUtil.getConnection(fsConnSpec,
-                Optional.ofNullable(NodeContext.getContext()).map(NodeContext::getWorkflowManager).orElse(null));
-            m_serverSettings.setRemoteConnection(m_serverConnection, true);
-        } catch (InvalidSettingsException e) {
-            getLogger().debug(e.getMessage(), e);
+        if (isRemote) {
+            enableAllUIElements();
+        } else {
             disableAllUIElements();
-            // TODO remove? or display error message
-            //            m_stateErrorLabel.setText(e.getMessage());
-            m_serverConnection = null;
         }
+
     }
 
     private void disableAllUIElements() {
