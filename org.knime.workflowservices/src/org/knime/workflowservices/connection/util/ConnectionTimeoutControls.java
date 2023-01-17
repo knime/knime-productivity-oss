@@ -15,7 +15,6 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
-import org.knime.workflowservices.connection.IServerConnection;
 
 /**
  * UI to customize different timeouts used when communicating with a server.
@@ -32,12 +31,12 @@ public final class ConnectionTimeoutControls  {
     /**
      * @see CallWorkflowConnectionConfiguration#getLoadTimeout()
      */
-    JSpinner m_loadTimeoutSpinner = createSpinner((int)IServerConnection.DEFAULT_LOAD_TIMEOUT.getSeconds());
+    JSpinner m_loadTimeoutSpinner = createSpinner((int)ConnectionUtil.DEFAULT_LOAD_TIMEOUT.getSeconds());
 
     /**
      * @see CallWorkflowConnectionConfiguration#getFetchParameterTimeout()
      */
-    JSpinner m_fetchWorkflowParameterTimeout = createSpinner((int)IServerConnection.DEFAULT_TIMEOUT.getSeconds());
+    JSpinner m_fetchWorkflowParameterTimeout = createSpinner((int)ConnectionUtil.DEFAULT_TIMEOUT.getSeconds());
 
     /**
      * Create controls. Use {@link #getPanel()} to add to containing dialog.

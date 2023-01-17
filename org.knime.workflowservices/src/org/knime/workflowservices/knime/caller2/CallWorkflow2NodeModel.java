@@ -1,7 +1,6 @@
 package org.knime.workflowservices.knime.caller2;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,14 +25,12 @@ import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.FlowVariable;
-import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.VariableTypeRegistry;
 import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
-import org.knime.workflowservices.connection.IServerConnection;
-import org.knime.workflowservices.connection.ServerConnectionUtil;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.knime.caller.CallWorkflowNodeConfiguration;
 import org.knime.workflowservices.knime.caller.WorkflowParameter;
@@ -45,10 +42,9 @@ import org.knime.workflowservices.knime.util.CallWorkflowUtil;
  * Call Workflow Service node model for callee workflows with input parameters that have arbitrary port object types.
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
+ * @author Dionysios Stolis, KNIME GmbH, Berlin, Germany
  */
 class CallWorkflow2NodeModel extends AbstractPortObjectRepositoryNodeModel {
-
-    private IServerConnection m_serverConnection;
 
     /**
      * Node configuration (but a {@link CallWorkflowTableNodeConfiguration} is required to create the wf backend).
@@ -73,10 +69,7 @@ class CallWorkflow2NodeModel extends AbstractPortObjectRepositoryNodeModel {
         m_configuration.configureCalleeModel(inSpecs);
 
         CheckUtils.checkSetting(StringUtils.isNotEmpty(m_configuration.getWorkflowPath()), "No workflow path provided");
-
-        var connectionSpec = m_configuration.getConnectorPortIndex().map(i -> inSpecs[i]).orElse(null);
-        var currentWfm = NodeContext.getContext().getWorkflowManager();
-        m_serverConnection = ServerConnectionUtil.getConnection(connectionSpec, currentWfm);
+        ConnectionUtil.validateConfiguration(m_configuration);
         return new PortObjectSpec[]{null};
     }
 
@@ -90,8 +83,7 @@ class CallWorkflow2NodeModel extends AbstractPortObjectRepositoryNodeModel {
         }
 
         return runInBackground(() -> {
-            try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(m_configuration)) {
-                // TODO check freshness of callee signature (similar to ParameterUpdateWorker)
+            try (IWorkflowBackend backend = ConnectionUtil.createWorkflowBackend(m_configuration)) {
                 CheckUtils.checkArgument(backend != null,
                     "Internal error: No backend available to execute callee workflow.");
 
@@ -167,25 +159,18 @@ class CallWorkflow2NodeModel extends AbstractPortObjectRepositoryNodeModel {
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_configuration.loadSettingsInModel(settings, m_serverConnection);
+        m_configuration.loadSettingsInModel(settings);
     }
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
         new CallWorkflowNodeConfiguration(m_ncc, CallWorkflow2NodeFactory.CONNECTION_INPUT_PORT_GRP_NAME)
-            .loadSettingsInModel(settings, m_serverConnection);
+            .loadSettingsInModel(settings);
     }
 
     @Override
     protected void onDispose() {
-        if (m_serverConnection != null) {
-            try {
-                m_serverConnection.close();
-            } catch (IOException e) {
-                getLogger().error("Error disposing server connection " + m_serverConnection.getClass().getSimpleName(),
-                    e);
-            }
-        }
+
     }
 
     private static PortObject[] runInBackground(final Callable<PortObject[]> callable) throws Exception {

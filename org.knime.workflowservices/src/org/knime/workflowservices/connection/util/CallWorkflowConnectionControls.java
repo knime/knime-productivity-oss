@@ -34,6 +34,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
+import org.knime.filehandling.core.connections.FSLocation;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
 
@@ -311,6 +312,7 @@ public final class CallWorkflowConnectionControls {
      * @param remoteConnection specifies the remote executors host name.
      * @param isRemoteExecution whether the remote executor connection will lead to remote execution
      */
+    @Deprecated
     public void setRemoteConnection(final IServerConnection remoteConnection, final boolean isRemoteExecution) {
         if (remoteConnection == null || !isRemoteExecution) {
             m_controls.m_remoteExecutorAddress.setText("Local execution");
@@ -322,6 +324,26 @@ public final class CallWorkflowConnectionControls {
         m_controls.m_timeoutPanel.setEnabled(isRemoteExecution);
 
         m_controls.setState(isRemoteExecution ? State.REMOTE : State.LOCAL);
+    }
+
+    /**
+     * Updates the remote executor address label. Clears any error that was previously set. Disables the backoff policy and
+     * timeout controls if the execution is not remote.
+     *
+     * @param location the file system location.
+     */
+    public void setRemoteConnection(final FSLocation location) {
+        var isRemoteConnection = ConnectionUtil.isRemoteConnection(location.getFSType());
+        if (!isRemoteConnection) {
+            m_controls.m_remoteExecutorAddress.setText("Local execution");
+        } else {
+            m_controls.m_remoteExecutorAddress.setText("Remote executor type: " + location.getFSType().getName());
+        }
+
+        m_controls.m_backoffpanel.setEnabled(isRemoteConnection);
+        m_controls.m_timeoutPanel.setEnabled(isRemoteConnection);
+
+        m_controls.setState(isRemoteConnection ? State.REMOTE : State.LOCAL);
     }
 
     /**

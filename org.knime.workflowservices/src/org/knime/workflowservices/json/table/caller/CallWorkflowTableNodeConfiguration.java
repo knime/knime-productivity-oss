@@ -26,7 +26,6 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
-import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeFactory;
 
 /**
@@ -101,9 +100,9 @@ public final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnec
      * @return this configuration
      * @throws InvalidSettingsException
      */
-    CallWorkflowTableNodeConfiguration loadInModel(final NodeSettingsRO settings, final IServerConnection connection)
+    CallWorkflowTableNodeConfiguration loadInModel(final NodeSettingsRO settings)
         throws InvalidSettingsException {
-        loadSettingsInModel(settings, connection);
+        loadSettingsInModel(settings);
         m_selectedInputParameter = settings.getString("selectedInputParameter", "");
         m_selectedOutputParameter = settings.getString("selectedOutputParameter", "");
         m_flowVariableDestination = settings.getString("flowVariableDestination", "");

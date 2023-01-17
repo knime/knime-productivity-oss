@@ -40,8 +40,10 @@ import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.row.caller.CallWorkflowConfiguration;
 import org.knime.workflowservices.json.row.caller.CallWorkflowNodeModel;
+import org.knime.workflowservices.json.row.caller3.CallWorkflowRowBased3NodeModel;
 
 /**
  *
@@ -90,9 +92,9 @@ class CallRemoteWorkflowNodeModel extends CallWorkflowNodeModel {
             password = m_configuration.getPassword();
         }
         var sync = m_configuration.isSynchronousInvocation() && m_configuration.getReportFormatOrNull() == null;
-        var loadTimeout = m_configuration.getLoadTimeout().orElse(IServerConnection.DEFAULT_LOAD_TIMEOUT);
-        var connectTimeout = m_configuration.getConnectTimeout().orElse(IServerConnection.DEFAULT_TIMEOUT);
-        var readTimeout = m_configuration.getReadTimeout().orElse(IServerConnection.DEFAULT_TIMEOUT);
+        var loadTimeout = m_configuration.getLoadTimeout().orElse(ConnectionUtil.DEFAULT_LOAD_TIMEOUT);
+        var connectTimeout = m_configuration.getConnectTimeout().orElse(ConnectionUtil.DEFAULT_TIMEOUT);
+        var readTimeout = m_configuration.getReadTimeout().orElse(ConnectionUtil.DEFAULT_TIMEOUT);
         var backoffPolicy =
             m_configuration.getBackoffPolicy().orElse(BackoffPolicy.DEFAULT_BACKOFF_POLICY);
 

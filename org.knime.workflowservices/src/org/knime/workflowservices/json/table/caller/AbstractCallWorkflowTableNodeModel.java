@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import javax.json.JsonValue;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
@@ -56,6 +57,7 @@ import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 import org.knime.workflowservices.connection.IServerConnection;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeFactory;
 
 /**
@@ -119,7 +121,7 @@ public abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
 
     private PortObject[] executeInternal(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
         final BufferedDataTable table = getInputTable(inObjects);
-        try (IWorkflowBackend backend = m_serverConnection.createWorkflowBackend(m_configuration)) {
+        try (IWorkflowBackend backend = createWorkflowBackend()) {
             if (backend != null) {
                 backend.loadWorkflow();
                 WorkflowState state = backend.execute(createWorkflowInput(table));
@@ -137,6 +139,14 @@ public abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
                 throw new Exception(
                     "This node cannot be executed without a server connection in a temporary copy of a workflow");
             }
+        }
+    }
+
+    private IWorkflowBackend createWorkflowBackend() throws Exception {
+        if (ObjectUtils.isEmpty(m_serverConnection)) {
+            return ConnectionUtil.createWorkflowBackend(m_configuration);
+        } else {
+            return m_serverConnection.createWorkflowBackend(m_configuration);
         }
     }
 
@@ -284,7 +294,7 @@ public abstract class AbstractCallWorkflowTableNodeModel extends NodeModel {
      */
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_configuration.loadInModel(settings, m_serverConnection);
+        m_configuration.loadInModel(settings);
     }
 
     /**

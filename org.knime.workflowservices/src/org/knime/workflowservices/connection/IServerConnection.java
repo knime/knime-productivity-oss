@@ -22,7 +22,6 @@ package org.knime.workflowservices.connection;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,48 +40,8 @@ import org.knime.workflowservices.IWorkflowBackend;
  * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
  * @noreference
  */
+@Deprecated(since = "4.7.1")
 public interface IServerConnection extends Closeable {
-
-    // TODO move policies into separate classes
-    /**
-     * Enum policy deciding what to do with failing jobs.
-     *
-     * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
-     */
-    enum FailingJobRetentionPolicy {
-            /**
-             * Keep failing jobs.
-             */
-            KEEP_FAILING_JOBS,
-            /**
-             * Delete failing jobs.
-             */
-            DELETE_FAILING_JOBS;
-    }
-
-    /**
-     * Enum policy deciding what to do with successful jobs.
-     *
-     * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
-     */
-    enum SuccessfulJobRetentionPolicy {
-            /**
-             * Keep failing jobs.
-             */
-            KEEP_SUCCESSFUL_JOBS,
-            /**
-             * Delete failing jobs.
-             */
-            DELETE_SUCCESSFUL_JOBS;
-    }
-
-    /** Default value for connection and read timeout. */
-    public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
-
-    /**
-     * The default timeout to use when loading a remote workflow.
-     */
-    public static final Duration DEFAULT_LOAD_TIMEOUT = Duration.ofSeconds(60);
 
     /**
      * Creates the backend to use. The configuration must be valid according to

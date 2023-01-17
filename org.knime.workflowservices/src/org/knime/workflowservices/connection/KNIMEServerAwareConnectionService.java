@@ -31,6 +31,7 @@ import org.knime.core.node.workflow.WorkflowContext;
  * The interface to an OSGi service / factor to create {@link IServerConnection}.
  * @author Bernd Wiswedel, KNIME, Konstanz, Germany
  */
+@Deprecated(since = "4.7.1")
 public interface KNIMEServerAwareConnectionService {
 
     /**

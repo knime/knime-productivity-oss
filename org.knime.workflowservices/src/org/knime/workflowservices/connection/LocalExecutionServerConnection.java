@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.core.runtime.Platform;
+import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.WorkflowManager;
 import org.knime.core.node.workflow.WorkflowPersistor;
 import org.knime.workflowservices.IWorkflowBackend;
@@ -41,23 +42,50 @@ import org.knime.workflowservices.LocalWorkflowBackend;
  * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
  * @noreference This method is not intended to be referenced by clients.
  */
-public final class LocalExecutionServerConnection implements IServerConnection {
+public final class LocalExecutionServerConnection implements IServerConnection, WorkflowExecutionConnector {
 
     private WorkflowManager m_wfm;
 
+    private CallWorkflowConnectionConfiguration m_configuration;
+
+    @Deprecated(since = "4.7.1")
     public LocalExecutionServerConnection(final WorkflowManager wfm) {
         m_wfm = wfm;
     }
 
     /**
-     * @param configuration provides the workflow path
+     * Instantiates a local execution service connection.
+     * @param configuration the call workflow connection configuration.
      */
+    public LocalExecutionServerConnection(final CallWorkflowConnectionConfiguration configuration) {
+        m_configuration = configuration;
+        m_wfm = NodeContext.getContext().getWorkflowManager();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public IWorkflowBackend createWorkflowBackend() throws IOException {
+        try {
+            return LocalWorkflowBackend.newInstance(m_configuration.getWorkflowPath(), m_wfm);
+        } catch (Exception e) {
+            throw new IOException(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * @param configuration provides the workflow path
+     * @deprecated
+     */
+    @Deprecated (since = "4.7.1")
     @Override
     public IWorkflowBackend createWorkflowBackend(final CallWorkflowConnectionConfiguration configuration)
         throws Exception {
         return LocalWorkflowBackend.newInstance(configuration.getWorkflowPath(), m_wfm);
     }
 
+    @Deprecated (since = "4.7.1")
     @Override
     public List<String> listWorkflows() throws ListWorkflowFailedException {
         final Path root = m_wfm.getContext().getMountpointRoot().toPath();
@@ -97,14 +125,15 @@ public final class LocalExecutionServerConnection implements IServerConnection {
         return workflows;
     }
 
+    @Deprecated(since = "4.7.1")
     @Override
     public void close() throws IOException {
         LocalWorkflowBackend.cleanCalledWorkflows(m_wfm);
     }
 
+    @Deprecated (since = "4.7.1")
     @Override
     public String getHost() {
         return "No server connection";
     }
-
 }

@@ -390,12 +390,12 @@ public class CallWorkflowRowBasedNodeModel extends NodeModel {
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        new CallWorkflowRowBasedConfiguration().loadSettingsInModel(settings, m_serverConnection);
+        new CallWorkflowRowBasedConfiguration().loadSettingsInModel(settings);
     }
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_configuration.loadSettingsInModel(settings, m_serverConnection);
+        m_configuration.loadSettingsInModel(settings);
     }
 
     @Override

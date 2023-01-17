@@ -106,14 +106,12 @@ import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.StringFormat;
-import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.util.UniqueNameGenerator;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.workflowservices.BackendExecutionResult;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.ReportGenerationException;
-import org.knime.workflowservices.connection.IServerConnection;
-import org.knime.workflowservices.connection.ServerConnectionUtil;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 
 /**
  * Abstract class for nodes that call other workflows.
@@ -144,8 +142,6 @@ public class CallWorkflowRowBased3NodeModel extends NodeModel {
 
     private static final NodeLogger LOGGER = NodeLogger.getLogger(CallWorkflowRowBased3NodeModel.class);
 
-    private IServerConnection m_serverConnection;
-
     private final CallWorkflowRowBased3Configuration m_configuration;
 
     /**
@@ -166,13 +162,7 @@ public class CallWorkflowRowBased3NodeModel extends NodeModel {
         m_configuration.configureCalleeModel(inSpecs);
 
         CheckUtils.checkSetting(StringUtils.isNotEmpty(m_configuration.getWorkflowPath()), "No workflow path provided");
-
-        var currentWfm = NodeContext.getContext().getWorkflowManager();
-        var connectionSpec = m_configuration.getConnectorPortIndex().map(i -> inSpecs[i]).orElse(null);
-
-        Optional<Integer> opt = java.util.Optional.empty();
-        opt.map(i -> inSpecs[i]);
-        m_serverConnection = ServerConnectionUtil.getConnection(connectionSpec, currentWfm);
+        ConnectionUtil.validateConfiguration(m_configuration);
 
         return new PortObjectSpec[]{null};
     }
@@ -221,7 +211,7 @@ public class CallWorkflowRowBased3NodeModel extends NodeModel {
     private BufferedDataTable executeInternal(final BufferedDataTable inputTable, final ExecutionContext exec)
         throws Exception {
 
-        try (var backend = m_serverConnection.createWorkflowBackend(m_configuration)) {
+        try (var backend = ConnectionUtil.createWorkflowBackend(m_configuration)) {
 
             exec.setProgress("Loading workflow...");
             backend.loadWorkflow();
@@ -410,27 +400,12 @@ public class CallWorkflowRowBased3NodeModel extends NodeModel {
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_configuration.loadSettingsInModel(settings, m_serverConnection);
+        m_configuration.loadSettingsInModel(settings);
     }
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
         m_configuration.saveSettings(settings);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void onDispose() {
-        super.onDispose();
-        try {
-            if (m_serverConnection != null) {
-                m_serverConnection.close();
-            }
-        } catch (IOException e) {
-            LOGGER.warn("Cannot close server connection: ", e);
-        }
     }
 
     @Override

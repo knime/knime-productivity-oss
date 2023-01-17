@@ -63,7 +63,6 @@ import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.json.util.JSONUtil;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
-import org.knime.workflowservices.connection.IServerConnection;
 
 /**
  * Stores the column names or JSON objects that provide the values for the input parameters of a callee workflow.
@@ -130,9 +129,9 @@ public class CallWorkflowRowBasedConfiguration extends CallWorkflowConnectionCon
      * @throws InvalidSettingsException
      */
     @Override
-    public void loadSettingsInModel(final NodeSettingsRO settings, final IServerConnection connection)
+    public void loadSettingsInModel(final NodeSettingsRO settings)
         throws InvalidSettingsException {
-        super.loadSettingsInModel(settings, connection);
+        super.loadSettingsInModel(settings);
 
         loadJsonConfigMap(settings, true);
         loadJsonColumnMap(settings, true);
