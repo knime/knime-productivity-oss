@@ -3,7 +3,6 @@ package org.knime.workflowservices.knime.caller2;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -169,7 +168,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
 
         // when selecting a new workflow, fetch its input/output parameter descriptions and display them
         m_configuration.getWorkflowChooserModel()
-            .addChangeListener(e -> this.fetchWorkflowProperties(m_configuration.getWorkflowPath()));
+            .addChangeListener(e -> this.fetchWorkflowProperties());
 
         m_controls.m_parameterMappingPanel = new PanelWorkflowParameters(this::parametersCompatibleWithPorts,
             m_configuration, ncc.getPortConfig().orElseThrow(IllegalStateException::new));
@@ -287,8 +286,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
         }
 
         // display workflow input/output parameters
-        m_configuration.getCalleeWorkflowProperties().ifPresent(m_controls.m_parameterMappingPanel::load);
-
+        fetchWorkflowProperties();
     }
 
     /**
@@ -307,22 +305,20 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
      * Asynchronously fetch input and output parameters of the workflow to be executed.
      * {@link #onWorkflowPropertiesLoad(WorkflowParameters)} is the callback for the result.
      */
-    private void fetchWorkflowProperties(final String workflowPath) {
+    private void fetchWorkflowProperties() {
 
         var status = m_configuration.getWorkflowChooserModel().getStatusMessage();
         if (status.getType() == MessageType.ERROR) {
-            // TODO doesn't refresh yet
             m_controls.m_parameterMappingPanel.setState(State.ERROR);
             return;
         }
 
         if (!m_configuration.getWorkflowChooserModel().isLocationValid()) {
-            NodeLogger.getLogger(getClass()).warn("Invalid location: " + workflowPath);
+            NodeLogger.getLogger(getClass()).warn("Invalid location: " + m_configuration.getWorkflowChooserModel().getPath());
             return;
         }
 
-        final var trimmedWorkflowPath = StringUtils.trim(workflowPath);
-        if (StringUtils.isEmpty(trimmedWorkflowPath)) {
+        if (StringUtils.isEmpty(m_configuration.getWorkflowChooserModel().getPath())) {
             m_controls.m_parameterMappingPanel.setState(PanelWorkflowParameters.State.NO_WORKFLOW_SELECTED);
             return;
         }
@@ -336,17 +332,11 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
 
         m_controls.m_parameterMappingPanel.setState(PanelWorkflowParameters.State.LOADING);
 
-        try {
-            m_parameterUpdater =
-                new ParameterUpdateWorker(trimmedWorkflowPath, m_controls.m_parameterMappingPanel::setErrorMessage,
-                    m_configuration.getFetchParametersTimeout().orElse(Duration.ofSeconds(30)),
-                    this::onWorkflowPropertiesLoad, m_configuration);
+        m_parameterUpdater = new ParameterUpdateWorker(m_configuration,
+            m_controls.m_parameterMappingPanel::setErrorMessage, this::onWorkflowPropertiesLoad);
 
-            m_configuration.setCalleeWorkflowProperties(null);
-            m_parameterUpdater.execute();
-        } catch (Exception e) {
-            m_controls.m_parameterMappingPanel.setErrorMessage(e.getMessage());
-        }
+        m_configuration.setCalleeWorkflowProperties(null);
+        m_parameterUpdater.execute();
     }
 
     /**

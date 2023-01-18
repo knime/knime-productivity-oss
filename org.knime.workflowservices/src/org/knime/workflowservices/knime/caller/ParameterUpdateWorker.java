@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
@@ -61,7 +62,7 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
      * @throws InvalidSettingsException if the configuration cannot be used to instantiate an {@link IWorkflowBackend}
      *             from the serverConnection.
      */
-    @Deprecated
+    @Deprecated(since = "4.7.1")
     public ParameterUpdateWorker(final String workflowPath, final Consumer<String> errorDisplay, final Duration loadTimeout,
         final IServerConnection serverConnection, final Consumer<WorkflowParameters> whenDone,
         final Supplier<CallWorkflowConnectionConfiguration> configuration) throws InvalidSettingsException {
@@ -73,7 +74,7 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
 
         m_errorDisplay = errorDisplay;
 
-        m_connectionConfiguration = configuration.get().createParameterFetchConfiguration();
+        m_connectionConfiguration = configuration.get();
         m_connectionConfiguration.setLoadTimeout(loadTimeout);
         m_connectionConfiguration.setWorkflowPath(workflowPath);
         m_connectionConfiguration.setKeepFailingJobs(false);
@@ -85,27 +86,15 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
     }
 
     /**
-     * @param workflowPath
-     * @param errorDisplay
-     * @param loadTimeout
-     * @param settingsModel
-     * @param whenDone
-     * @param configuration
-     * @throws InvalidSettingsException
+     * @param configuration where to fetch parameters from
+     * @param errorDisplay where to show problems
+     * @param whenDone where to deliver the results
      */
-    public ParameterUpdateWorker(final String workflowPath, final Consumer<String> errorDisplay, final Duration loadTimeout, final Consumer<WorkflowParameters> whenDone,
-        final CallWorkflowConnectionConfiguration configuration) throws InvalidSettingsException {
-
+    public ParameterUpdateWorker(final CallWorkflowConnectionConfiguration configuration,
+        final Consumer<String> errorDisplay, final Consumer<WorkflowParameters> whenDone) {
         m_errorDisplay = errorDisplay;
-
-        m_connectionConfiguration = configuration.createParameterFetchConfiguration();
-        m_connectionConfiguration.setLoadTimeout(loadTimeout);
-        m_connectionConfiguration.setWorkflowPath(workflowPath);
-        m_connectionConfiguration.setKeepFailingJobs(false);
-        ConnectionUtil.validateConfiguration(m_connectionConfiguration);
-
+        m_connectionConfiguration = configuration;
         m_serverConnection = null;
-
         m_whenDone = whenDone;
     }
 
@@ -115,13 +104,12 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
                 var inputResourceDescription = backend.getInputResourceDescription();
                 var outputResourceDescription = backend.getOutputResourceDescription();
                 return new WorkflowParameters(inputResourceDescription, outputResourceDescription);
-        } catch (Exception e) {
-            m_errorDisplay.accept(e.getMessage());
-            return null;
         }
     }
 
     private IWorkflowBackend createWorkflowBackend() throws Exception {
+        ConnectionUtil.validateConfiguration(m_connectionConfiguration);
+
         if (ObjectUtils.isEmpty(m_serverConnection)) {
             return ConnectionUtil.createWorkflowBackend(m_connectionConfiguration);
         } else {
@@ -138,7 +126,8 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
                     m_whenDone.accept(remoteWorkflowProperties);
                 }
             } catch (InterruptedException | CancellationException e) {
-                // do nothing
+                NodeLogger.getLogger(getClass()).debug(e);
+                Thread.currentThread().interrupt();
             } catch (ExecutionException e) {
                 m_errorDisplay.accept(getParametersError(e));
             }

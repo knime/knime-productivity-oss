@@ -568,22 +568,6 @@ public class CallWorkflowConnectionConfiguration {
     }
 
     /**
-     * @return a connection suitable for creating a backend for retrieving the input and output workflow parameters of a
-     *         callee workflow.
-     */
-    public CallWorkflowConnectionConfiguration createParameterFetchConfiguration() {
-        final var result = new CallWorkflowConnectionConfiguration();
-        result.setWorkflowPath(getWorkflowPath());
-        // not sure if these are needed
-        result.setKeepFailingJobs(false);
-        result.setDiscardJobOnSuccessfulExecution(true);
-        // the load timeout is considered when creating a workflow backend
-        // the fetch parameters timeout is only persisted, not read by the backend
-        result.setLoadTimeout(getFetchParametersTimeout().orElse(Duration.ZERO));
-        return result;
-    }
-
-    /**
      * @return an error message if the configuration is not suitable to create an {@link IWorkflowBackend}
      */
     public Optional<String> validateForCreateWorkflowBackend() {
