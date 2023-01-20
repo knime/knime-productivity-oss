@@ -337,7 +337,7 @@ public final class CallWorkflowConnectionControls {
      * @param location the file system location.
      */
     public void setRemoteConnection(final FSLocation location) {
-        var isRemoteConnection = ConnectionUtil.isRemoteConnection(location.getFSType());
+        var isRemoteConnection = ConnectionUtil.isRemoteConnection(location);
         if (!isRemoteConnection) {
             m_controls.m_remoteExecutorAddress.setText("Local execution");
         } else {

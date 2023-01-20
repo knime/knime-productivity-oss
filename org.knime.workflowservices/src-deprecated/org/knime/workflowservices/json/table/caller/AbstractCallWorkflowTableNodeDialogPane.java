@@ -91,7 +91,7 @@ import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.IServerConnection.ListWorkflowFailedException;
-import org.knime.workflowservices.connection.LocalExecutionServerConnection;
+import org.knime.workflowservices.connection.LocalExecutionConnection;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
@@ -482,7 +482,7 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
     }
 
     private void configureLocalExecution(final WorkflowManager wfm) {
-        m_serverConnection = new LocalExecutionServerConnection(wfm);
+        m_serverConnection = new LocalExecutionConnection(wfm);
         m_serverSettings.setRemoteConnection(m_serverConnection);
         fillWorkflowList();
     }

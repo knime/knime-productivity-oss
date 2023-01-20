@@ -51,6 +51,11 @@
 			The selected path can be set via a path flow variable or exported to a path flow variable.
 			</option>
 			
+			<option name="Execution context">
+				The execution context of a space defines for instance the installed extensions, available credentials, 
+				and the pool from which computation resources are used when the service is invoked.
+			</option>
+			
             <option name="Input Parameters">
                 After you have selected a workflow, you will see the input parameters of the workflow.
                 For each parameter, you can select if the data that is sent is taken from a JSON column, is a static JSON value, or is

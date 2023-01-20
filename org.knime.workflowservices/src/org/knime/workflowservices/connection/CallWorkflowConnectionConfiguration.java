@@ -20,7 +20,6 @@
  */
 package org.knime.workflowservices.connection;
 
-import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.EnumSet;
@@ -29,7 +28,6 @@ import java.util.Optional;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
-import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
@@ -301,16 +299,11 @@ public class CallWorkflowConnectionConfiguration {
         if (m_version == Version.VERSION_1) {
             return m_workflowPath;
         } else {
-            try (var connection = m_workflowChooserModel.getConnection()) {
-                @SuppressWarnings("resource") // closing the connection also closes the file system
-                var fsLocationSpec = connection.getFileSystem().getFSLocationSpec();
-                // the local workflow backend requires the path in a custom format, or knime uri
-                if (!ConnectionUtil.isRemoteConnection(fsLocationSpec.getFSType())) {
-                    return m_workflowChooserModel.getCalleeKnimeUri().map(URI::toString)//
-                        .orElse(m_workflowChooserModel.getPath());
-                }
-            } catch (IOException ex) {
-                NodeLogger.getLogger(getClass()).warn(ex);
+            // the local workflow backend requires the path in a custom format, or knime uri
+            final boolean isTeamSpace = m_workflowChooserModel.getLocation().getFileSystemSpecifier().map(spec -> spec.endsWith("knime-teamspace")).orElse(false);
+            if (!ConnectionUtil.isRemoteConnection(m_workflowChooserModel.getLocation()) && !isTeamSpace) {
+                return m_workflowChooserModel.getCalleeKnimeUri().map(URI::toString)//
+                    .orElse(m_workflowChooserModel.getPath());
             }
             return m_workflowChooserModel.getPath();
         }

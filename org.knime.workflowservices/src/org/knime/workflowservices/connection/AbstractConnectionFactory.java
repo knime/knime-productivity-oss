@@ -23,17 +23,23 @@ package org.knime.workflowservices.connection;
 import java.util.Optional;
 
 /**
+ * An abstract factory to create connection instances for the KNIME Hub or KNIME Server or for local operations of other
+ * workflows.
  *
  * @author Dionysios Stolis, KNIME GmbH, Berlin, Germany
+ * @param <T> The remote or local access service.
+ * @param <U> The connection configurations to be used by the factory implementation.
+ *
+ * @noreference this is interface is not intended to be used by users.
  */
-public interface AbstractConnectionFactory {
-
+public interface AbstractConnectionFactory<T, U> {
 
     /**
-     * Creates the workflow execution connection between Call Workflow Nodes and the workflow execution service.
+     * Creates a connection between KNIME Analytics Platform and KNIME Hub or KNIME Server, the connection is also used
+     * for local execution service like {@link LocalExecutionConnection} for the Call Workflow Nodes.
      *
-     * @param configuration call workflow connection configuration.
-     * @return a workflow execution service connector.
+     * @param u the connection configuration.
+     * @return a service to access the KNIME Hub, KNIME Server, or to operate with a workflow locally.
      */
-    Optional<WorkflowExecutionConnector> create(CallWorkflowConnectionConfiguration configuration);
+    Optional<T> create(U u);
 }
