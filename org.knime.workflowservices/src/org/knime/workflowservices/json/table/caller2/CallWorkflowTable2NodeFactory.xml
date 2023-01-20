@@ -91,6 +91,11 @@
 			The selected path can be set via a path flow variable or exported to a path flow variable.
 			</option>
 			
+			<option name="Execution context">
+				The execution context of a space defines for instance the installed extensions, available credentials, 
+				and the pool from which computation resources are used when the service is invoked.
+			</option>
+			
             <option	name="Advanced Settings">After a workflow has been selected, the input table can be
 			directed to a desired <i>Container Input (Table)</i> node, the output table can be fetched from a desired
 			<i>Container Output (Table)</i> node, and all flow variables/credentials can be pushed to a desired

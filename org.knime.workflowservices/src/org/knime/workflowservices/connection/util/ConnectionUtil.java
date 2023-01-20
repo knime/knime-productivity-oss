@@ -29,6 +29,7 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.contextv2.WorkflowContextV2.LocationType;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
+import org.knime.filehandling.core.connections.FSLocation;
 import org.knime.filehandling.core.connections.meta.FSType;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.AbstractConnectionFactory;
@@ -107,6 +108,7 @@ public final class ConnectionUtil {
      * @param configuration the Call Workflow connection configuration.
      * @return an instance of the workflow execution connection.
      */
+    @SuppressWarnings("unchecked")
     public static Optional<WorkflowExecutionConnector>
         createConnection(final CallWorkflowConnectionConfiguration configuration) {
         var connectionFactory = connectionServiceTracker.getService();
@@ -131,7 +133,7 @@ public final class ConnectionUtil {
     public static IWorkflowBackend createWorkflowBackend(final CallWorkflowConnectionConfiguration configuration)
         throws IOException, InvalidSettingsException {
         var callWorkflowConnection = createConnection(configuration).orElseThrow(
-            () -> new InvalidSettingsException(String.format("Can not establish the workflow execution connection for the path '%s'",
+            () -> new InvalidSettingsException(String.format("Can not create the workflow execution connection for the workflow path '%s'",
                 configuration.getWorkflowChooserModel().getLocation().getPath())));
         return callWorkflowConnection.createWorkflowBackend();
     }
@@ -167,13 +169,17 @@ public final class ConnectionUtil {
      * that is specified relative to the current hub space acts like a LOCAL mount point connection if the workflow is
      * not viewed or executed in a hub space.
      *
-     * @param fsType the connection location type (e.g FSType.HUB).
+     * @param fsLocation the connection location type (e.g FSType.HUB).
      *
      * @return <code>true</code> if it connects to a Hub or  KNIME Server, <code>false</code> otherwise
      */
-    public static boolean isRemoteConnection(final FSType fsType) {
+    public static boolean isRemoteConnection(final FSLocation fsLocation) {
+        var fsType = fsLocation.getFSType();
         if (fsType == FSType.LOCAL_FS) {
             return false;
+        } else if (fsType == FSType.MOUNTPOINT) {
+            // mount point: teamspace requires a local connection
+            return !fsLocation.getFileSystemSpecifier().orElse("").endsWith("knime-teamspace");
         } else if (fsType == FSType.RELATIVE_TO_SPACE || fsType == FSType.RELATIVE_TO_MOUNTPOINT
             || fsType == FSType.RELATIVE_TO_WORKFLOW) {
             return isRemoteWorkflowContext();

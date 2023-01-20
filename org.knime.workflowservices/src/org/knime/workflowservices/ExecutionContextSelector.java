@@ -38,12 +38,12 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.filehandling.core.util.GBCBuilder;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
-import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 
 /**
@@ -79,6 +79,7 @@ public class ExecutionContextSelector {
         final var gbc = new GBCBuilder().resetX().resetY().anchorLineStart().fillHorizontal();
 
         m_executionContextsComboBox.setRenderer(new ExecutionContextListRenderer());
+        m_executionContextsComboBox.setMaximumSize(m_executionContextsComboBox.getPreferredSize());
         m_executionContextSelectorPanel.add(new JLabel("Execution Context"), gbc.setWeightX(0).setWidth(1).build());
         m_executionContextSelectorPanel.add(m_executionContextsComboBox, gbc.incX().setWeightX(1).insetLeft(5).build());
         m_executionContextSelectorPanel.add(m_errorLabel, gbc.incY().build());
@@ -102,6 +103,7 @@ public class ExecutionContextSelector {
     private void onExecutionContextsLoad(final List<ExecutionContextItem> executionContextItemList,
         final CallWorkflowConnectionConfiguration configuration) {
         m_executionContextsComboBox.removeAllItems();
+        m_errorLabel.setVisible(false);
 
         //alphabetic order by title.
         executionContextItemList.sort(Comparator.comparing(ExecutionContextItem::getName));
@@ -135,6 +137,8 @@ public class ExecutionContextSelector {
         var fsType = configuration.getWorkflowChooserModel().getLocation().getFSType();
         if (ConnectionUtil.isHubConnection(fsType)) {
             fillExecutionContextsDropdown(configuration);
+        } else {
+            m_executionContextSelectorPanel.setVisible(false);
         }
     }
 
@@ -173,7 +177,7 @@ public class ExecutionContextSelector {
         @Override
         protected List<ExecutionContextItem> doInBackgroundWithContext() throws Exception {
             var callWorkflowConnection = ConnectionUtil.createConnection(m_configuration).orElseThrow(
-                () -> new InvalidSettingsException(String.format("Can not establish the connection to the '%s'",
+                () -> new InvalidSettingsException(String.format("Can not create the workflow execution connection for the workflow path '%s'",
                     m_configuration.getWorkflowChooserModel().getLocation().getPath())));
             return callWorkflowConnection.getExecutionContexts();
         }
@@ -190,7 +194,7 @@ public class ExecutionContextSelector {
                     NodeLogger.getLogger(getClass()).warn(e);
                     Thread.currentThread().interrupt();
                 } catch (ExecutionException e) {
-                    m_errorDisplay.accept(ServerConnectionUtil.handle(e).getLeft());
+                    m_errorDisplay.accept(ExceptionUtils.getRootCause(e).getMessage());
                 }
             }
         }

@@ -60,10 +60,10 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.util.CheckUtils;
-import org.knime.core.node.util.VerticalCollapsablePanels;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.filehandling.core.data.location.variable.FSLocationVariableType;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.DialogComponentWorkflowChooser;
+import org.knime.filehandling.core.util.GBCBuilder;
 import org.knime.workflowservices.ExecutionContextSelector;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
@@ -75,9 +75,6 @@ import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane;
 import org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.json.table.caller.ParameterId;
-import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterRenderer;
-import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterSelection;
-import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterUpdater;
 
 /**
  * Dialog for Call Workflow (Table Based) node as of 4.7.0
@@ -103,17 +100,15 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
     private ParameterUpdater m_parameterUpdater;
 
-    private final VerticalCollapsablePanels m_advancedSettingsCollapsible;
+    private ParameterSelection m_inputParameterSelectionPanel;
 
-    private final ParameterSelection m_inputParameterSelectionPanel;
+    private ParameterSelection m_outputParameterSelectionPanel;
 
-    private final ParameterSelection m_outputParameterSelectionPanel;
+    private ParameterSelection m_flowVariableDestination;
 
-    private final ParameterSelection m_flowVariableDestination;
+    private ParameterSelection m_flowCredentialsDestination;
 
-    private final ParameterSelection m_flowCredentialsDestination;
-
-    private final JCheckBox m_useFullyQualifiedNamesChecker;
+    private JCheckBox m_useFullyQualifiedNamesChecker;
 
     private String m_configuredInputParameter;
 
@@ -141,95 +136,54 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
             removeConfiguredSelections();
             updateParameters();
         });
+        var gbc = new GridBagLayout();
+        final var p = new JPanel(gbc);
+        final var padding = 10;
+        p.setBorder(BorderFactory.createEmptyBorder(padding, padding, padding, padding));
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
 
-        // create main tab //
-        final var panel = new JPanel(new GridBagLayout());
-        var gbc = new GridBagConstraints();
+        p.add(m_serverSettings.getMainPanel(), gbc);
+        p.add(createWorkflowChooserPanel(), gbc);
+        p.add(m_executionContextSelector.createSelectionPanel(), gbc);
 
-        gbc.anchor = GridBagConstraints.LINE_START;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.gridx = gbc.gridy = 0;
-        gbc.weightx = 0.0;
-        gbc.weighty = 0.0;
-        gbc.fill = GridBagConstraints.NONE;
+        p.add(createParameterPanel(), gbc);
 
-        gbc.gridwidth = 4;
-        panel.add(m_serverSettings.getMainPanel(), gbc);
+        addTab("Workflow", new JScrollPane(p));
 
-        gbc.gridx = 0;
-        gbc.gridy++;
+        addTab("Advanced Settings", createAdvancedTab());
+    }
 
-        panel.add(createWorkflowChooserPanel(), gbc);
+    private JPanel createParameterPanel() {
+        var parameterPanel = new JPanel(new GridBagLayout());
+        parameterPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
-        gbc.gridx = 0;
-        gbc.gridy++;
-
-        panel.add(m_executionContextSelector.createSelectionPanel(), gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        m_advancedSettingsCollapsible = new VerticalCollapsablePanels();
-        m_advancedSettingsCollapsible.setLayout(new GridBagLayout());
-        panel.add(m_advancedSettingsCollapsible, gbc);
-
-        gbc.gridwidth = 4;
-        gbc.weighty = 1;
-        gbc.weightx = 1;
-        gbc.gridy++;
-        gbc.fill = GridBagConstraints.BOTH;
-        var fillerBox = Box.createHorizontalBox();
-        panel.add(fillerBox, gbc);
-
-        final var parameterSelectionPanel = new JPanel(new GridBagLayout());
-        parameterSelectionPanel.setName("Advanced settings");
-        var gbcAdvancedSettings = new GridBagConstraints();
-        gbcAdvancedSettings.anchor = GridBagConstraints.LINE_START;
-        gbcAdvancedSettings.gridx = gbcAdvancedSettings.gridy = 0;
-        gbcAdvancedSettings.weightx = 0;
-        gbcAdvancedSettings.weighty = 0;
-        gbcAdvancedSettings.gridwidth = 2;
-        gbcAdvancedSettings.fill = GridBagConstraints.NONE;
-        gbcAdvancedSettings.insets = new Insets(5, 50, 5, 5);
+        final var gbc = new GBCBuilder().resetX().resetY().anchorLineStart().fillHorizontal();
 
         m_inputParameterSelectionPanel =
             new ParameterSelection(new JLabel("Assign input table to:  "), new JComboBox<>(), new JLabel());
-        parameterSelectionPanel.add(m_inputParameterSelectionPanel, gbcAdvancedSettings);
-
-        gbcAdvancedSettings.gridx = 0;
-        gbcAdvancedSettings.gridy++;
+        parameterPanel.add(m_inputParameterSelectionPanel, gbc.incY().setWeightX(1).insetLeft(5).build());
 
         m_outputParameterSelectionPanel =
             new ParameterSelection(new JLabel("Fill output table from:  "), new JComboBox<>(), new JLabel());
-        parameterSelectionPanel.add(m_outputParameterSelectionPanel, gbcAdvancedSettings);
+        parameterPanel.add(m_outputParameterSelectionPanel, gbc.incY().setWeightX(1).insetLeft(5).build());
 
-        gbcAdvancedSettings.gridx = 0;
-        gbcAdvancedSettings.gridy++;
         m_flowVariableDestination =
             new ParameterSelection(new JLabel("Push flow variables to:"), new JComboBox<>(), new JLabel());
-        parameterSelectionPanel.add(m_flowVariableDestination, gbcAdvancedSettings);
+        parameterPanel.add(m_flowVariableDestination, gbc.incY().setWeightX(1).insetLeft(5).build());
 
-        gbcAdvancedSettings.gridx = 0;
-        gbcAdvancedSettings.gridy++;
         m_flowCredentialsDestination =
             new ParameterSelection(new JLabel("Push flow credentials to:"), new JComboBox<>(), new JLabel());
+        parameterPanel.add(m_flowCredentialsDestination, gbc.incY().setWeightX(1).insetLeft(5).build());
 
-        parameterSelectionPanel.add(m_flowCredentialsDestination, gbcAdvancedSettings);
-
-        gbcAdvancedSettings.gridx = 0;
-        gbcAdvancedSettings.gridy++;
-        gbcAdvancedSettings.gridwidth = 3;
-        gbcAdvancedSettings.weightx = 1;
         m_useFullyQualifiedNamesChecker = new JCheckBox("Use Fully Qualified Name for Input and Output Parameters");
         m_useFullyQualifiedNamesChecker.addItemListener(e -> updateParameters());
         m_useFullyQualifiedNamesChecker.addItemListener(e -> updateParameters());
         m_useFullyQualifiedNamesChecker.addItemListener(e -> updateParameters());
-        parameterSelectionPanel.add(m_useFullyQualifiedNamesChecker, gbcAdvancedSettings);
 
-        m_advancedSettingsCollapsible.addPanel(parameterSelectionPanel, true);
+        parameterPanel.add(m_useFullyQualifiedNamesChecker, gbc.incY().setWeightX(1).insetLeft(5).build());
 
-        addTab("Workflow", new JScrollPane(panel));
-
-        addTab("Advanced Settings", createAdvancedTab());
+        return parameterPanel;
     }
 
     @Override
@@ -315,6 +269,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         }
 
 
+
         // If we open the dialog a second time and an panelUpdater is currently running (probably waiting
         // for the workflow lock because the workflow to call is already executing) we need to cancel it to avoid
         // filling the panelMap twice
@@ -362,13 +317,8 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
     }
 
     private void updateParameters() {
-        var workflowPathTrimmed = StringUtils.trim(m_configuration.getWorkflowPath());
-        if (StringUtils.isEmpty(workflowPathTrimmed)) {
-            return;
-        }
-
         if (m_parameterUpdater == null || m_parameterUpdater.isDone() || m_parameterUpdater.cancel(true)) {
-            m_parameterUpdater = new ParameterUpdater(workflowPathTrimmed);
+            m_parameterUpdater = new ParameterUpdater();
             m_parameterUpdater.execute();
         } else {
             m_workflowErrorLabel.setText("Failed to interrupt analysis of current workflow!");
@@ -418,22 +368,21 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
      */
     final class ParameterUpdater extends SwingWorkerWithContext<List<Map<String, JsonValue>>, Void> {
 
-        private final String m_workflowPath;
-
-        ParameterUpdater(final String workflowPath) {
-            m_workflowPath = workflowPath;
+        ParameterUpdater() {
             m_workflowErrorLabel.setText("");
         }
 
         @Override
         protected List<Map<String, JsonValue>> doInBackgroundWithContext() throws Exception {
-            CheckUtils.checkSetting(StringUtils.isNotEmpty(m_workflowPath), "No workflow path provided");
-
+            var workflowPath = StringUtils.trimToEmpty(m_configuration.getWorkflowPath());
+            if (StringUtils.isEmpty(workflowPath)) {
+                return List.of();
+            }
             var tempConfig = new CallWorkflowConnectionConfiguration();
             m_serverSettings.saveToConfiguration(tempConfig);
 
             tempConfig.setWorkflowChooserModel(m_configuration.getWorkflowChooserModel());
-            tempConfig.setWorkflowPath(m_workflowPath);
+            tempConfig.setWorkflowPath(workflowPath);
             tempConfig.setKeepFailingJobs(false);
             ConnectionUtil.validateConfiguration(tempConfig);
 

@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.knime.workflowservices.ExecutionContextSelector.ExecutionContextItem;
 import org.knime.workflowservices.IWorkflowBackend;
-import org.knime.workflowservices.connection.util.ConnectionUtil;
 
 /**
  * Provides access to the KNIME Hub (or Server) execution REST API for the remote Call Workflow operations. The workflow
@@ -36,10 +35,9 @@ import org.knime.workflowservices.connection.util.ConnectionUtil;
 public interface WorkflowExecutionConnector {
 
     /**
-     * Creates the back-end to use. The configuration must be valid according to
-     * {@link ConnectionUtil#validateConfiguration(CallWorkflowConnectionConfiguration)}
+     * Creates a workflow execution service instance to access the corresponding back-end either remote (Hub or KNIME Server) or local.
      *
-     * @return The back-end, not null.
+     * @return the workflow execution service implementation.
      * @throws IOException
      */
     IWorkflowBackend createWorkflowBackend() throws IOException;

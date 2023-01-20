@@ -21,19 +21,21 @@
 package org.knime.workflowservices.knime.caller;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
-import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 
 /**
@@ -100,16 +102,18 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
 
     @Override
     protected WorkflowParameters doInBackgroundWithContext() throws Exception {
+        if (StringUtils.isEmpty(m_connectionConfiguration.getWorkflowPath())) {
+            return new WorkflowParameters(List.of(), List.of());
+        }
+        ConnectionUtil.validateConfiguration(m_connectionConfiguration);
         try (IWorkflowBackend backend = createWorkflowBackend()) {
-                var inputResourceDescription = backend.getInputResourceDescription();
-                var outputResourceDescription = backend.getOutputResourceDescription();
-                return new WorkflowParameters(inputResourceDescription, outputResourceDescription);
+            var inputResourceDescription = backend.getInputResourceDescription();
+            var outputResourceDescription = backend.getOutputResourceDescription();
+            return new WorkflowParameters(inputResourceDescription, outputResourceDescription);
         }
     }
 
     private IWorkflowBackend createWorkflowBackend() throws Exception {
-        ConnectionUtil.validateConfiguration(m_connectionConfiguration);
-
         if (ObjectUtils.isEmpty(m_serverConnection)) {
             return ConnectionUtil.createWorkflowBackend(m_connectionConfiguration);
         } else {
@@ -129,17 +133,9 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
                 NodeLogger.getLogger(getClass()).debug(e);
                 Thread.currentThread().interrupt();
             } catch (ExecutionException e) {
-                m_errorDisplay.accept(getParametersError(e));
+                NodeLogger.getLogger(getClass()).debug(e);
+                m_errorDisplay.accept(ExceptionUtils.getRootCauseMessage(e));
             }
         }
-    }
-
-    /**
-     * @param e the exception that was thrown when calling {@link #get()} in the result processing in
-     *            {@link #doneWithContext()}
-     * @return an error message for the node dialog to display
-     */
-    private static String getParametersError(final Exception e) {
-        return ServerConnectionUtil.handle(e).getLeft();
     }
 }

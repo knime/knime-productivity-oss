@@ -42,6 +42,7 @@ import org.osgi.util.tracker.ServiceTracker;
  *
  * @author wiswedel
  */
+@Deprecated(since = "4.7.1")
 public final class ServerConnectionUtil {
 
     private static ServiceTracker<KNIMEServerAwareConnectionService, KNIMEServerAwareConnectionService> serviceTracker;
@@ -105,7 +106,7 @@ public final class ServerConnectionUtil {
         }
         // non-present service OR local mountpoint connections will use the LocalExecutionServerConnection
         if (serverConnection == null) {
-            serverConnection = new LocalExecutionServerConnection(manager);
+            serverConnection = new LocalExecutionConnection(manager);
         }
         return serverConnection;
     }

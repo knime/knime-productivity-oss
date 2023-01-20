@@ -14,7 +14,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
-import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.ConfigurableNodeFactory.ConfigurableNodeDialog;
 import org.knime.core.node.FlowVariableModel;
 import org.knime.core.node.InvalidSettingsException;
@@ -33,13 +32,11 @@ import org.knime.core.node.util.CheckUtils;
 import org.knime.filehandling.core.data.location.variable.FSLocationVariableType;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.DialogComponentWorkflowChooser;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.SettingsModelWorkflowChooser;
-import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
 import org.knime.workflowservices.ExecutionContextSelector;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
 import org.knime.workflowservices.knime.caller.CallWorkflowNodeConfiguration;
 import org.knime.workflowservices.knime.caller.PanelWorkflowParameters;
-import org.knime.workflowservices.knime.caller.PanelWorkflowParameters.State;
 import org.knime.workflowservices.knime.caller.ParameterUpdateWorker;
 import org.knime.workflowservices.knime.caller.WorkflowParameter;
 import org.knime.workflowservices.knime.caller.WorkflowParameters;
@@ -307,19 +304,9 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
      */
     private void fetchWorkflowProperties() {
 
-        var status = m_configuration.getWorkflowChooserModel().getStatusMessage();
-        if (status.getType() == MessageType.ERROR) {
-            m_controls.m_parameterMappingPanel.setState(State.ERROR);
-            return;
-        }
-
         if (!m_configuration.getWorkflowChooserModel().isLocationValid()) {
-            NodeLogger.getLogger(getClass()).warn("Invalid location: " + m_configuration.getWorkflowChooserModel().getPath());
-            return;
-        }
-
-        if (StringUtils.isEmpty(m_configuration.getWorkflowChooserModel().getPath())) {
-            m_controls.m_parameterMappingPanel.setState(PanelWorkflowParameters.State.NO_WORKFLOW_SELECTED);
+            NodeLogger.getLogger(getClass())
+                .warn("Invalid location: " + m_configuration.getWorkflowChooserModel().getPath());
             return;
         }
 

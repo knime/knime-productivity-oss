@@ -26,6 +26,7 @@ import java.util.Optional;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.WorkflowContext;
+import org.knime.workflowservices.connection.IServerConnection;
 
 /**
  * The interface to an OSGi service / factor to create {@link IServerConnection}.

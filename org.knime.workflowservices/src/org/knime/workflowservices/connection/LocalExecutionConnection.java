@@ -38,18 +38,18 @@ import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.LocalWorkflowBackend;
 
 /**
- * Not a server connection (despite the name) but local workflow execution.
+ * Local workflow execution service.
  * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
  * @noreference This method is not intended to be referenced by clients.
  */
-public final class LocalExecutionServerConnection implements IServerConnection, WorkflowExecutionConnector {
+public final class LocalExecutionConnection implements IServerConnection, WorkflowExecutionConnector {
 
     private WorkflowManager m_wfm;
 
     private CallWorkflowConnectionConfiguration m_configuration;
 
     @Deprecated(since = "4.7.1")
-    public LocalExecutionServerConnection(final WorkflowManager wfm) {
+    public LocalExecutionConnection(final WorkflowManager wfm) {
         m_wfm = wfm;
     }
 
@@ -57,7 +57,7 @@ public final class LocalExecutionServerConnection implements IServerConnection, 
      * Instantiates a local execution service connection.
      * @param configuration the call workflow connection configuration.
      */
-    public LocalExecutionServerConnection(final CallWorkflowConnectionConfiguration configuration) {
+    public LocalExecutionConnection(final CallWorkflowConnectionConfiguration configuration) {
         m_configuration = configuration;
         m_wfm = NodeContext.getContext().getWorkflowManager();
     }
