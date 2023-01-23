@@ -26,8 +26,7 @@ import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
-import org.knime.core.node.workflow.NodeContext;
-import org.knime.workflowservices.connection.ServerConnectionUtil;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeModel;
 import org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeConfiguration;
 
@@ -48,9 +47,7 @@ final class CallWorkflowTable2NodeModel extends AbstractCallWorkflowTableNodeMod
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         m_configuration.configureCalleeModel(inSpecs);
-        var connectionSpec = m_configuration.getConnectorPortIndex().map(i -> inSpecs[i]).orElse(null);
-        m_serverConnection =
-            ServerConnectionUtil.getConnection(connectionSpec, NodeContext.getContext().getWorkflowManager());
+        ConnectionUtil.validateConfiguration(m_configuration);
         return new PortObjectSpec[]{null};
     }
 

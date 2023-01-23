@@ -25,12 +25,18 @@ import java.time.Duration;
 import java.util.Optional;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.knime.base.filehandling.remote.connectioninformation.port.ConnectionInformationPortObjectSpec;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.NodeContext;
+import org.knime.core.node.workflow.contextv2.LocalLocationInfo;
 import org.knime.core.node.workflow.contextv2.WorkflowContextV2.LocationType;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
-import org.knime.filehandling.core.connections.FSLocation;
+import org.knime.filehandling.core.connections.FSLocationSpec;
 import org.knime.filehandling.core.connections.meta.FSType;
+import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
+import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.AbstractConnectionFactory;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
@@ -148,7 +154,7 @@ public final class ConnectionUtil {
     public static boolean isHubConnection(final FSType fsType) {
         if (fsType == FSType.HUB || fsType == FSType.HUB_SPACE) {
             return true;
-        } else if (fsType == FSType.RELATIVE_TO_SPACE) {
+        } else if (fsType == FSType.RELATIVE_TO_SPACE || fsType == FSType.RELATIVE_TO_WORKFLOW) {
             return isHubWorkflowContext();
         }
         return false;
@@ -165,21 +171,62 @@ public final class ConnectionUtil {
     }
 
     /**
-     * Returns whether this connection is remote or not. This depends on the workflow context. For instance, a location
-     * that is specified relative to the current hub space acts like a LOCAL mount point connection if the workflow is
-     * not viewed or executed in a hub space.
+     * Used to determine whether a local or remote workflow execution connection should be created.
      *
-     * @param fsLocation the connection location type (e.g FSType.HUB).
-     *
-     * @return <code>true</code> if it connects to a Hub or  KNIME Server, <code>false</code> otherwise
+     * @param spec the file system connector's (server connector, mount point connector, space connector) port object spec
+     * @return whether a call workflow node is connected to a remote location
      */
-    public static boolean isRemoteConnection(final FSLocation fsLocation) {
+    public static boolean isRemoteConnection(final PortObjectSpec spec) {
+        // this covers the case where a connector is present, but nothing is attached to it.
+        // some deprecated call workflow nodes have an optional connector port which is allowed to be left empty.
+        if(spec == null) {
+            return false;
+        }
+
+        // in this context, only the KnimeServerConnectionInformationPortObjectSpec should occur (other implementations
+        // are also remote but not related to call workflow functionality
+        // e.g., GoogleCloudStorageConnectionInformationPortObjectSpec)
+        if (ConnectionInformationPortObjectSpec.class.isAssignableFrom(spec.getClass())) {
+            return true;
+        }
+
+        // mount points (local and remote), server connectors, space connectors
+        if (spec instanceof FileSystemPortObjectSpec) {
+            FileSystemPortObjectSpec fsSpec = (FileSystemPortObjectSpec)spec;
+            return isRemoteConnection(fsSpec.getFSLocationSpec());
+        }
+
+        // can't handle port objects other than file system connectors
+        return false;
+    }
+
+
+    /**
+     * Used to determine whether a local or remote workflow execution connection should be created.
+     *
+     * This depends on the location specification and the workflow context. For instance, a location that is specified
+     * relative to the current hub space acts like a LOCAL mount point connection if the location of the workflow is a
+     * {@link LocalLocationInfo}, but like a space connector to the containing hub space if located on the hub.
+     *
+     * Connected mount points can be local (LOCAL, team space) or remote (KNIME server).
+     *
+     * @param fsLocation
+     *
+     * @return <code>true</code> if it connects to a Hub or KNIME Server, <code>false</code> otherwise
+     * @throws IllegalArgumentException if the location is a mount point location and the mount point id cannot be found
+     *             in the mount table
+     */
+    public static boolean isRemoteConnection(final FSLocationSpec fsLocation) throws IllegalArgumentException {
         var fsType = fsLocation.getFSType();
+        // an arbitrary location on the executors file system
         if (fsType == FSType.LOCAL_FS) {
             return false;
         } else if (fsType == FSType.MOUNTPOINT) {
-            // mount point: teamspace requires a local connection
-            return !fsLocation.getFileSystemSpecifier().orElse("").endsWith("knime-teamspace");
+            // to find out what's behind a mount point, we consult the mount table
+            String specifier = fsLocation.getFileSystemSpecifier().orElseThrow();
+            final var mountId = StringUtils.removeStart(specifier, "knime-mountpoint:");
+            var mountPoint = Optional.ofNullable(ExplorerMountTable.getMountPoint(mountId));
+            return mountPoint.orElseThrow(() -> new IllegalArgumentException("The mount point " + mountId + " no longer exists.")).getProvider().isRemote();
         } else if (fsType == FSType.RELATIVE_TO_SPACE || fsType == FSType.RELATIVE_TO_MOUNTPOINT
             || fsType == FSType.RELATIVE_TO_WORKFLOW) {
             return isRemoteWorkflowContext();
