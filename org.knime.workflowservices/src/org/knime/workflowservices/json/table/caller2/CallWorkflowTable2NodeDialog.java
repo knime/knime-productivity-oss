@@ -190,9 +190,9 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
     protected final void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         CheckUtils.checkSetting(m_parameterUpdater == null, "Can't apply configuration while analysis is ongoing");
         storeUiStateInConfiguration();
-        m_configuration.save(settings);
         m_workflowChooser.saveSettingsTo(settings);
         m_executionContextSelector.saveToConfiguration(m_configuration);
+        m_configuration.save(settings);
     }
 
     /**

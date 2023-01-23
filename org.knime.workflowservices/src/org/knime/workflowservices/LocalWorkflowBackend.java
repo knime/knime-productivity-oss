@@ -100,6 +100,8 @@ import org.knime.core.util.FileUtil;
 import org.knime.core.util.KNIMETimer;
 import org.knime.core.util.LockFailedException;
 import org.knime.core.util.Pair;
+import org.knime.core.util.URIUtil;
+import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.core.util.report.ReportingConstants;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.reporting.executor.ReportExecutor;
@@ -144,7 +146,14 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
      *
      * In case the given path is resolved to a http URL, the workflow is downloaded and extracted.
      *
-     * @param path path to the workflow (for absolute paths the current mountpoint is the root)
+     * @param path to the workflow: either a path or a knime uri. Unfortunately this defines a legacy format where paths
+     *            starting with "/" are interpreted as relative to the current mount point (typically "LOCAL") and all
+     *            other paths are interpreted as workflow relative paths. For example,
+     *            <li>"/callee" is interpreted as "knime://knime.mountpoint/callee"</li>
+     *            <li>"callee" is interpreted as "knime://knime.workflow/callee"</li> The method also accepts knime uris
+     *            directly (as the ones just described) or others, e.g.,
+     *            <li>"knime://someMountPointName/callee"</li> which is a mount point-absolute uri referring to the
+     *            mount point named someMountPointName.
      * @param callingWorkflow the calling workflow
      * @return a new local workflow backend
      * @throws Exception if the path does not point to a workflow
@@ -165,9 +174,13 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
             }
         }
 
+        // the resolver util expects an encoded URI (e.g., it throws an exception if given a URI containing spaces)
+        var encodedUri = URIUtil.createEncodedURI(originalUrl).orElseThrow(() -> new IllegalArgumentException(
+            String.format("Invalid callee location, \"%s\" cannot be converted to URI.", path)));
+
         // resolve relative URLs into absolute URLs, usually either file or http, may also return a KNIME URI in some
         // legacy code paths
-        URL resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(originalUrl);
+        var resolvedUrl = ResolverUtil.resolveURItoLocalOrTempFile(encodedUri).toURL();
 
         Path workflowDir;
         if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {

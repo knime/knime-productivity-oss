@@ -292,20 +292,24 @@ public class CallWorkflowConnectionConfiguration {
      * @return Absolute or relative path to the local or remote workflow to execute. For instance
      *         <ul>
      *         <li>/Components/Workflow</li>
-     *         <li>../Callee Workflows/Some other workflow</li>
+     *         <li>someKnimeServerDirectory/path</li>
+     *         <li>knime://knime-teamspace/callee</li>
+     *         <li>knime://knime.mountpoint/callee</li>
+     *         <li>knime://knime.workflow/callee</li>
      *         </ul>
      */
     public String getWorkflowPath() {
         if (m_version == Version.VERSION_1) {
             return m_workflowPath;
         } else {
-            // the local workflow backend requires the path in a custom format, or knime uri
-            final boolean isTeamSpace = m_workflowChooserModel.getLocation().getFileSystemSpecifier().map(spec -> spec.endsWith("knime-teamspace")).orElse(false);
-            if (!ConnectionUtil.isRemoteConnection(m_workflowChooserModel.getLocation()) && !isTeamSpace) {
-                return m_workflowChooserModel.getCalleeKnimeUri().map(URI::toString)//
+            if (ConnectionUtil.isRemoteConnection(m_workflowChooserModel.getLocation())) {
+                return m_workflowChooserModel.getPath();
+            } else {
+                // the local workflow backend requires the path in a custom format, or knime uri
+                return m_workflowChooserModel.getCalleeKnimeUri()//
+                    .map(URI::toString)//
                     .orElse(m_workflowChooserModel.getPath());
             }
-            return m_workflowChooserModel.getPath();
         }
     }
 
