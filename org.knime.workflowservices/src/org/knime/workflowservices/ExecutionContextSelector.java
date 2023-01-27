@@ -38,12 +38,12 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.filehandling.core.util.GBCBuilder;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
+import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 
 /**
@@ -207,7 +207,7 @@ public class ExecutionContextSelector {
                     NodeLogger.getLogger(getClass()).warn(e);
                     Thread.currentThread().interrupt();
                 } catch (ExecutionException e) {
-                    m_errorDisplay.accept(ExceptionUtils.getRootCause(e).getMessage());
+                    m_errorDisplay.accept(ServerConnectionUtil.handle(e).getLeft());
                 }
             }
         }

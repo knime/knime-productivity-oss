@@ -29,13 +29,13 @@ import java.util.function.Supplier;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
+import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 
 /**
@@ -134,7 +134,7 @@ public final class ParameterUpdateWorker extends SwingWorkerWithContext<Workflow
                 Thread.currentThread().interrupt();
             } catch (ExecutionException e) {
                 NodeLogger.getLogger(getClass()).debug(e);
-                m_errorDisplay.accept(ExceptionUtils.getRootCauseMessage(e));
+                m_errorDisplay.accept(ServerConnectionUtil.handle(e).getLeft());
             }
         }
     }
