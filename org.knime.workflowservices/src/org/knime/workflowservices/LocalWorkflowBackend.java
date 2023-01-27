@@ -101,6 +101,7 @@ import org.knime.core.util.KNIMETimer;
 import org.knime.core.util.LockFailedException;
 import org.knime.core.util.Pair;
 import org.knime.core.util.URIUtil;
+import org.knime.core.util.exception.HttpResourceAccessException;
 import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.core.util.report.ReportingConstants;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
@@ -333,7 +334,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         try (OutputStream os = new FileOutputStream(zippedWorkflow); InputStream is = url.openStream()) {
             IOUtils.copy(is, os);
         } catch (IOException ex) {
-            if (ex.getMessage().contains("Server returned HTTP response code: 403")) {
+            if (ex instanceof HttpResourceAccessException && ((HttpResourceAccessException) ex).getStatusCode() == 403) {
                 throw new IOException("User does not have permissions to read workflow " + url + " on the server", ex);
             } else {
                 throw ex;
