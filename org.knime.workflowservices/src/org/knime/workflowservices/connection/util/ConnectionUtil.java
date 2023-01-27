@@ -234,7 +234,7 @@ public final class ConnectionUtil {
         } else if (fsType == FSType.MOUNTPOINT) {
             // to find out what's behind a mount point, we consult the mount table
             String specifier = fsLocation.getFileSystemSpecifier().orElseThrow();
-            final var mountId = StringUtils.removeStart(specifier, "knime-mountpoint:");
+            String mountId = extractMountPointID(specifier);
             var mountPoint = Optional.ofNullable(ExplorerMountTable.getMountPoint(mountId));
             return mountPoint.orElseThrow(() -> new IllegalArgumentException("The mount point " + mountId + " no longer exists.")).getProvider().isRemote();
         } else if (fsType == FSType.RELATIVE_TO_SPACE || fsType == FSType.RELATIVE_TO_MOUNTPOINT
@@ -243,6 +243,15 @@ public final class ConnectionUtil {
         }
         return true;
 
+    }
+
+    /**
+     * This is evil, but I don't have a better way at the moment.
+     * @param specifier
+     * @return
+     */
+    private static String extractMountPointID(final String specifier) {
+        return StringUtils.removeStart(specifier, "knime-mountpoint:");
     }
 
     /**

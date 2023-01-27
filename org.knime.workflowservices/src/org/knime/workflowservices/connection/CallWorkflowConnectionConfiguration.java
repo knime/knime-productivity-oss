@@ -302,6 +302,12 @@ public class CallWorkflowConnectionConfiguration {
         if (m_version == Version.VERSION_1) {
             return m_workflowPath;
         } else {
+            // use uri only for
+            // - mountpoint connector configured to "Current Mountpoint"
+            // - mountpoint connector configured to other mount point "LOCAL"
+            // - mountpoint connector configured to teamspace
+            // - space connector configured to "Current Space"
+            // - in case no connector is present
             if (ConnectionUtil.isRemoteConnection(m_workflowChooserModel.getLocation())) {
                 return m_workflowChooserModel.getPath();
             } else {
