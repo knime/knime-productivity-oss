@@ -387,7 +387,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
             try (var backend = ConnectionUtil.createWorkflowBackend(tempConfig)) {
                 if (backend != null) {
-                    return Arrays.asList(getInputNodeValues(backend), backend.getOutputValues());
+                    return Arrays.asList(getInputNodeValues(backend), backend.getOutputValuesForConfiguration());
                 } else {
                     return null;
                 }

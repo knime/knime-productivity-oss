@@ -686,7 +686,7 @@ public abstract class AbstractCallWorkflowTableNodeDialogPane extends NodeDialog
                         // The input nodes needs to be set to make sure the output values are present
 //                        Map<String, ExternalNodeData> inputNodes = backend.getInputNodes();
 //                        backend.updateWorkflow(inputNodes);
-                        return Arrays.asList(getInputNodeValues(backend), backend.getOutputValues());
+                        return Arrays.asList(getInputNodeValues(backend), backend.getOutputValuesForConfiguration());
                     } else {
                         return null;
                     }

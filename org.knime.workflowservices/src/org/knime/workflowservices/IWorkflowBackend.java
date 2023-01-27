@@ -106,6 +106,17 @@ public interface IWorkflowBackend extends AutoCloseable {
     Map<String, JsonValue> getOutputValues();
 
     /**
+     * Returns a map with the output values of the called workflow used for configuration. That map keys are the unique
+     * output IDs. The returned values are the default values returned by the OpenAPI of the workflow. To get the actual
+     * output values of the executed job use {@link #getOutputValues()}.
+     *
+     * @return a map between IDs and values
+     */
+    default Map<String, JsonValue> getOutputValuesForConfiguration() {
+        return getOutputValues();
+    }
+
+    /**
      * @return the Input's node description as {@link ResourceContentType}
      * @throws InvalidSettingsException
      */

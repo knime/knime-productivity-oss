@@ -192,6 +192,11 @@ class CallRemoteWorkflowNodeModel extends CallWorkflowNodeModel {
         }
 
         @Override
+        public Map<String, JsonValue> getOutputValuesForConfiguration() {
+            return m_delegateBackend.getOutputValuesForConfiguration();
+        }
+
+        @Override
         public Map<String, ResourceContentType> getInputResourceDescription() throws InvalidSettingsException {
             return m_delegateBackend.getInputResourceDescription();
         }
