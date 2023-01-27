@@ -58,6 +58,8 @@ public class ExecutionContextSelector {
 
     private final JLabel m_errorLabel = new JLabel();
 
+    private ExecutionContextWorker m_executionContextWorker;
+
     /**
      *
      */
@@ -90,19 +92,21 @@ public class ExecutionContextSelector {
         return m_executionContextSelectorPanel;
     }
 
-    private void fillExecutionContextsDropdown(final CallWorkflowConnectionConfiguration configuration) throws InvalidSettingsException {
-        if (ObjectUtils.isEmpty(configuration)) {
-            throw new InvalidSettingsException("Call Workflow configuration should not be empty.");
-        }
+    private void fillExecutionContextsDropdown(final CallWorkflowConnectionConfiguration configuration) {
         m_executionContextsComboBox.setEnabled(false);
-        var executionContextWorker = new ExecutionContextWorker(configuration,
+        m_executionContextsComboBox.removeAllItems();
+        if (configuration == null) {
+            return;
+        }
+        //close the worker
+        close();
+        m_executionContextWorker = new ExecutionContextWorker(configuration,
             list -> onExecutionContextsLoad(list, configuration), this::onFailure);
-        executionContextWorker.execute();
+        m_executionContextWorker.execute();
     }
 
     private void onExecutionContextsLoad(final List<ExecutionContextItem> executionContextItemList,
         final CallWorkflowConnectionConfiguration configuration) {
-        m_executionContextsComboBox.removeAllItems();
         m_errorLabel.setVisible(false);
 
         //alphabetic order by title.
@@ -128,12 +132,21 @@ public class ExecutionContextSelector {
     }
 
     /**
+     *  Cancels the Execution context worker.
+     */
+    public void close() {
+        if (ObjectUtils.isNotEmpty(m_executionContextWorker)) {
+            m_executionContextWorker.cancel(true);
+            m_executionContextWorker = null;
+        }
+    }
+
+    /**
      * Loads the settings from the provided configuration and fetches available execution contexts.
      *
      * @param configuration the call workflow connection configuration.
-     * @throws InvalidSettingsException if an error occurs.
      */
-    public final void loadSettingsInDialog(final CallWorkflowConnectionConfiguration configuration) throws InvalidSettingsException {
+    public final void loadSettingsInDialog(final CallWorkflowConnectionConfiguration configuration) {
         var fsType = configuration.getWorkflowChooserModel().getLocation().getFSType();
         if (ConnectionUtil.isHubConnection(fsType)) {
             fillExecutionContextsDropdown(configuration);

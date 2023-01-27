@@ -32,8 +32,8 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.FlowVariableModel;
 import org.knime.core.node.InvalidSettingsException;
@@ -52,6 +52,7 @@ import org.knime.workflowservices.ExecutionContextSelector;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.IServerConnection;
+import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.connection.util.CreateReportControls;
@@ -73,6 +74,8 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
     private DataTableSpec m_inputTableSpec;
 
     private final CallWorkflowRowBased3Configuration m_configuration;
+
+    private ParameterUpdateWorker m_parameterUpdateWorker;
 
     private final Controls m_controls;
 
@@ -175,7 +178,10 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
             m_configuration.getWorkflowChooserModel().getKeysForFSLocation(), FSLocationVariableType.INSTANCE);
         m_controls = new Controls(m_configuration.getWorkflowChooserModel(), flowVariableModel);
 
-        m_configuration.getWorkflowChooserModel().addChangeListener(e -> fetchCalleeWorkflowParameters());
+        m_configuration.getWorkflowChooserModel().addChangeListener(e -> {
+            fetchCalleeWorkflowParameters();
+            m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
+        });
 
         addTab("Workflow", m_controls.createMainTab());
         addTab("Advanced Settings", m_controls.createAdvancedTab());
@@ -187,8 +193,12 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
      * @throws InvalidSettingsException
      */
     private void fetchCalleeWorkflowParameters() {
-        var worker = new ParameterUpdateWorker(m_configuration, this::onWorkflowParametersLoad, this::onFailure);
-        worker.execute();
+        if (ObjectUtils.isNotEmpty(m_parameterUpdateWorker)) {
+            m_parameterUpdateWorker.cancel(true);
+            m_parameterUpdateWorker = null;
+        }
+        m_parameterUpdateWorker = new ParameterUpdateWorker(m_configuration, this::onWorkflowParametersLoad, this::onFailure);
+        m_parameterUpdateWorker.execute();
     }
 
     private void onWorkflowParametersLoad(final Map<String, ExternalNodeData> inputNodes) {
@@ -250,19 +260,18 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
 
         // disable timeouts and backoff controls if connection is local
         m_controls.m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
-        try {
-            m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
-
-        } catch (InvalidSettingsException e) {
-            throw new NotConfigurableException(e.getMessage(), e);
-        }
-
+        m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
         fetchCalleeWorkflowParameters();
     }
 
     /** {@inheritDoc} */
     @Override
     public void onClose() {
+        m_controls.m_executionContextSelector.close();
+        if (m_parameterUpdateWorker != null) {
+            m_parameterUpdateWorker.cancel(true);
+            m_parameterUpdateWorker = null;
+        }
     }
 
     static class ParameterUpdateWorker extends SwingWorkerWithContext<Map<String, ExternalNodeData>, Void> {
@@ -306,7 +315,7 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
                     NodeLogger.getLogger(getClass()).warn(e);
                     Thread.currentThread().interrupt();
                 } catch (ExecutionException e) {
-                    m_errorDisplay.accept(ExceptionUtils.getRootCauseMessage(e));
+                    m_errorDisplay.accept(ServerConnectionUtil.handle(e).getLeft());
                 }
             }
         }
