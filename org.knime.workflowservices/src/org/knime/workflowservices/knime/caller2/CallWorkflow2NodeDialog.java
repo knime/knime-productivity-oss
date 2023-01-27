@@ -164,8 +164,10 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
             createFlowVariableModel(chooser.getKeysForFSLocation(), FSLocationVariableType.INSTANCE));
 
         // when selecting a new workflow, fetch its input/output parameter descriptions and display them
-        m_configuration.getWorkflowChooserModel()
-            .addChangeListener(e -> this.fetchWorkflowProperties());
+        m_configuration.getWorkflowChooserModel().addChangeListener(e -> {
+            fetchWorkflowProperties();
+            m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
+        });
 
         m_controls.m_parameterMappingPanel = new PanelWorkflowParameters(this::parametersCompatibleWithPorts,
             m_configuration, ncc.getPortConfig().orElseThrow(IllegalStateException::new));
@@ -275,13 +277,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
         // configure remote execution if a server connection is present
         enableAllUIElements(true);
         m_controls.m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
-        try {
-            m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
-        } catch (InvalidSettingsException e) {
-            enableAllUIElements(false);
-            throw new NotConfigurableException(e.getMessage(), e);
-        }
-
+        m_controls.m_executionContextSelector.loadSettingsInDialog(m_configuration);
         // display workflow input/output parameters
         fetchWorkflowProperties();
     }
@@ -366,6 +362,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
             m_parameterUpdater.cancel(true);
             m_parameterUpdater = null;
         }
+        m_controls.m_executionContextSelector.close();
         super.onClose();
     }
 

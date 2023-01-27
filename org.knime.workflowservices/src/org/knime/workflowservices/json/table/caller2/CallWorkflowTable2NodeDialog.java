@@ -135,6 +135,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         m_configuration.getWorkflowChooserModel().addChangeListener(e -> {
             removeConfiguredSelections();
             updateParameters();
+            m_executionContextSelector.loadSettingsInDialog(m_configuration);
         });
         var gbc = new GridBagLayout();
         final var p = new JPanel(gbc);
@@ -285,11 +286,8 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         m_configuredFlowVariableDestination = configuration.getFlowVariableDestination();
         m_configuredFlowCredentialsDestination = configuration.getFlowCredentialsDestination();
 
-        try {
-            m_executionContextSelector.loadSettingsInDialog(m_configuration);
-        } catch (InvalidSettingsException e) {
-            throw new NotConfigurableException(e.getMessage(), e);
-        }
+
+        m_executionContextSelector.loadSettingsInDialog(m_configuration);
         m_serverSettings.getBackoffPanel()
             .setSelectedBackoffPolicy(configuration.getBackoffPolicy().orElse(BackoffPolicy.DEFAULT_BACKOFF_POLICY));
         m_serverSettings.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
@@ -347,6 +345,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
             m_parameterUpdater.cancel(true);
             m_parameterUpdater = null;
         }
+        m_executionContextSelector.close();
         super.onClose();
     }
 

@@ -139,8 +139,7 @@ public final class ConnectionUtil {
     public static IWorkflowBackend createWorkflowBackend(final CallWorkflowConnectionConfiguration configuration)
         throws IOException, InvalidSettingsException {
         var callWorkflowConnection = createConnection(configuration).orElseThrow(
-            () -> new InvalidSettingsException(String.format("Can not create the workflow execution connection for the workflow path '%s'",
-                configuration.getWorkflowChooserModel().getLocation().getPath())));
+            () -> new InvalidSettingsException("Can not create the workflow execution connection, configuration in a running job is not yet supported."));
         return callWorkflowConnection.createWorkflowBackend();
     }
 
@@ -161,13 +160,24 @@ public final class ConnectionUtil {
     }
 
     private static boolean isHubWorkflowContext() {
-        var context = NodeContext.getContext().getWorkflowManager().getContextV2();
-        return context.getLocationType() == LocationType.HUB_SPACE;
+        // WorkflowManager is null in the blue bar editor.
+        if (NodeContext.getContext().getWorkflowManager() != null) {
+            var context = NodeContext.getContext().getWorkflowManager().getContextV2();
+            return context.getLocationType() == LocationType.HUB_SPACE;
+        }
+        return false;
     }
 
     private static boolean isRemoteWorkflowContext() {
-        var context = NodeContext.getContext().getWorkflowManager().getContextV2();
-        return context.getLocationType() != LocationType.LOCAL;
+        // WorkflowManager is null in the blue bar editor.
+        if (NodeContext.getContext().getWorkflowManager() != null) {
+            var context = NodeContext.getContext().getWorkflowManager().getContextV2();
+            return context.getLocationType() != LocationType.LOCAL;
+        } else if  (NodeContext.getContext().getWorkflowManager() == null) {
+            // If workflow manager is null the workflow running in blue bar editor and its remote.
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -180,7 +190,7 @@ public final class ConnectionUtil {
         // this covers the case where a connector is present, but nothing is attached to it.
         // some deprecated call workflow nodes have an optional connector port which is allowed to be left empty.
         if(spec == null) {
-            return false;
+            return isRemoteWorkflowContext();
         }
 
         // in this context, only the KnimeServerConnectionInformationPortObjectSpec should occur (other implementations
