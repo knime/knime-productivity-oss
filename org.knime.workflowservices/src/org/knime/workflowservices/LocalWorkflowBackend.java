@@ -53,9 +53,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -101,7 +103,6 @@ import org.knime.core.util.KNIMETimer;
 import org.knime.core.util.LockFailedException;
 import org.knime.core.util.Pair;
 import org.knime.core.util.URIUtil;
-import org.knime.core.util.exception.HttpResourceAccessException;
 import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.core.util.report.ReportingConstants;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
@@ -178,22 +179,32 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
 
         // resolve relative URLs into absolute URLs, usually either file or http, may also return a KNIME URI in some
         // legacy code paths
-        URL resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(originalUrl);
+        Path workflowDir = null;
+        URL resolvedUrl = null;
+        try {
+            resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(originalUrl);
 
-        Path workflowDir;
-        if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
-            workflowDir = FileUtil.resolveToPath(resolvedUrl);
-        } else if (resolvedUrl.getProtocol().equalsIgnoreCase("knime")) {
-            // ExplorerStreamHandler cannot handle some mount point absolute uris, e.g., knime://knime-teamspace/OS/Callee
-            // it will just return the input unchanged. In this case, the resolver util can help (but applying it in the
-            // first place would cause compatibility isses because it copies temporary files into different locations).
-            // the resolver util expects an encoded URI (e.g., it throws an exception if given a URI containing spaces)
-            var encodedUri = URIUtil.createEncodedURI(originalUrl).orElseThrow(() -> new IllegalArgumentException(
-                String.format("Invalid callee location, \"%s\" cannot be converted to URI.", path)));
-            workflowDir = ResolverUtil.resolveURItoLocalOrTempFile(encodedUri).toPath();
-        } else {
-            assert resolvedUrl.getProtocol().startsWith("http") : "Expected http URL but not " + resolvedUrl;
-            workflowDir = downloadAndExtractRemoteWorkflow(originalUrl);
+            if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
+                workflowDir = FileUtil.resolveToPath(resolvedUrl);
+            } else if (resolvedUrl.getProtocol().equalsIgnoreCase("knime")) {
+                // ExplorerStreamHandler cannot handle some mount point absolute uris, e.g., knime://knime-teamspace/OS/Callee
+                // it will just return the input unchanged. In this case, the resolver util can help (but applying it in the
+                // first place would cause compatibility isses because it copies temporary files into different locations).
+                // the resolver util expects an encoded URI (e.g., it throws an exception if given a URI containing spaces)
+                var encodedUri = URIUtil.createEncodedURI(originalUrl).orElseThrow(() -> new IllegalArgumentException(
+                    String.format("Invalid callee location, \"%s\" cannot be converted to URI.", path)));
+                workflowDir = ResolverUtil.resolveURItoLocalOrTempFile(encodedUri).toPath();
+            } else {
+                assert resolvedUrl.getProtocol().startsWith("http") : "Expected http URL but not " + resolvedUrl;
+                workflowDir = downloadAndExtractRemoteWorkflow(originalUrl);
+            }
+        } catch (IOException e) {
+            if (e.getMessage().contains("Server returned HTTP response code: 403")) {
+                throw new IOException(
+                    "User does not have permissions to read workflow " + originalUrl + " on the server", e);
+            } else {
+                throw e;
+            }
         }
 
         if (!Files.isDirectory(workflowDir)) {
@@ -331,16 +342,17 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         File tempDir = FileUtil.createTempDir("Called-workflow");
         File zippedWorkflow = new File(tempDir, "workflow.knwf");
 
-        try (OutputStream os = new FileOutputStream(zippedWorkflow); InputStream is = url.openStream()) {
-            IOUtils.copy(is, os);
-        } catch (IOException ex) {
-            if (ex instanceof HttpResourceAccessException && ((HttpResourceAccessException) ex).getStatusCode() == 403) {
-                throw new IOException("User does not have permissions to read workflow " + url + " on the server", ex);
-            } else {
-                throw ex;
-            }
+        URLConnection connection = url.openConnection();
+        if (connection instanceof HttpURLConnection && ((HttpURLConnection)connection).getResponseCode() == 403) {
+            ((HttpURLConnection)connection).disconnect();
+            throw new IOException("User does not have permissions to read workflow " + url + " on the server");
         }
 
+        try (OutputStream os = new FileOutputStream(zippedWorkflow); InputStream is = connection.getInputStream()) {
+            IOUtils.copy(is, os);
+        } catch (IOException ex) {
+            throw ex;
+        }
         FileUtil.unzip(zippedWorkflow, tempDir);
         Files.delete(zippedWorkflow.toPath());
         return tempDir.listFiles()[0].toPath();
