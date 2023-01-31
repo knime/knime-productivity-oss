@@ -181,11 +181,13 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         // legacy code paths
         Path workflowDir = null;
         URL resolvedUrl = null;
+        final boolean deleteAfterUse;
         try {
             resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(originalUrl);
 
             if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
                 workflowDir = FileUtil.resolveToPath(resolvedUrl);
+                deleteAfterUse = false;
             } else if (resolvedUrl.getProtocol().equalsIgnoreCase("knime")) {
                 // ExplorerStreamHandler cannot handle some mount point absolute uris, e.g., knime://knime-teamspace/OS/Callee
                 // it will just return the input unchanged. In this case, the resolver util can help (but applying it in the
@@ -193,10 +195,12 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                 // the resolver util expects an encoded URI (e.g., it throws an exception if given a URI containing spaces)
                 var encodedUri = URIUtil.createEncodedURI(originalUrl).orElseThrow(() -> new IllegalArgumentException(
                     String.format("Invalid callee location, \"%s\" cannot be converted to URI.", path)));
-                workflowDir = ResolverUtil.resolveURItoLocalOrTempFile(encodedUri).toPath();
+                workflowDir = ResolverUtil.resolveURItoLocalFile(encodedUri).toPath();
+                deleteAfterUse = false;
             } else {
                 assert resolvedUrl.getProtocol().startsWith("http") : "Expected http URL but not " + resolvedUrl;
                 workflowDir = downloadAndExtractRemoteWorkflow(originalUrl);
+                deleteAfterUse = true;
             }
         } catch (IOException e) {
             if (e.getMessage().contains("Server returned HTTP response code: 403")) {
@@ -219,10 +223,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         final LocalWorkflowBackend localWorkflowBackend = CACHE.get(localUri, () -> loadWorkflow(localUri, ou));
         localWorkflowBackend.lock();
 
-        if (!resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
-            // workflow downloaded from server into temp directory, should be deleted after use
-            localWorkflowBackend.m_deleteAfterUse = true;
-        }
+        localWorkflowBackend.m_deleteAfterUse = deleteAfterUse;
 
         synchronized (CALLER_MAP) {
             CALLER_MAP.computeIfAbsent(callingWorkflow, k -> new HashSet<>()).add(localUri);
