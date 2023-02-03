@@ -383,6 +383,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
             tempConfig.setWorkflowChooserModel(m_configuration.getWorkflowChooserModel());
             tempConfig.setWorkflowPath(workflowPath);
             tempConfig.setKeepFailingJobs(false);
+            tempConfig.setDiscardJobOnSuccessfulExecution(true);
             ConnectionUtil.validateConfiguration(tempConfig);
 
             try (var backend = ConnectionUtil.createWorkflowBackend(tempConfig)) {

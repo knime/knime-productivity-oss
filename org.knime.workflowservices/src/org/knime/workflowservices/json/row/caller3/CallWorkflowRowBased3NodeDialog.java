@@ -197,7 +197,15 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
             m_parameterUpdateWorker.cancel(true);
             m_parameterUpdateWorker = null;
         }
-        m_parameterUpdateWorker = new ParameterUpdateWorker(m_configuration, this::onWorkflowParametersLoad, this::onFailure);
+        var tempConfig = new CallWorkflowConnectionConfiguration();
+        m_controls.m_connectionControls.saveToConfiguration(tempConfig);
+
+        tempConfig.setWorkflowChooserModel(m_configuration.getWorkflowChooserModel());
+        tempConfig.setWorkflowPath(m_configuration.getWorkflowPath());
+        tempConfig.setKeepFailingJobs(false);
+        tempConfig.setDiscardJobOnSuccessfulExecution(true);
+
+        m_parameterUpdateWorker = new ParameterUpdateWorker(tempConfig, this::onWorkflowParametersLoad, this::onFailure);
         m_parameterUpdateWorker.execute();
     }
 
