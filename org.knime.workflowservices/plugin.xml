@@ -64,5 +64,4 @@
              classMapper="org.knime.workflowservices.WorkflowServicesFactoryClassMapper">
        </NodeFactoryClassMapper>
     </extension>
-
 </plugin>
