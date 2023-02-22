@@ -12,7 +12,11 @@ import org.knime.filehandling.core.port.FileSystemPortObject;
 import org.knime.workflowservices.knime.caller2.CallWorkflow2NodeFactory;
 
 /**
+ * First version of the Call Workflow Service node. It features an optional file system connector port which was
+ * subsequently replaced with a dynamic port group that allows to add a file system port or a hub authentication port.
+ *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
+ *
  * @deprecated use {@link CallWorkflow2NodeFactory}
  */
 @Deprecated(since = "4.7.0")

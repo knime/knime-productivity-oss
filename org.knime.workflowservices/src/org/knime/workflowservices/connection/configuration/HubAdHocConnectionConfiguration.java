@@ -43,6 +43,13 @@ public class HubAdHocConnectionConfiguration extends RemoteCallWorkflowConnectio
 
     private Authenticator m_authenticator;
 
+    /**
+     * @param invocationTarget
+     */
+    protected HubAdHocConnectionConfiguration(final FileSystemInvocationTarget invocationTarget) {
+        super(invocationTarget);
+    }
+
     @Override
     protected void saveSettings(final NodeSettingsWO settings) {
         super.saveSettings(settings);

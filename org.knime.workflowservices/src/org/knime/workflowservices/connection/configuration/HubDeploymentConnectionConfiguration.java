@@ -21,7 +21,6 @@
 package org.knime.workflowservices.connection.configuration;
 
 import org.knime.core.util.auth.Authenticator;
-import org.knime.workflowservices.connection.AbstractHubAuthenticationPortObject;
 
 /**
  * To execute a deployed workflow on the hub, only the deployment id is required, which is managed by the invocation target.

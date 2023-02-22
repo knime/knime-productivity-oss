@@ -44,6 +44,8 @@ import org.knime.workflowservices.IWorkflowBackend.ResourceContentType;
  * Imposes an ordering on the otherwise unordered parameters. This will be reflected in in the Call Workflow Node Dialog
  * and the Call Workflow node's port order.
  *
+ * @noreference This type is not intended to be referenced by clients.
+ *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
 public class WorkflowParameters {

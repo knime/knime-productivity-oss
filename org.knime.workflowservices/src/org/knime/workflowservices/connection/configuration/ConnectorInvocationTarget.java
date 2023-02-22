@@ -76,14 +76,19 @@ public abstract class ConnectorInvocationTarget implements InvocationTarget {
     }
 
     /**
-     * @param fileSystemPortGroupName the name of the port group that contains the file system port
-     * @param portsConfiguration the current port configuration of a node
-     * @return
+     * @param fileSystemPortGroupName the name of the port group that contains the file system port. Must not be null.
+     * @param portsConfiguration the current port configuration of a node. Must not be null.
+     * @return the position of the port containing the connector port (e.g., hub authenticator or file system port) or
+     *         empty if the port group does not contain a port.
+     * @throws IllegalStateException if the specified port group contains more than one port.
      */
-    private static Optional<Integer> getConnectorPortIndex(final String fileSystemPortGroupName, final PortsConfiguration portsConfiguration) {
-        if (fileSystemPortGroupName == null) {
-            return Optional.empty();
-        }
+    public static Optional<Integer>
+        getConnectorPortIndex(final String fileSystemPortGroupName,
+        final PortsConfiguration portsConfiguration) {
+
+        CheckUtils.checkArgumentNotNull(fileSystemPortGroupName);
+        CheckUtils.checkArgumentNotNull(portsConfiguration);
+
         int[] fileSystemPortLocation = portsConfiguration.getInputPortLocation().get(fileSystemPortGroupName);
 
         if (fileSystemPortLocation != null && fileSystemPortLocation.length > 0) {
