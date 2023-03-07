@@ -23,7 +23,7 @@ package org.knime.workflowservices.connection;
 import java.io.IOException;
 import java.util.List;
 
-import org.knime.workflowservices.ExecutionContextSelector.ExecutionContextItem;
+import org.knime.workflowservices.ExecutionContext;
 import org.knime.workflowservices.IWorkflowBackend;
 
 /**
@@ -49,7 +49,7 @@ public interface WorkflowExecutionConnector {
      * @return the execution contexts
      * @throws IOException if an error occurs while fetching execution contexts
      */
-    public default List<ExecutionContextItem> getExecutionContexts() throws IOException {
+    public default List<ExecutionContext> getExecutionContexts() throws IOException {
         return List.of();
     }
 

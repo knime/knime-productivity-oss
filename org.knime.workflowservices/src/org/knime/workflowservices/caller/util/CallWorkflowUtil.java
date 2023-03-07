@@ -27,6 +27,8 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.util.StringHistory;
 import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.node.workflow.IllegalFlowVariableNameException;
+import org.knime.workflowservices.ConnectorPortGroup;
+import org.knime.workflowservices.connection.AbstractHubAuthenticationPortObjectSpec;
 import org.knime.workflowservices.connection.util.SelectWorkflowPanel;
 
 /**
@@ -121,6 +123,16 @@ public final class CallWorkflowUtil {
         } catch (IllegalFlowVariableNameException e) { // NOSONAR
             return false;
         }
+    }
+
+    /**
+     * @param connectorPortGroup the connector port information of the call workflow node
+     * @return whether the call workflow node is connected to a Hub Authenticator or not.
+     */
+    public static boolean isHubAuthenticatorConnected(final ConnectorPortGroup connectorPortGroup) {
+        return connectorPortGroup.connectorPortType()
+            .map(cpt -> AbstractHubAuthenticationPortObjectSpec.class.isAssignableFrom(cpt.getPortObjectSpecClass()))
+            .orElse(false);
     }
 
 }

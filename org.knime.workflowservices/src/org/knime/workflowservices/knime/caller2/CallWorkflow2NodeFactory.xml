@@ -19,7 +19,7 @@
 		</p>
 		<p>
 		Each <i>Workflow Service Input</i> node in the workflow to be called will create an input port on this node
-		when finishing the configuration of the <i>Call Workflow Service</i> node.
+		when finishing the configuration of the Call Workflow Service node.
 		Similarly, each <i>Workflow Service Output</i> node will create an output port on the node.
 		</p>
 		<p>
@@ -74,8 +74,13 @@
 			The selected path can be set via a path flow variable or exported to a path flow variable.
 			</option>
 			
+			<option name="Deployment">The deployed workflow to execute. Use the "Browse..." button to select.
+			This option is only visible when the node is connected to a KNIME Hub Authenticator node.
+			</option>
+			
 			<option name="Execution context">
-				The execution context of a space defines for instance the installed extensions, available credentials, 
+				Only for workflow on a KNIME Hub. The workflow will be executed in the selected context.
+				An execution context of a hub space defines for instance the installed extensions, available credentials, 
 				and the pool from which computation resources are used when the service is invoked.
 			</option>
 			
@@ -111,7 +116,10 @@
 	<ports>
 		<dynInPort insert-before="0" name="File system connection"
 			group-identifier="File System Connection">
-			An optional connection to a file system that contains the callee workflow. The callee workflow will be executed on the machine on which the workflow is located.
+			An optional connection to a file system that contains the callee workflow or a hub instance that provides deployed workflows.
+			The callee workflow will be executed where it is located, e.g., on the KNIME Hub.
+			If a Hub Authenticator is connected, only workflows that have previously been deployed can be executed. 
+			If a Space Connector or Mountpoint connector is connected, any workflow can be selected and executed.
 		</dynInPort>
 		<dynInPort insert-before="0" name="Workflow inputs" group-identifier="Inputs" configurable-via-menu="false">
 			One input port for each <i>Workflow Service Input</i> node in the workflow to be executed. 

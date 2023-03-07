@@ -32,6 +32,8 @@ import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 /**
  * Manages a report format configuration option. Used in {@link CallWorkflowConnectionConfiguration}.
  *
+ * @noreference This class is not intended to be referenced by clients.
+ *
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
 public class CallWorkflowReportConfiguration {

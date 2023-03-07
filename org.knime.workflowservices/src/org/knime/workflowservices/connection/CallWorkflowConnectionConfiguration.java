@@ -34,11 +34,12 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.port.PortObjectSpec;
-import org.knime.core.node.util.CheckUtils;
+import org.knime.core.util.auth.Authenticator;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.SettingsModelWorkflowChooser;
 import org.knime.filehandling.core.defaultnodesettings.status.NodeModelStatusConsumer;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
+import org.knime.workflowservices.ConnectorPortGroup;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
@@ -96,19 +97,9 @@ public class CallWorkflowConnectionConfiguration {
 
     /** @see #getLoadTimeout() */
     private Optional<Duration> m_loadTimeout = Optional.empty();
-    /**
-     * Stores the number of seconds to wait for creating a job with a backend.
-     *
-     * @see #getLoadTimeout()
-     */
 
     /** @see #getFetchParametersTimeout() */
     private Optional<Duration> m_fetchWorkflowParametersTimeout = Optional.empty();
-    /**
-     * Stores the number of seconds to wait for retrieving the input and output workflow parameters of a callee.
-     *
-     * @see #getFetchParametersTimeout()
-     */
 
     /**
      * Used in {@link Version#VERSION_1} to manage the callee workflow path.
@@ -117,6 +108,13 @@ public class CallWorkflowConnectionConfiguration {
      */
     private String m_workflowPath;
 
+    /** @see #getReportFormat() */
+    private final CallWorkflowReportConfiguration m_reportConfiguration = new CallWorkflowReportConfiguration();
+
+    private final Version m_version;
+
+    // ---- version 2 exclusive members ----
+
     /**
      * Used in {@link Version#VERSION_2} to manage the callee workflow path.
      *
@@ -124,26 +122,35 @@ public class CallWorkflowConnectionConfiguration {
      */
     private SettingsModelWorkflowChooser m_workflowChooserModel;
 
-    /** @see #getReportFormat() */
-    private final CallWorkflowReportConfiguration m_reportConfiguration = new CallWorkflowReportConfiguration();
-
-    // ---- non-persisted members -----
-
-    private final NodeModelStatusConsumer m_statusConsumer;
-
-    private final PortsConfiguration m_portsConfiguration;
-
     /**
-     * The name of the port group that may or may not contain the file system input port. Non-null if and only if
-     * version equals {@link Version#VERSION_2}.
+     * Used in {@link Version#VERSION_2} for ad hoc workflow invocation on the hub. Stores the id of the execution
+     * context that provides the compute resources to execute the selected workflow. For instance
+     * <code>11111111-1111-1111-1111-111111111111</code>.
      */
-    private final String m_fileSystemPortGroupName;
-
-    private final Version m_version;
-
     private String m_executionContext;
 
-    // constructor
+    /**
+     * Used in {@link Version#VERSION_2}. Stores the id of the deployed workflow to execute. For instance
+     * <code>rest:50baa45b-ac5e-45b8-b443-3899f2ce87fe</code>.
+     */
+    private String m_deploymentId;
+
+    /** Used in {@link Version#VERSION_2} to authenticate to a hub instance. */
+    private Authenticator m_authenticator;
+
+    /** Used in {@link Version#VERSION_2} to distinguish between calling deployments and ad hoc workflow invocation */
+    private ConnectionType m_connectionType;
+
+    /** Used in {@link Version#VERSION_2} for the workflow chooser (ad hoc workflow execution) */
+    private final NodeModelStatusConsumer m_statusConsumer;
+
+    /** Stores the port configuration of the node to inspect the possibly present file system/hub authenticator port.
+     * The call workflow node's port configuration and the name of the port group that may or may not contain the file
+     * system input port. Non-null if and only if version equals {@link Version#VERSION_2}.
+     */
+    private final ConnectorPortGroup m_connectorPortGroup;
+
+    // constructors
 
     /**
      * Only for legacy Call Workflow nodes (that used to manage workflow path via a text box) and for manually
@@ -154,11 +161,10 @@ public class CallWorkflowConnectionConfiguration {
      * callee workflow path is managed via a settings model instead of a plain string.
      */
     public CallWorkflowConnectionConfiguration() {
+        m_version = Version.VERSION_1;
         m_workflowChooserModel = null;
         m_statusConsumer = null;
-        m_portsConfiguration = null;
-        m_fileSystemPortGroupName = null;
-        m_version = Version.VERSION_1;
+        m_connectorPortGroup = null;
     }
 
     /**
@@ -168,23 +174,16 @@ public class CallWorkflowConnectionConfiguration {
      */
     public CallWorkflowConnectionConfiguration(final NodeCreationConfiguration creationConfig,
         final String inputPortGroupName) {
-        CheckUtils.checkNotNull(inputPortGroupName,
-            "The identifier of the file system connector input port group must not be null.");
-
-        var portConfig = creationConfig.getPortConfig();
-        if (portConfig.isEmpty()) {
-            throw new IllegalStateException("No port configuration passed to the Call Workflow configuration.");
-        }
-
-        m_portsConfiguration = portConfig.get();
-
+        m_version = Version.VERSION_2;
+        final var connectorPortGroup = new ConnectorPortGroup(creationConfig, inputPortGroupName);
+        m_connectorPortGroup = connectorPortGroup;
+        m_connectionType = CallWorkflowUtil.isHubAuthenticatorConnected(connectorPortGroup)
+            ? ConnectionType.HUB_AUTHENTICATION : ConnectionType.FILE_SYSTEM;
         m_workflowChooserModel =
-            new SettingsModelWorkflowChooser("calleeWorkflow", inputPortGroupName, portConfig.get());
-        // if more than the mandatory input table is present, we have a connector
+            new SettingsModelWorkflowChooser("calleeWorkflow", inputPortGroupName,
+                connectorPortGroup.portsConfiguration());
 
         m_statusConsumer = new NodeModelStatusConsumer(EnumSet.of(MessageType.ERROR, MessageType.WARNING));
-        m_fileSystemPortGroupName = inputPortGroupName;
-        m_version = Version.VERSION_2;
     }
 
     // save & load
@@ -197,10 +196,11 @@ public class CallWorkflowConnectionConfiguration {
         settings.addBoolean("isSynchronous", m_isSynchronous);
         settings.addBoolean("keepFailingJobs", m_keepFailingJobs);
         settings.addString("executionContext", m_executionContext);
+        settings.addString("deploymentId", m_deploymentId);
 
         if (m_version == Version.VERSION_1) {
             settings.addString("workflow", getWorkflowPath());
-        } else {
+        } else if (m_version == Version.VERSION_2 && m_connectionType == ConnectionType.FILE_SYSTEM) {
             m_workflowChooserModel.saveSettingsTo(settings);
         }
 
@@ -209,7 +209,6 @@ public class CallWorkflowConnectionConfiguration {
         m_fetchWorkflowParametersTimeout
             .ifPresent(duration -> settings.addInt("fetchParametersTimeout", (int)duration.getSeconds()));
         m_backoffPolicy.ifPresent(backoffPolicy -> backoffPolicy.saveToSettings(settings));
-        m_reportConfiguration.save(settings);
     }
 
     /**
@@ -226,7 +225,7 @@ public class CallWorkflowConnectionConfiguration {
             m_workflowPath = strict ? //
                 settings.getString("workflow") : //
                 settings.getString("workflow", "");
-        } else {
+        } else if (m_version == Version.VERSION_2 && m_connectionType == ConnectionType.FILE_SYSTEM) {
             m_workflowChooserModel.loadSettingsFrom(settings);
         }
 
@@ -238,6 +237,7 @@ public class CallWorkflowConnectionConfiguration {
         m_discardJobOnSuccessfulExecution = settings.getBoolean("discardJobOnSuccessfulExecution", true);
         m_keepFailingJobs = settings.getBoolean("keepFailingJobs", true);
         m_executionContext = settings.getString("executionContext", "");
+        m_deploymentId = settings.getString("deploymentId", "");
 
         // base, multiplier, and retries
         m_backoffPolicy = BackoffPolicy.loadFromSettings(settings);
@@ -276,7 +276,6 @@ public class CallWorkflowConnectionConfiguration {
      * Initializes members from the given settings. Missing and problematic values will lead to an exception.
      *
      * @param settings
-     * @param connection to validate the settings
      * @throws InvalidSettingsException
      */
     protected void loadSettingsInModel(final NodeSettingsRO settings)
@@ -515,33 +514,9 @@ public class CallWorkflowConnectionConfiguration {
             return Optional.of(0);
         case VERSION_2:
             // new nodes can be configured to have a file system connector port if necessary
-            return getConnectorPortIndex(m_fileSystemPortGroupName, m_portsConfiguration);
+            return m_connectorPortGroup.getConnectorPortIndex();
         default:
             throw new IllegalStateException("Coding error: Unhandled version " + m_version);
-        }
-    }
-
-    /**
-     * Used for {@link Version#VERSION_2} nodes to extract the offset of the file system connector input port, if any.
-     *
-     * @param fileSystemPortGroupName
-     * @param portsConfiguration
-     * @return
-     */
-    private static Optional<Integer> getConnectorPortIndex(final String fileSystemPortGroupName,
-        final PortsConfiguration portsConfiguration) {
-        if (fileSystemPortGroupName == null) {
-            return Optional.empty();
-        }
-        int[] fileSystemPortLocation = portsConfiguration.getInputPortLocation().get(fileSystemPortGroupName);
-
-        if (fileSystemPortLocation != null && fileSystemPortLocation.length > 0) {
-            if (fileSystemPortLocation.length > 1) {
-                throw new IllegalStateException("Coding error: More than one file system port connector present.");
-            }
-            return Optional.of(fileSystemPortLocation[0]);
-        } else {
-            return Optional.empty();
         }
     }
 
@@ -553,7 +528,7 @@ public class CallWorkflowConnectionConfiguration {
      */
     public void validateConfigurationForModel(final NodeSettingsRO settings) throws InvalidSettingsException {
         // the deprecated nodes do not have a workflow chooser
-        if (m_workflowChooserModel != null) {
+        if (m_version == Version.VERSION_2 && m_connectionType == ConnectionType.FILE_SYSTEM) {
             m_workflowChooserModel.validateSettings(settings);
         }
         if (!settings.containsKey("isSynchronous")) {
@@ -567,7 +542,7 @@ public class CallWorkflowConnectionConfiguration {
      *         location
      */
     public Optional<PortsConfiguration> getPortsConfiguration() {
-        return Optional.ofNullable(m_portsConfiguration);
+        return Optional.ofNullable(m_connectorPortGroup.portsConfiguration());
     }
 
     /**
@@ -598,4 +573,102 @@ public class CallWorkflowConnectionConfiguration {
         return m_executionContext;
     }
 
+    /**
+     * Sets the authenticator to be used (only valid for Hub).
+     *
+     * @param authneticator the authneticator of the connected Hub instance.
+     */
+    public void setAuthenticator(final Authenticator authneticator) {
+        m_authenticator = authneticator;
+    }
+
+    /**
+     * Returns the authenticator to be used (only valid for Hub).
+     *
+     * @return authneticator the authneticator of the connected Hub instance.
+     */
+    public Authenticator getAuthenticator() {
+        return m_authenticator;
+    }
+
+    /**
+     * Sets the deployment ID to be used (only valid for Hub).
+     *
+     * @param deploymentId the ID of the deployment.
+     */
+    public void setDeploymentId(final String deploymentId) {
+        m_deploymentId = deploymentId;
+    }
+
+    /**
+     * Returns the deployment id to be used (only valid for Hub).
+     *
+     * @return deploymentId the ID of the deployment.
+     */
+    public String getDeploymentId() {
+        return m_deploymentId;
+    }
+
+    /**
+     * Returns the {@link ConnectionType} of the Call Workflow Node.
+     *
+     * @return the executionType either Hub Authentication or File System connection type.
+     */
+    public ConnectionType getConnectionType() {
+        return m_connectionType;
+    }
+
+    /**
+     * Sets the {@link ConnectionType} of the Call Workflow Node.
+     *
+     * @param connectionType the connectionType to set.
+     */
+    public void setConnectionType(final ConnectionType connectionType) {
+        m_connectionType = connectionType;
+    }
+
+    /** @return a copy of this configuration suitable for fetching the parameters of the callee. */
+    public CallWorkflowConnectionConfiguration createFetchConfiguration() {
+
+        CallWorkflowConnectionConfiguration result;
+        if(m_version == Version.VERSION_1) {
+            result = new CallWorkflowConnectionConfiguration();
+            result.setWorkflowPath(getWorkflowPath());
+        } else {
+            result = new CallWorkflowConnectionConfiguration(m_connectorPortGroup.nodeConfiguration(),
+                m_connectorPortGroup.connectorPortGroupName());
+            result.setAuthenticator(getAuthenticator());
+            if(m_version == Version.VERSION_2 && m_connectionType == ConnectionType.FILE_SYSTEM) {
+                result.setWorkflowChooserModel(getWorkflowChooserModel());
+            } else {
+                result.setDeploymentId(getDeploymentId());
+            }
+        }
+        result.setBackoffPolicy(getBackoffPolicy().orElse(BackoffPolicy.DEFAULT_BACKOFF_POLICY));
+        result.setConnectionType(getConnectionType());
+        result.setDiscardJobOnSuccessfulExecution(true);
+        result.setKeepFailingJobs(false);
+        result.setFetchParametersTimeout(getFetchParametersTimeout().orElse(Duration.ofSeconds(20)));
+        result.setLoadTimeout(getLoadTimeout().orElse(Duration.ofSeconds(20)));
+        result.setReportFormat(getReportFormat().orElse(RptOutputFormat.CSV));
+        // fetching the parameters should be fast
+        result.setSynchronousInvocation(true);
+        return result;
+    }
+
+    /**
+     * Specifies whether a call workflow connects to a file system or a hub authentication connection.
+     *
+     * @author Dionysios Stolis, KNIME GmbH, Berlin, Germany
+     */
+    public enum ConnectionType {
+            /**
+             * Hub Authentication connection is used when the Hub Authenticator is used.
+             */
+            HUB_AUTHENTICATION,
+            /**
+             * File System connection is used when the File System is used or no connection port is present.
+             */
+            FILE_SYSTEM
+    }
 }

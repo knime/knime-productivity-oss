@@ -39,8 +39,10 @@ import org.knime.workflowservices.LocalWorkflowBackend;
 
 /**
  * Local workflow execution service.
- * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
+ *
  * @noreference This method is not intended to be referenced by clients.
+ *
+ * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
  */
 public final class LocalExecutionConnection implements IServerConnection, WorkflowExecutionConnector {
 

@@ -109,6 +109,7 @@ import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.workflowservices.BackendExecutionResult;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.ReportGenerationException;
+import org.knime.workflowservices.connection.AbstractHubAuthenticationPortObjectSpec;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 
 /**
@@ -157,10 +158,13 @@ public class CallWorkflowRowBased3NodeModel extends NodeModel {
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
-        m_configuration.configureCalleeModel(inSpecs);
-
-        ConnectionUtil.validateConfiguration(m_configuration);
-
+        if (inSpecs.length > 0 && inSpecs[0] instanceof AbstractHubAuthenticationPortObjectSpec hubAuthPortObjectSpec) {
+            m_configuration.setAuthenticator(hubAuthPortObjectSpec.getAuthenticator()
+                .orElse(null));
+        } else {
+            m_configuration.configureCalleeModel(inSpecs);
+            ConnectionUtil.validateConfiguration(m_configuration);
+        }
         return new PortObjectSpec[]{null};
     }
 

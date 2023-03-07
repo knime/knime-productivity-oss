@@ -356,6 +356,21 @@ public final class CallWorkflowConnectionControls {
     }
 
     /**
+     * Enables the controls for remote connections, e.g., async invocation.
+     */
+    public void setRemoteConnection() {
+        m_controls.m_asyncInvocationChecker.setEnabled(true);
+        m_controls.m_syncInvocationChecker.setEnabled(true);
+        m_controls.m_retainJobOnFailure.setEnabled(true);
+        m_controls.m_discardJobOnSuccesfulExecution.setEnabled(true);
+
+        m_controls.m_backoffpanel.setEnabled(true);
+        m_controls.m_timeoutPanel.setEnabled(true);
+
+        m_controls.setState(State.REMOTE);
+    }
+
+    /**
      * Hides all controls and shows an error message.
      *
      * @param message

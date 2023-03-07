@@ -61,25 +61,19 @@ import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.util.SwingWorkerWithContext;
-import org.knime.filehandling.core.data.location.variable.FSLocationVariableType;
-import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.DialogComponentWorkflowChooser;
 import org.knime.filehandling.core.util.GBCBuilder;
-import org.knime.workflowservices.ExecutionContextSelector;
+import org.knime.workflowservices.Deployment;
 import org.knime.workflowservices.IWorkflowBackend;
-import org.knime.workflowservices.caller.util.CallWorkflowUtil;
-import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
-import org.knime.workflowservices.connection.ServerConnectionUtil;
+import org.knime.workflowservices.InvocationTargetPanel;
+import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration.ConnectionType;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
-import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane;
 import org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.json.table.caller.ParameterId;
 
 /**
  * Dialog for Call Workflow (Table Based) node as of 4.7.0
- *
- * Contains lots of duplicated legacy code from {@link AbstractCallWorkflowTableNodeDialogPane}.
  *
  * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
  * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
@@ -91,9 +85,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
     private final CallWorkflowConnectionControls m_serverSettings = new CallWorkflowConnectionControls();
 
-    private final DialogComponentWorkflowChooser m_workflowChooser;
-
-    private final ExecutionContextSelector m_executionContextSelector;
+    private final InvocationTargetPanel m_invocationTargetPanel;
 
     /** For errors when fetching workflow parameters */
     private final JLabel m_workflowErrorLabel = new JLabel();
@@ -125,18 +117,8 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
     CallWorkflowTable2NodeDialog(final CallWorkflowTableNodeConfiguration config) {
 
         m_configuration = config;
+        m_invocationTargetPanel = new InvocationTargetPanel(m_configuration, this);
 
-        final var flowVariableModel = createFlowVariableModel(config.getWorkflowChooserModel().getKeysForFSLocation(),
-            FSLocationVariableType.INSTANCE);
-        m_workflowChooser = new DialogComponentWorkflowChooser(config.getWorkflowChooserModel(),
-            CallWorkflowUtil.WorkflowPathHistory.JSON_BASED_WORKFLOWS.getIdentifier(), flowVariableModel);
-        m_executionContextSelector = new ExecutionContextSelector();
-
-        m_configuration.getWorkflowChooserModel().addChangeListener(e -> {
-            removeConfiguredSelections();
-            updateParameters();
-            m_executionContextSelector.loadSettingsInDialog(m_configuration);
-        });
         var gbc = new GridBagLayout();
         final var p = new JPanel(gbc);
         final var padding = 10;
@@ -144,15 +126,40 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
 
         p.add(m_serverSettings.getMainPanel(), gbc);
-        p.add(createWorkflowChooserPanel(), gbc);
-        p.add(m_executionContextSelector.createSelectionPanel(), gbc);
+        p.add(m_invocationTargetPanel.createExecutionPanel(), gbc);
 
         p.add(createParameterPanel(), gbc);
 
         addTab("Workflow", new JScrollPane(p));
-
         addTab("Advanced Settings", createAdvancedTab());
+
+        // Callback wiring
+        m_invocationTargetPanel.addDeploymentChangedListener(this::deploymentChanged);
+        m_configuration.getWorkflowChooserModel().addChangeListener(e -> fetchWorkflowProperties());
     }
+
+    /*
+     * Callbacks
+     */
+
+    private void deploymentChanged(final Deployment newDeployment) {
+        m_configuration.setDeploymentId(newDeployment.id());
+        fetchWorkflowProperties();
+    }
+
+    private void fetchWorkflowProperties() {
+        removeConfiguredSelections();
+        if (m_parameterUpdater == null || m_parameterUpdater.isDone() || m_parameterUpdater.cancel(true)) {
+            m_parameterUpdater = new ParameterUpdater();
+            m_parameterUpdater.execute();
+        } else {
+            m_workflowErrorLabel.setText("Failed to interrupt analysis of current workflow!");
+        }
+    }
+
+    /*
+     * UI
+     */
 
     private JPanel createParameterPanel() {
         var parameterPanel = new JPanel(new GridBagLayout());
@@ -191,8 +198,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
     protected final void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         CheckUtils.checkSetting(m_parameterUpdater == null, "Can't apply configuration while analysis is ongoing");
         storeUiStateInConfiguration();
-        m_workflowChooser.saveSettingsTo(settings);
-        m_executionContextSelector.saveToConfiguration(m_configuration);
+        m_invocationTargetPanel.saveSettingsTo(settings, m_configuration);
         m_configuration.save(settings);
     }
 
@@ -244,8 +250,9 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
     @Override
     protected final void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
         throws NotConfigurableException {
-        m_workflowChooser.loadSettingsFrom(settings, specs);
+        m_invocationTargetPanel.loadChooser(settings, specs);
         m_configuration.loadInDialog(settings);
+        m_invocationTargetPanel.loadSettingsInDialog(m_configuration, settings, specs);
         loadConfiguration(m_configuration, specs);
     }
 
@@ -287,21 +294,13 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         m_configuredFlowCredentialsDestination = configuration.getFlowCredentialsDestination();
 
 
-        m_executionContextSelector.loadSettingsInDialog(m_configuration);
         m_serverSettings.getBackoffPanel()
             .setSelectedBackoffPolicy(configuration.getBackoffPolicy().orElse(BackoffPolicy.DEFAULT_BACKOFF_POLICY));
-        m_serverSettings.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
-    }
-
-    private void disableAllUIElements() {
-        disableUISelections();
-
-        m_serverSettings.enableAllUIElements(false);
-    }
-
-    private void enableAllUIElements() {
-        enableUISelections();
-        m_serverSettings.enableAllUIElements(true);
+        if (m_configuration.getConnectionType() == ConnectionType.HUB_AUTHENTICATION) {
+            m_serverSettings.setRemoteConnection();
+        } else {
+            m_serverSettings.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
+        }
     }
 
     /**
@@ -323,29 +322,13 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         }
     }
 
-    private void disableUISelections() {
-        m_useFullyQualifiedNamesChecker.setEnabled(false);
-        m_inputParameterSelectionPanel.setEnabled(false);
-        m_outputParameterSelectionPanel.setEnabled(false);
-        m_flowVariableDestination.setEnabled(false);
-        m_flowCredentialsDestination.setEnabled(false);
-    }
-
-    private void enableUISelections() {
-        m_useFullyQualifiedNamesChecker.setEnabled(true);
-        m_inputParameterSelectionPanel.setEnabled(m_hasInputTable);
-        m_outputParameterSelectionPanel.setEnabled(true);
-        m_flowVariableDestination.setEnabled(true);
-        m_flowCredentialsDestination.setEnabled(true);
-    }
-
     @Override
     public void onClose() {
         if (m_parameterUpdater != null) {
             m_parameterUpdater.cancel(true);
             m_parameterUpdater = null;
         }
-        m_executionContextSelector.close();
+        m_invocationTargetPanel.close();
         super.onClose();
     }
 
@@ -373,17 +356,11 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
         @Override
         protected List<Map<String, JsonValue>> doInBackgroundWithContext() throws Exception {
-            var workflowPath = StringUtils.trimToEmpty(m_configuration.getWorkflowPath());
-            if (StringUtils.isEmpty(workflowPath)) {
+            if (isEmptyCallee()) {
                 return List.of();
             }
-            var tempConfig = new CallWorkflowConnectionConfiguration();
+            var tempConfig = m_configuration.createFetchConfiguration();
             m_serverSettings.saveToConfiguration(tempConfig);
-
-            tempConfig.setWorkflowChooserModel(m_configuration.getWorkflowChooserModel());
-            tempConfig.setWorkflowPath(workflowPath);
-            tempConfig.setKeepFailingJobs(false);
-            tempConfig.setDiscardJobOnSuccessfulExecution(true);
             ConnectionUtil.validateConfiguration(tempConfig);
 
             try (var backend = ConnectionUtil.createWorkflowBackend(tempConfig)) {
@@ -393,8 +370,16 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
                     return null;
                 }
             }
-
         }
+
+        private boolean isEmptyCallee() {
+            if (m_configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
+                return StringUtils.isEmpty(m_configuration.getWorkflowPath());
+            } else {
+                return StringUtils.isEmpty(m_configuration.getDeploymentId());
+            }
+        }
+
 
         private Map<String, JsonValue> getInputNodeValues(final IWorkflowBackend backend) {
             Map<String, JsonValue> inputNodes = new HashMap<>();
@@ -473,7 +458,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
                         // addresses AP-19370: bogus error message when wrong node is in Callee
                         errorPair = Pair.of(cause.getMessage() + " (wrong node types in use?)", cause);
                     } else {
-                        errorPair = ServerConnectionUtil.handle(e);
+                        errorPair = Pair.of(ExceptionUtils.getRootCauseMessage(e), ExceptionUtils.getRootCause(e));
                     }
 
                     if (!(cause instanceof InvalidSettingsException)) {
@@ -687,19 +672,4 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
             return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus);
         }
     }
-
-    private JPanel createWorkflowChooserPanel() {
-        final var panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Workflow path"));
-        final var gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.NORTHWEST;
-        gbc.weightx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weighty = 1;
-        panel.add(m_workflowChooser.getComponentPanel(), gbc);
-        return panel;
-    }
-
 }

@@ -30,7 +30,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
-import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -41,18 +40,22 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.util.SwingWorkerWithContext;
+import org.knime.filehandling.core.connections.meta.FSType;
 import org.knime.filehandling.core.util.GBCBuilder;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
+import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration.ConnectionType;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  *
- * @author Dionysios Stolis
+ * @author Dionysios Stolis, KNIME GmbH, Berlin, Germany
  */
 public class ExecutionContextSelector {
 
-    private final JComboBox<ExecutionContextItem> m_executionContextsComboBox;
+    private final JComboBox<ExecutionContext> m_executionContextsComboBox;
 
     private final JPanel m_executionContextSelectorPanel;
 
@@ -75,8 +78,6 @@ public class ExecutionContextSelector {
      */
     public JPanel createSelectionPanel() {
         m_executionContextSelectorPanel.setLayout(new GridBagLayout());
-        m_executionContextSelectorPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
         final var gbc = new GBCBuilder().resetX().resetY().anchorLineStart().fillHorizontal();
 
@@ -105,19 +106,20 @@ public class ExecutionContextSelector {
         m_executionContextWorker.execute();
     }
 
-    private void onExecutionContextsLoad(final List<ExecutionContextItem> executionContextItemList,
+    private void onExecutionContextsLoad(final List<ExecutionContext> executionContextItemList,
         final CallWorkflowConnectionConfiguration configuration) {
         m_errorLabel.setVisible(false);
 
         //alphabetic order by title.
-        executionContextItemList.sort(Comparator.comparing(ExecutionContextItem::getName));
-        executionContextItemList.stream().forEach(m_executionContextsComboBox::addItem);
+        var sortedExecutionContextList =
+            ImmutableList.sortedCopyOf(Comparator.comparing(ExecutionContext::name), executionContextItemList);
+        sortedExecutionContextList.stream().forEach(m_executionContextsComboBox::addItem);
 
-        Optional<ExecutionContextItem> defaultExecutionContextItem =
-            executionContextItemList.stream().filter(ExecutionContextItem::isDefault).findFirst();
+        Optional<ExecutionContext> defaultExecutionContextItem =
+            sortedExecutionContextList.stream().filter(ExecutionContext::isDefault).findFirst();
 
         //Set default execution context if there is not selected item.
-        executionContextItemList.stream().filter(exec -> exec.getId().equals(configuration.getExecutionContext()))
+        sortedExecutionContextList.stream().filter(exec -> exec.id().equals(configuration.getExecutionContext()))
             .findFirst().ifPresentOrElse(exec -> m_executionContextsComboBox.getModel().setSelectedItem(exec),
                 () -> defaultExecutionContextItem
                     .ifPresent(d -> m_executionContextsComboBox.getModel().setSelectedItem(d)));
@@ -147,7 +149,12 @@ public class ExecutionContextSelector {
      * @param configuration the call workflow connection configuration.
      */
     public final void loadSettingsInDialog(final CallWorkflowConnectionConfiguration configuration) {
-        var fsType = configuration.getWorkflowChooserModel().getLocation().getFSType();
+        FSType fsType;
+        if (configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
+            fsType = configuration.getWorkflowChooserModel().getLocation().getFSType();
+        } else {
+            fsType = FSType.HUB;
+        }
         if (ConnectionUtil.isHubConnection(fsType)) {
             fillExecutionContextsDropdown(configuration);
         } else {
@@ -162,23 +169,23 @@ public class ExecutionContextSelector {
      */
     public void saveToConfiguration(final CallWorkflowConnectionConfiguration configuration) {
         if (m_executionContextsComboBox != null) {
-            var executionContextItem = (ExecutionContextItem)m_executionContextsComboBox.getSelectedItem();
+            var executionContextItem = (ExecutionContext)m_executionContextsComboBox.getSelectedItem();
             if (executionContextItem != null) {
-                configuration.setExecutionContext(executionContextItem.getId());
+                configuration.setExecutionContext(executionContextItem.id());
             }
         }
     }
 
-    static class ExecutionContextWorker extends SwingWorkerWithContext<List<ExecutionContextItem>, Void> {
+    static class ExecutionContextWorker extends SwingWorkerWithContext<List<ExecutionContext>, Void> {
 
         private final CallWorkflowConnectionConfiguration m_configuration;
 
-        private final Consumer<List<ExecutionContextItem>> m_comboBoxAdjuster;
+        private final Consumer<List<ExecutionContext>> m_comboBoxAdjuster;
 
         private final Consumer<String> m_errorDisplay;
 
         ExecutionContextWorker(final CallWorkflowConnectionConfiguration configuration,
-            final Consumer<List<ExecutionContextItem>> comboBoxAdjuster, final Consumer<String> errorDisplay) {
+            final Consumer<List<ExecutionContext>> comboBoxAdjuster, final Consumer<String> errorDisplay) {
             m_configuration = configuration;
             m_comboBoxAdjuster = comboBoxAdjuster;
             m_errorDisplay = errorDisplay;
@@ -188,7 +195,7 @@ public class ExecutionContextSelector {
          * the map is not empty {@inheritDoc}
          */
         @Override
-        protected List<ExecutionContextItem> doInBackgroundWithContext() throws Exception {
+        protected List<ExecutionContext> doInBackgroundWithContext() throws Exception {
             var callWorkflowConnection = ConnectionUtil.createConnection(m_configuration).orElseThrow(
                 () -> new InvalidSettingsException(String.format("Can not create the workflow execution connection for the workflow path '%s'",
                     m_configuration.getWorkflowChooserModel().getLocation().getPath())));
@@ -220,47 +227,12 @@ public class ExecutionContextSelector {
         @Override
         public Component getListCellRendererComponent(final JList<?> list, Object value, final int index,
             final boolean isSelected, final boolean cellHasFocus) {
-            if (value instanceof ExecutionContextItem) {
-                value = ((ExecutionContextItem)value).getName();
+            if (value instanceof ExecutionContext) {
+                value = ((ExecutionContext)value).name();
             }
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             return this;
         }
     }
 
-    /**
-     *
-     * @author Dionysios Stolis
-     */
-    public static class ExecutionContextItem {
-
-        private final String m_id;
-
-        private final String m_name;
-
-        private final boolean m_isDefault;
-
-        /**
-         * @param id
-         * @param name
-         * @param isDefault
-         */
-        public ExecutionContextItem(final String id, final String name, final boolean isDefault) {
-            m_id = id;
-            m_name = name;
-            m_isDefault = isDefault;
-        }
-
-        String getId() {
-            return m_id;
-        }
-
-        String getName() {
-            return m_name;
-        }
-
-        boolean isDefault() {
-            return m_isDefault;
-        }
-    }
 }
