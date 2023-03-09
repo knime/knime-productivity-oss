@@ -59,6 +59,7 @@ import javax.json.JsonValue;
 
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.dialog.ContentType;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortTypeRegistry;
@@ -257,18 +258,6 @@ public interface IWorkflowBackend extends AutoCloseable {
      */
     public class ResourceContentType {
 
-        /**
-         * The content type of in/output node's {@link ExternalNodeData} starts with this and is followed by the fully
-         * qualified class name of the port type, e.g.
-         *
-         * <pre>
-         * knime - port / org.knime.core.node.port.pmml.PMMLPortObject
-         * </pre>
-         *
-         * .
-         */
-        public static final String CONTENT_TYPE_DEF_PREFIX = "knime-port/";
-
         private final String m_contentType;
 
         /**
@@ -291,7 +280,7 @@ public interface IWorkflowBackend extends AutoCloseable {
          * @return if the given port type is included to the knime's port types.
          */
         public boolean isKNIMEPortType() {
-            return m_contentType.startsWith(CONTENT_TYPE_DEF_PREFIX);
+            return m_contentType.startsWith(ContentType.CONTENT_TYPE_DEF_PREFIX);
         }
 
         /**
@@ -303,7 +292,7 @@ public interface IWorkflowBackend extends AutoCloseable {
         public PortType toPortType() throws InvalidSettingsException {
             CheckUtils.checkSetting(isKNIMEPortType(), "content type does not represent a KNIME port type: %s",
                 m_contentType);
-            var className = m_contentType.substring(CONTENT_TYPE_DEF_PREFIX.length());
+            var className = m_contentType.substring(ContentType.CONTENT_TYPE_DEF_PREFIX.length());
             return PortTypeRegistry.getInstance().availablePortTypes().stream() //
                 .filter(p -> p.getPortObjectClass().getName().equals(className)) //
                 .findFirst().orElseThrow(() -> new InvalidSettingsException(
@@ -317,7 +306,7 @@ public interface IWorkflowBackend extends AutoCloseable {
          * @return a ResourceContentType
          */
         public static ResourceContentType of(final PortType portType) {
-            return new ResourceContentType(CONTENT_TYPE_DEF_PREFIX + portType.getPortObjectClass().getName());
+            return new ResourceContentType(ContentType.CONTENT_TYPE_DEF_PREFIX + portType.getPortObjectClass().getName());
         }
 
         /**
