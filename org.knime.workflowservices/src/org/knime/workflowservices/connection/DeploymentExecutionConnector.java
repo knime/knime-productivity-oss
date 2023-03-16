@@ -38,5 +38,5 @@ public interface DeploymentExecutionConnector extends WorkflowExecutionConnector
      * @return a list of the REST and shared deployments.
      * @throws IOException if an error occur in the REST calls.
      */
-    List<Deployment> getServiceDeployments() throws IOException;
+    List<Deployment> getServiceDeployments() throws IOException, InterruptedException;
 }
