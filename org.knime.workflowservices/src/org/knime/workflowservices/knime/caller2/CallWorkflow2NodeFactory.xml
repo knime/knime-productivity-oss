@@ -49,8 +49,8 @@
 			<option name="Short duration (only for remote execution)">
 				Choose this if the called workflow is expected to finish within ten seconds. When selected, the invocation
 				of the workflow will not poll its status but wait until the job completes (or fails). This removes the
-				polling overhead and makes this option quicker for short running workflows. Choosing this option
-				for long running workflows (&gt; a minute) will cause timeout problems.
+				polling overhead and makes this option quicker for short-running workflows. Choosing this option
+				for long-running workflows (&gt; a minute) will cause timeout problems.
 			</option>
 
 			<option name="Long duration (only for remote execution)">
@@ -66,8 +66,7 @@
 			</option>
 
 			<option name="Discard job on successful execution (only for remote execution)">
-			When selected, successful jobs of the called workflow will be discarded from the remote executor. When not selected, the
-			successful jobs will be kept.
+			When selected, successful jobs of the called workflow will be discarded from the remote executor. When not selected, successful jobs will be kept.
 			</option>
 
 			<option name="Workflow path">The path to the workflow you want to call. Use the "Browse..." button to select.
@@ -79,7 +78,7 @@
 			</option>
 			
 			<option name="Execution context">
-				Only for workflow on a KNIME Hub. The workflow will be executed in the selected context.
+				Only for workflows on a KNIME Hub. The workflow will be executed in the selected context.
 				An execution context of a hub space defines for instance the installed extensions, available credentials, 
 				and the pool from which computation resources are used when the service is invoked.
 			</option>

@@ -119,13 +119,15 @@ class DeploymentSelectionPanel {
         protected void doneWithContext() {
             if (!isCancelled()) {
                 try {
-                    Optional.ofNullable(get())//
-                        .ifPresent(DeploymentSelectionPanel.this::setDeployments);
-                } catch (InterruptedException | CancellationException e) {
-                    NodeLogger.getLogger(getClass()).warn(e);
-                    Thread.currentThread().interrupt();
+                    Optional.ofNullable(get()).ifPresent(DeploymentSelectionPanel.this::setDeployments);
+                } catch (CancellationException e) {
+                    // user cancelled, all ok
                 } catch (ExecutionException e) {
+                    NodeLogger.getLogger(getClass()).warn(e);
                     setErrorMessage(ExceptionUtils.getRootCauseMessage(e));
+                } catch (InterruptedException e) {
+                    // dead code
+                    Thread.currentThread().interrupt();
                 }
             }
         }
