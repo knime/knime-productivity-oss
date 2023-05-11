@@ -79,8 +79,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import javax.json.JsonValue;
-
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
@@ -115,6 +113,8 @@ import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.ReportGenerationException;
 import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
+
+import jakarta.json.JsonValue;
 
 /**
  * Base class for row-based call workflow nodes (local and remote), i.e., calling a workflow for each row in an input

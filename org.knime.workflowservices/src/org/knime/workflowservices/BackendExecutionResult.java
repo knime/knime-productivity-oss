@@ -23,11 +23,11 @@ package org.knime.workflowservices;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.json.JsonValue;
-
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.workflowservices.IWorkflowBackend.ReportGenerationException;
 import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
+
+import jakarta.json.JsonValue;
 
 /**
  * Summarizes the results of a workflow invocation (remote or local) via a {@link IWorkflowBackend}.

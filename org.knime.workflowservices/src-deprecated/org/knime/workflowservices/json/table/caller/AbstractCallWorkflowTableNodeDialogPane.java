@@ -45,7 +45,6 @@ import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
 
-import javax.json.JsonValue;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListCellRenderer;
@@ -99,6 +98,8 @@ import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNod
 import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane.ParameterRenderer;
 import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane.ParameterSelection;
 import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeDialogPane.ParameterUpdater;
+
+import jakarta.json.JsonValue;
 
 /**
  * Shared dialog components for Call Workflow nodes.

@@ -34,7 +34,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
 
-import javax.json.JsonValue;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -71,6 +70,11 @@ import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.json.table.caller.ParameterId;
+import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterRenderer;
+import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterSelection;
+import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterUpdater;
+
+import jakarta.json.JsonValue;
 
 /**
  * Dialog for Call Workflow (Table Based) node as of 4.7.0

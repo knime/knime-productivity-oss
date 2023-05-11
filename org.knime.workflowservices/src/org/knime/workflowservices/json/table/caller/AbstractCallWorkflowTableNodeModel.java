@@ -31,8 +31,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import javax.json.JsonValue;
-
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.BufferedDataTable;
@@ -59,6 +57,8 @@ import org.knime.workflowservices.caller.util.CallWorkflowUtil;
 import org.knime.workflowservices.connection.IServerConnection;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeFactory;
+
+import jakarta.json.JsonValue;
 
 /**
  * Model for the Call Workflow (Table Based) nodes.

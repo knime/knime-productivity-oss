@@ -55,8 +55,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.json.JsonValue;
-
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ContentType;
@@ -65,6 +63,8 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortTypeRegistry;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
+
+import jakarta.json.JsonValue;
 
 /**
  * Interface to access a workflow. Can be either a local workflow or a remote flow (via REST calls then).

@@ -24,8 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-import javax.json.JsonValue;
-
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
@@ -44,6 +42,8 @@ import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.row.caller.CallWorkflowConfiguration;
 import org.knime.workflowservices.json.row.caller.CallWorkflowNodeModel;
 import org.knime.workflowservices.json.row.caller3.CallWorkflowRowBased3NodeModel;
+
+import jakarta.json.JsonValue;
 
 /**
  *

@@ -72,8 +72,6 @@ import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.json.JsonValue;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -111,11 +109,16 @@ import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.ExplorerURLStreamHandler;
 import org.knime.workbench.explorer.filesystem.LocalExplorerFileStore;
 import org.knime.workbench.ui.navigator.ProjectWorkflowMap;
+import org.knime.workflowservices.IWorkflowBackend.ReportGenerationException;
+import org.knime.workflowservices.IWorkflowBackend.ResourceContentType;
+import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
 import org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalNotification;
+
+import jakarta.json.JsonValue;
 
 /**
  * A local workflow representation. Workflows are kept in a cache and re-used with exclusive locks.
