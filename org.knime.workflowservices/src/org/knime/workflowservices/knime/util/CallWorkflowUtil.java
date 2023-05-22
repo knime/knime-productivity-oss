@@ -28,8 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.UriBuilder;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
@@ -47,6 +45,8 @@ import org.knime.core.node.workflow.capture.WorkflowPortObject;
 import org.knime.core.util.FileUtil;
 import org.knime.workflowservices.IWorkflowBackend.ResourceContentType;
 import org.knime.workflowservices.knime.caller.WorkflowParameter;
+
+import jakarta.ws.rs.core.UriBuilder;
 
 /**
  *
