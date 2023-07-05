@@ -156,7 +156,8 @@ public final class CallWorkflowUtil {
     /**
      * @param parameterName the workflow parameter name
      * @param portType specifies the type of content in the file
-     * @param portContent as written by, e.g., {@link CallWorkflowUtil#writePortObject(ExecutionContext, PortObject)}
+     * @param portContent as written by, e.g., {@link CallWorkflowUtil#writePortObject(ExecutionContext, PortObject)}.
+     *            If null, the node data's resource will point to {@code /dev/null}.
      * @return data for a workflow input parameter or from a workflow output parameter, with the port object contents in
      *         a file
      */

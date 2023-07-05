@@ -47,6 +47,10 @@ package org.knime.workflowservices.knime.callee;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystemException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
@@ -56,6 +60,7 @@ import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
@@ -63,6 +68,7 @@ import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.dialog.OutputNode;
 import org.knime.core.node.port.PortObject;
+import org.knime.core.node.port.PortObjectHolder;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.VariableType;
@@ -71,24 +77,32 @@ import org.knime.core.node.workflow.capture.WorkflowPortObject;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
+ * Technically, this is a {@link PortObjectHolder}, but we do not implement it to maintain backward compatibilitys. The
+ * held port object is stored as a file in the internal node data.
+ *
+ * A copy or, if possible, hard link is created in a temporary directory in order to be able to survive a load internal
+ * data/delete internal data directory/save internal data sequence of operations. This happens during a major workflow
+ * version bump.
+ *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
 final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
 
     public static final String DEFAULT_PARAM_NAME = "output-parameter";
 
+    private static boolean hasReportedUnsupportedCreationOfHardLinks;
+
     private WorkflowBoundaryConfiguration m_config = new WorkflowBoundaryConfiguration(DEFAULT_PARAM_NAME);
 
     /**
-     * Set during execute, when the input {@link PortObject} is written to a file. The URI of the temporary file is
-     * stored in this {@link Optional}.
+     * Path to the temporary file containing the {@link PortObject} to return to the caller workflow.
+     *
+     * Set during {@link #execute(PortObject[], ExecutionContext)}, when the input {@link PortObject} is written to a
+     * temporary file.
+     *
+     * Or set during {@link #loadInternals(File, ExecutionMonitor)} when the node is loaded in executed state.
      */
-    private Optional<File> m_output = Optional.empty();
-
-    /** If m_output is temporary and should be cleared when disposing the node: Usually this is the case but not if
-     * the node was restored from an executed workflow.
-     */
-    private boolean m_isOutputATempFile;
+    private Path m_output;
 
     /**
      * Creates a new {@link WorkflowOutputNodeModel} with no input ports and one flow variable output port.
@@ -111,13 +125,11 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
         var result = inObjects[0];
-        var outputFile = writePortObjectToFile(result, exec);
-        m_output = Optional.of(outputFile);
-        m_isOutputATempFile = true;
+        m_output = writePortObjectToTempFile(result, exec).toPath();
         return new PortObject[]{result};
     }
 
-    private File writePortObjectToFile(final PortObject portObj, final ExecutionContext exec) throws Exception {
+    private File writePortObjectToTempFile(final PortObject portObj, final ExecutionContext exec) throws Exception {
         if (portObj instanceof FlowVariablePortObject) {
             VariableType<?>[] allTypes = VariableTypeRegistry.getInstance().getAllTypes();
             return CallWorkflowUtil.writeFlowVariables(getAvailableFlowVariables(allTypes).values());
@@ -137,7 +149,8 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
     @Override
     public ExternalNodeData getExternalOutput() {
         var parameterName = m_config.getParameterName();
-        return CallWorkflowUtil.createExternalNodeData(parameterName, getInPortType(0), m_output.orElse(null));
+        var outputPath = Optional.ofNullable(m_output);
+        return CallWorkflowUtil.createExternalNodeData(parameterName, getInPortType(0), outputPath.map(Path::toFile).orElse(null));
     }
 
     @Override
@@ -155,22 +168,39 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
         m_config = new WorkflowBoundaryConfiguration(DEFAULT_PARAM_NAME).loadSettingsFrom(settings);
     }
 
+    /**
+     * Create a hard link or copy of the port object file (internal node data) to a temporary directory.
+     *
+     * {@inheritDoc}
+     */
     @Override
     protected void loadInternals(final File nodeInternDir, final ExecutionMonitor exec)
         throws IOException, CanceledExecutionException {
-        for (File file : FileUtils.listFiles(nodeInternDir, new RegexFileFilter("output-resource\\..+"), null)) {
-            m_output = Optional.of(file);
-            m_isOutputATempFile = false;
+        var files = FileUtils.listFiles(nodeInternDir, new RegexFileFilter("output-resource\\..+"), null);
+        if(files.size() != 1) {
+            throw new IllegalStateException("Invalid internal node data in workflow output node."
+                + " There should be exactly one internal output-resource file but got: " + Arrays.toString(files.toArray()));
         }
+        var portObjectFile = files.iterator().next().toPath();
+
+        final Path tempLinkOrCopy = Files.createTempFile("output-resource", ".portobject");
+        Files.delete(tempLinkOrCopy);
+
+        m_output = hardLinkOrCopy(portObjectFile, tempLinkOrCopy);
     }
 
+    /**
+     * Store the output port object (if any) into the internal node directory.
+     *
+     * {@inheritDoc}
+     */
     @Override
     protected void saveInternals(final File nodeInternDir, final ExecutionMonitor exec)
         throws IOException, CanceledExecutionException {
-        var f = m_output.orElse(null);
-        if (f != null) {
-            FileUtils.copyFile(f,
-                new File(nodeInternDir, "output-resource." + FilenameUtils.getExtension(f.getAbsolutePath())));
+        if (m_output != null) {
+            final var file = m_output.toFile();
+            FileUtils.copyFile(file,
+                new File(nodeInternDir, "output-resource." + FilenameUtils.getExtension(file.getAbsolutePath())));
         }
     }
 
@@ -191,19 +221,36 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
     @SuppressWarnings("javadoc")
     @Override
     protected void reset() {
-        if (m_isOutputATempFile) {
-            m_output.ifPresent(f -> {
-                if (!FileUtils.deleteQuietly(f)) {
-                    getLogger().warnWithFormat("Unable to delete temporary file \"%s\"", f.getAbsolutePath());
-                }
-            });
-            m_output = Optional.empty();
+        if (m_output != null && !FileUtils.deleteQuietly(m_output.toFile())) {
+            getLogger().warnWithFormat("Unable to delete temporary file \"%s\"", m_output.toAbsolutePath());
         }
+        m_output = null;
     }
 
     @Override
     public boolean isUseAlwaysFullyQualifiedParameterName() {
         return false;
+    }
+
+    static final NodeLogger LOGGER = NodeLogger.getLogger(WorkflowOutputNodeModel.class);
+
+    /**
+     * Attempts to create a hard link from source to target to avoid unnecessary copying. If that is not supported (file
+     * system doesn't support it or paths living on different file system) a copy is performed instead.
+     */
+    static Path hardLinkOrCopy(final Path existing, final Path link) throws IOException {
+        try {
+            return Files.createLink(link, existing);
+        } catch (UnsupportedOperationException | FileSystemException unsupportedException) {
+            if (!hasReportedUnsupportedCreationOfHardLinks) {
+                hasReportedUnsupportedCreationOfHardLinks = true;
+                LOGGER.warn(
+                    "Creation of hard links not supported, will copy files instead (and suppress further warnings)",
+                    unsupportedException);
+            }
+            LOGGER.debugWithFormat("Copying file %s to temp (creating of hard links not supported)", existing);
+            return Files.copy(existing, link);
+        }
     }
 
 }
