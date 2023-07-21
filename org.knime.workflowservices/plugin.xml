@@ -64,4 +64,16 @@
              classMapper="org.knime.workflowservices.WorkflowServicesFactoryClassMapper">
        </NodeFactoryClassMapper>
     </extension>
+    <extension
+          point="org.knime.core.PortType">
+       <portType
+             color="#4386f7"
+             hidden="false"
+             name="KNIME Hub Credentials"
+             objectClass="org.knime.workflowservices.connection.AbstractHubAuthenticationPortObject"
+             objectSerializer="org.knime.workflowservices.connection.AbstractHubAuthenticationPortObject$FailSerializer"
+             specClass="org.knime.workflowservices.connection.AbstractHubAuthenticationPortObjectSpec"
+             specSerializer="org.knime.workflowservices.connection.AbstractHubAuthenticationPortObjectSpec$FailSerializer">
+       </portType>
+    </extension>
 </plugin>

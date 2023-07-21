@@ -28,4 +28,16 @@ import org.knime.core.node.port.PortObject;
  * @author Dionysios Stolis, KNIME GmbH, Berlin, Germany
  */
 public interface AbstractHubAuthenticationPortObject extends PortObject {
+
+    /**
+     * Serializer registered via extension point but expected not to be called (since class is abstract).
+     *
+     * @noreference Not to be used.
+     */
+    final class FailSerializer extends FailOnInvocationPortObjectSerializer<AbstractHubAuthenticationPortObject> {
+    }
+
+    @Override
+    AbstractHubAuthenticationPortObjectSpec getSpec(); // constrain return type
+
 }

@@ -33,6 +33,15 @@ import org.knime.core.util.auth.Authenticator;
 public interface AbstractHubAuthenticationPortObjectSpec extends PortObjectSpec {
 
     /**
+     * Serializer registered via extension point but expected not to be called (since class is abstract).
+     *
+     * @noreference Not to be used.
+     */
+    final class FailSerializer
+        extends FailOnInvocationPortObjectSpecSerializer<AbstractHubAuthenticationPortObjectSpec> {
+    }
+
+    /**
      * @return the authenticator of the hub instance.
      */
     public Optional<Authenticator> getAuthenticator();
