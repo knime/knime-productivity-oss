@@ -1,6 +1,7 @@
 autoEnabled=true
+bindingSuggestionsDisabled=false
 eclipse.preferences.version=1
-idePrefixKey=
+idePrefixKey=src-deprecated/org/knime/workflowservices/json/row/caller
 projectKey=org.knime\:knime-personalproductivity
 serverId=sonar.knime.com
-sqPrefixKey=
+sqPrefixKey=org.knime.explorer.nodes/src/org/knime/explorer/nodes/callworkflow
