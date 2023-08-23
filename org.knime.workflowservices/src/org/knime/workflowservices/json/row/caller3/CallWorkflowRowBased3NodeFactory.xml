@@ -86,7 +86,7 @@
     </fullDescription>
     <ports>
         <inPort index="0" name="Input table">The callee workflow is invoked for each row in this table. Cells in JSON columns can be sent to specific input nodes in the callee workflow.</inPort>
-    	<dynInPort insert-before="0" name="File system connection"
+    	<dynInPort insert-before="0" name="Connection"
 			group-identifier="File System Connection">
 			An optional connection to a file system that contains the callee workflow or a hub instance that provides deployed workflows.
 			The callee workflow will be executed where it is located, e.g., on the KNIME Hub.
