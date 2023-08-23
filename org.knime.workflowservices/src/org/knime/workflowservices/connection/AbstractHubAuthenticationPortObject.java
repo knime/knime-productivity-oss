@@ -21,13 +21,28 @@
 package org.knime.workflowservices.connection;
 
 import org.knime.core.node.port.PortObject;
+import org.knime.core.node.port.PortType;
+import org.knime.core.node.port.PortTypeRegistry;
 
 /**
- * Abstract port object to decouple the dependecy to the Hub Port object (closed source code).
+ * Abstract port object to decouple the dependency to the Hub Port object (closed source code).
  *
  * @author Dionysios Stolis, KNIME GmbH, Berlin, Germany
  */
 public interface AbstractHubAuthenticationPortObject extends PortObject {
+
+    /**
+     * Type of this port.
+     */
+    public static final PortType TYPE =
+        PortTypeRegistry.getInstance().getPortType(AbstractHubAuthenticationPortObject.class);
+
+    /**
+     * Type of this optional port.
+     */
+    public static final PortType TYPE_OPTIONAL =
+        PortTypeRegistry.getInstance().getPortType(AbstractHubAuthenticationPortObject.class, true);
+
 
     /**
      * Serializer registered via extension point but expected not to be called (since class is abstract).
