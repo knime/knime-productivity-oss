@@ -23,6 +23,7 @@ package org.knime.workflowservices.connection;
 import java.io.IOException;
 import java.util.List;
 
+import org.knime.core.util.hub.NamedItemVersion;
 import org.knime.workflowservices.ExecutionContext;
 import org.knime.workflowservices.IWorkflowBackend;
 
@@ -49,8 +50,16 @@ public interface WorkflowExecutionConnector {
      * @return the execution contexts
      * @throws IOException if an error occurs while fetching execution contexts
      */
-    public default List<ExecutionContext> getExecutionContexts() throws IOException {
+    default List<ExecutionContext> getExecutionContexts() throws IOException {
         return List.of();
     }
 
+    /**
+     * @return the versions of the workflow to execute. Returns an empty list if there is only the current state or if
+     *         the workflow is not located on a KNIME hub.
+     * @throws IOException if an error occurs while fetching execution contexts
+     */
+    default List<NamedItemVersion> getItemVersions() throws IOException {
+        return List.of();
+    }
 }

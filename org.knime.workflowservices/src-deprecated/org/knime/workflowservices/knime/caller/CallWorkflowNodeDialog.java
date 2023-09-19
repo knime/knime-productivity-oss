@@ -149,7 +149,7 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
         // store result
         m_configuration.setCalleeWorkflowProperties(remoteWorkflowProperties);
         // show result
-        m_controls.m_parameterMappingPanel.update(remoteWorkflowProperties);
+        m_controls.m_parameterMappingPanel.accept(remoteWorkflowProperties);
 
         // mark retrieval as done
         m_parameterUpdater = null;
@@ -280,7 +280,7 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
         var inProgress =
             !(m_parameterUpdater == null || m_parameterUpdater.isDone() || m_parameterUpdater.cancel(true));
         if (inProgress) {
-            m_controls.m_parameterMappingPanel.setErrorMessage("Failed to interrupt fetching workflow parameters.");
+            m_controls.m_parameterMappingPanel.exception("Failed to interrupt fetching workflow parameters.");
             return;
         }
 
@@ -289,7 +289,7 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
         try {
             m_parameterUpdater = new ParameterUpdateWorker(//
                 workflowPath, //
-                m_controls.m_parameterMappingPanel::setErrorMessage, //
+                m_controls.m_parameterMappingPanel::exception, //
                 m_configuration.getFetchParametersTimeout().orElse(Duration.ofSeconds(30)), //
                 m_serverConnection, //
                 this::onWorkflowPropertiesLoad, //
@@ -298,7 +298,7 @@ class CallWorkflowNodeDialog extends NodeDialogPane implements ConfigurableNodeD
             m_configuration.setCalleeWorkflowProperties(null);
             m_parameterUpdater.execute();
         } catch (Exception e) {
-            m_controls.m_parameterMappingPanel.setErrorMessage(e.getMessage());
+            m_controls.m_parameterMappingPanel.exception(e.getMessage());
         }
     }
 

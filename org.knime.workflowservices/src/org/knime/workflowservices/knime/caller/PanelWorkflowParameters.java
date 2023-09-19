@@ -23,6 +23,7 @@ package org.knime.workflowservices.knime.caller;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.GridBagLayout;
+import java.beans.PropertyChangeListener;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,6 +35,7 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.knime.base.node.viz.plotter.Axis;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.context.ports.PortsConfiguration;
@@ -41,6 +43,7 @@ import org.knime.core.node.port.PortType;
 import org.knime.filehandling.core.defaultnodesettings.status.DefaultStatusMessage;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusView;
+import org.knime.workflowservices.Fetcher;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.util.LoadingPanel;
 
@@ -49,8 +52,9 @@ import org.knime.workflowservices.connection.util.LoadingPanel;
  * the input and output parameters, which will be reflected on the order of the ports of the Call Workflow Service node.
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
+ * @noreference non-public API
  */
-public final class PanelWorkflowParameters {
+public final class PanelWorkflowParameters implements Fetcher.Processor<WorkflowParameters, WorkflowParameters> {
 
     private static final DefaultStatusMessage PARAMETERS_OUT_OF_SYNC = new DefaultStatusMessage(MessageType.WARNING,
         "The node ports do not match the parameters of the workflow. Adjust?");
@@ -210,7 +214,12 @@ public final class PanelWorkflowParameters {
     public void load(final WorkflowParameters workflowParameters) {
         m_userDefinedOrder = true;
         m_currentProperties = workflowParameters.copy();
-        update(workflowParameters);
+        accept(workflowParameters);
+    }
+
+    @Override
+    public void accept(final WorkflowParameters p) {
+        set(p);
     }
 
     /**
@@ -224,7 +233,8 @@ public final class PanelWorkflowParameters {
      *
      * @param workflowParameters new workflow input/output parameters
      */
-    public void update(final WorkflowParameters workflowParameters) {
+    @Override
+    public void set(final WorkflowParameters workflowParameters) {
 
         // if a user-defined order exists, try to apply it
         if (m_userDefinedOrder) {
@@ -299,7 +309,8 @@ public final class PanelWorkflowParameters {
         return m_outputMapping.getParameterOrder();
     }
 
-    public void setErrorMessage(final String message) {
+    @Override
+    public void exception(final String message) {
         m_errorLabel.setText("Error: " + message);
         setState(State.ERROR);
     }
@@ -308,7 +319,6 @@ public final class PanelWorkflowParameters {
      * @param state adjust display according to a given state.
      */
     public void setState(final State state) {
-
         // display the READY panel both for state READY and PARAMETER_CONFLICT
         String panel = state == State.PARAMETER_CONFLICT ? State.READY.name() : state.name();
         m_cardLayout.show(getContentPane(), panel);
@@ -319,10 +329,34 @@ public final class PanelWorkflowParameters {
         m_outOfSyncWarning.setStatus(state == State.PARAMETER_CONFLICT ? PARAMETERS_OUT_OF_SYNC : PARAMETERS_IN_SYNC);
 
         m_currentState = state;
+        getContentPane().repaint();
+        getContentPane().revalidate();
     }
 
     public State getState() {
         return m_currentState;
     }
+
+    @Override
+    public WorkflowParameters get() {
+        return m_currentProperties;
+    }
+
+    @Override
+    public void addListener(final PropertyChangeListener listener) {
+        throw new NotImplementedException("The workflow parameters panel does not allow listener registration");
+    }
+
+    @Override
+    public void clear() {
+        m_currentProperties = null;
+        this.setState(State.NO_WORKFLOW_SELECTED);
+    }
+
+    @Override
+    public void loading() {
+        this.setState(State.LOADING);
+    }
+
 
 }

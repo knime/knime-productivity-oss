@@ -43,7 +43,6 @@ import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.filehandling.core.connections.meta.FSType;
 import org.knime.filehandling.core.util.GBCBuilder;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
-import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration.ConnectionType;
 import org.knime.workflowservices.connection.ServerConnectionUtil;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 
@@ -149,12 +148,10 @@ public class ExecutionContextSelector {
      * @param configuration the call workflow connection configuration.
      */
     public final void loadSettingsInDialog(final CallWorkflowConnectionConfiguration configuration) {
-        FSType fsType;
-        if (configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
-            fsType = configuration.getWorkflowChooserModel().getLocation().getFSType();
-        } else {
-            fsType = FSType.HUB;
-        }
+        var fsType = switch (configuration.getConnectionType()) {
+            case FILE_SYSTEM -> configuration.getWorkflowChooserModel().getLocation().getFSType();
+            case HUB_AUTHENTICATION -> FSType.HUB;
+        };
         if (ConnectionUtil.isHubConnection(fsType)) {
             fillExecutionContextsDropdown(configuration);
         } else {

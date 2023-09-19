@@ -16,7 +16,6 @@ import javax.swing.JScrollPane;
 import org.knime.core.node.ConfigurableNodeFactory.ConfigurableNodeDialog;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
-import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
@@ -27,10 +26,17 @@ import org.knime.core.node.context.ports.ModifiablePortsConfiguration;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.util.CheckUtils;
-import org.knime.workflowservices.Deployment;
+import org.knime.workflowservices.CalleeParameterFlow;
+import org.knime.workflowservices.CalleePropertyFlow;
+import org.knime.workflowservices.HubCalleeSelectionFlow;
+import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.InvocationTargetPanel;
+import org.knime.workflowservices.InvocationTargetProvider;
+import org.knime.workflowservices.InvocationTargetProviderWorkflowChooserImplementation;
+import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration.ConnectionType;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
+import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.knime.caller.CallWorkflowNodeConfiguration;
 import org.knime.workflowservices.knime.caller.PanelWorkflowParameters;
 import org.knime.workflowservices.knime.caller.ParameterUpdateWorker;
@@ -40,7 +46,7 @@ import org.knime.workflowservices.knime.caller.WorkflowParameters;
 /**
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNodeDialog {
+final class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNodeDialog {
 
     /*
      * State
@@ -53,7 +59,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
      *
      * @see #updateNodePorts(NodeCreationConfiguration)
      */
-    private boolean m_portConfigChanged = false;
+    private volatile boolean m_portConfigChanged = false;
 
     /**
      * Needs to be {@link ModifiableNodeCreationConfiguration} instead of a regular {@link NodeCreationConfiguration}
@@ -66,10 +72,11 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
     private ModifiableNodeCreationConfiguration m_nodeCreationConfig;
 
     /*
-     * Asynchronous workers
+     * Async data fetching
      */
 
-    /** Asynchronously fetches the workflow input and output parameters of a workflow to be executed. */
+    private final CalleePropertyFlow m_calleePropertyFlow;
+
     private ParameterUpdateWorker m_parameterUpdater;
 
     /*
@@ -85,7 +92,6 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
     /** How to call the workflow or deployment. */
     private final CallWorkflowConnectionControls m_connectionControls = new CallWorkflowConnectionControls();
 
-
     CallWorkflow2NodeDialog(final NodeCreationConfiguration ncc) {
         m_configuration =
             new CallWorkflowNodeConfiguration(ncc, CallWorkflow2NodeFactory.CONNECTION_INPUT_PORT_GRP_NAME);
@@ -96,66 +102,38 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
         m_parameterMappingPanel = new PanelWorkflowParameters(this::parametersCompatibleWithPorts, m_configuration,
             ncc.getPortConfig().orElseThrow(IllegalStateException::new));
 
+        final var versionSelector = m_invocationTargetPanel.getVersionSelector();
+        final var parameterDisplay = m_parameterMappingPanel;
+        InvocationTargetProvider<?> invocationTarget;
+        if (m_configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
+            invocationTarget = new InvocationTargetProviderWorkflowChooserImplementation(m_configuration.getWorkflowChooserModel());
+            m_calleePropertyFlow = new HubCalleeSelectionFlow<>(m_configuration, invocationTarget, versionSelector,
+                parameterDisplay, this::fetchParameters);
+        } else {
+            invocationTarget = m_invocationTargetPanel.getDeploymentSelector();
+            m_calleePropertyFlow =
+                new CalleeParameterFlow<>(m_configuration, invocationTarget, parameterDisplay, this::fetchParameters);
+        }
+
         addTab("Workflow", getMainPanel());
         addTab("Advanced Settings", createAdvancedTab());
-
-        // callbacks wiring
-        m_configuration.getWorkflowChooserModel().addChangeListener(e -> fetchWorkflowProperties());
-        m_invocationTargetPanel.addDeploymentChangedListener(this::deploymentChanged);
-    }
-
-    /*
-     * Callbacks
-     */
-
-    private void deploymentChanged(final Deployment newDeployment) {
-        m_configuration.setDeploymentId(newDeployment.id());
-        fetchWorkflowProperties();
     }
 
     /**
-     * Asynchronously fetch input and output parameters of the workflow to be executed.
-     * {@link #onWorkflowPropertiesLoad(WorkflowParameters)} is the callback for the result.
+     * Synchronous parameter fetch operation that is wrapped in a swing worker via {@link CalleeParameterFlow}.
+     * @param configuration to create the connection,
+     * @return input and output parameters of the callee workflow
+     * @throws Exception if the backend cannot be created or the input/output resource descriptions cannot be retrieved
      */
-    private void fetchWorkflowProperties() {
-
-        if (m_configuration.getConnectionType() == ConnectionType.FILE_SYSTEM
-            && !m_configuration.getWorkflowChooserModel().isLocationValid()) {
-            NodeLogger.getLogger(getClass())
-                .warn("Invalid location: " + m_configuration.getWorkflowChooserModel().getPath());
-            return;
-        }
-
-        var inProgress =
-            !(m_parameterUpdater == null || m_parameterUpdater.isDone() || m_parameterUpdater.cancel(true));
-        if (inProgress) {
-            m_parameterMappingPanel.setErrorMessage("Failed to interrupt fetching workflow parameters.");
-            return;
-        }
-
-        m_parameterMappingPanel.setState(PanelWorkflowParameters.State.LOADING);
-
-        var fetchConfig = m_configuration.createFetchConfiguration();
-        m_parameterUpdater = new ParameterUpdateWorker(fetchConfig,
-            m_parameterMappingPanel::setErrorMessage, this::onWorkflowPropertiesLoad);
-
+    private WorkflowParameters fetchParameters(final CallWorkflowConnectionConfiguration configuration)
+        throws Exception {
         m_configuration.setCalleeWorkflowProperties(null);
-        m_parameterUpdater.execute();
-    }
-
-    /**
-     * Called when the {@link ParameterUpdateWorker} is done with retrieving information about the callee workflow.
-     *
-     * @param remoteWorkflowProperties retrieved information, e.g., input ports and output ports.
-     */
-    private void onWorkflowPropertiesLoad(final WorkflowParameters remoteWorkflowProperties) {
-        // store result
-        m_configuration.setCalleeWorkflowProperties(remoteWorkflowProperties);
-        // show result
-        m_parameterMappingPanel.update(remoteWorkflowProperties);
-
-        // mark retrieval as done
-        m_parameterUpdater = null;
+        try (IWorkflowBackend backend = ConnectionUtil.createWorkflowBackend(configuration)) {
+            var parameters =
+                new WorkflowParameters(backend.getInputResourceDescription(), backend.getOutputResourceDescription());
+            m_configuration.setCalleeWorkflowProperties(parameters);
+            return parameters;
+        }
     }
 
     /*
@@ -168,15 +146,12 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
      *
      * Called when finishing configuration in {@link #saveSettingsTo(NodeSettingsWO)}.
      *
-     * @param properties describes the input and output ports of the callee workflow.
-     * @throws InvalidSettingsException
+     * @throws InvalidSettingsException if no workflow parameters are stored in the node configuration
      */
     private void updateNodePorts() throws InvalidSettingsException {
 
-        Optional<ModifiablePortsConfiguration> portConfig = m_nodeCreationConfig.getPortConfig();
-        if (portConfig.isEmpty()) {
-            return; // should never happen - setCurrentNodeCreationConfiguration would be broken
-        }
+        // should never happen - setCurrentNodeCreationConfiguration would be broken
+        final var portConfig = m_nodeCreationConfig.getPortConfig().orElseThrow();
 
         // should not happen - the configuration should not be able to finish without configuring a callee workflow and
         // fetching its workflow parameters
@@ -185,7 +160,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
 
         // update input ports
         ExtendablePortGroup inputConfig =
-            (ExtendablePortGroup)portConfig.get().getGroup(CallWorkflow2NodeFactory.INPUT_PORT_GROUP);
+            (ExtendablePortGroup)portConfig.getGroup(CallWorkflow2NodeFactory.INPUT_PORT_GROUP);
         while (inputConfig.hasConfiguredPorts()) {
             inputConfig.removeLastPort();
         }
@@ -195,7 +170,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
 
         // update output ports
         ExtendablePortGroup outputConfig =
-            (ExtendablePortGroup)portConfig.get().getGroup(CallWorkflow2NodeFactory.OUTPUT_PORT_GROUP);
+            (ExtendablePortGroup)portConfig.getGroup(CallWorkflow2NodeFactory.OUTPUT_PORT_GROUP);
         while (outputConfig.hasConfiguredPorts()) {
             outputConfig.removeLastPort();
         }
@@ -256,6 +231,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
             m_parameterMappingPanel.getState() != PanelWorkflowParameters.State.NO_WORKFLOW_SELECTED,
             "Please select a workflow to execute.");
 
+        m_invocationTargetPanel.saveSettingsTo(settings, m_configuration);
         m_connectionControls.saveToConfiguration(m_configuration);
 
         // update the order of the parameters
@@ -268,32 +244,48 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
         // create input/output ports according to the selected order of the workflow input/output parameters
         if (!parametersCompatibleWithPorts(m_configuration.getCalleeWorkflowProperties().orElseThrow())) {
             updateNodePorts();
-        } else {
-            m_portConfigChanged = false;
         }
-
-        m_invocationTargetPanel.saveSettingsTo(settings, m_configuration);
         m_configuration.saveSettings(settings);
     }
 
     @Override
     protected final void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] inSpecs)
         throws NotConfigurableException {
-        m_invocationTargetPanel.loadChooser(settings, inSpecs);
-        m_configuration.loadSettingsInDialog(settings);
-        m_invocationTargetPanel.loadSettingsInDialog(m_configuration, settings, inSpecs);
-        m_connectionControls.loadConfiguration(m_configuration);
 
-        // configure remote execution if a server connection is present
-        enableAllUIElements(true);
-        if (m_configuration.getConnectionType() == ConnectionType.HUB_AUTHENTICATION) {
-            m_connectionControls.setRemoteConnection();
-        } else {
-            m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
+        // when re-opening the dialog, delay data fetching until in consistent state again.
+        m_calleePropertyFlow.enable(false);
+        try {
+            // callee location also updates the selection flow location via listener
+            m_invocationTargetPanel.loadChooser(settings, inSpecs);
+
+            // call workflow connection base settings & workflow parameters
+            m_configuration.loadSettingsInDialog(settings);
+
+            // Hub authenticator connected: deployment & authenticator
+            // File system connected: load version and execution context
+            m_invocationTargetPanel.loadSettingsInDialog(m_configuration, settings, inSpecs);
+
+            // call workflow connection settings
+            m_connectionControls.loadConfiguration(m_configuration);
+
+            // configure remote execution if a server connection is present
+            enableAllUIElements(true);
+            if (m_configuration.getConnectionType() == ConnectionType.HUB_AUTHENTICATION) {
+                m_connectionControls.setRemoteConnection();
+            } else {
+                m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
+            }
+
+            m_configuration.getCalleeWorkflowProperties().ifPresent(m_parameterMappingPanel::accept);
+
+            final var versionSelectorVisible = ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());
+            m_invocationTargetPanel.getVersionSelector().setVisible(versionSelectorVisible);
+        } finally {
+            m_calleePropertyFlow.enable(true);
         }
 
-        // display workflow input/output parameters
-        fetchWorkflowProperties();
+        // fetch remote data
+        m_calleePropertyFlow.loadInvocationTargets();
     }
 
     private void enableAllUIElements(final boolean enable) {
@@ -331,6 +323,7 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
             m_parameterUpdater = null;
         }
         m_invocationTargetPanel.close();
+        m_calleePropertyFlow.close();
         super.onClose();
     }
 
@@ -345,7 +338,8 @@ class CallWorkflow2NodeDialog extends NodeDialogPane implements ConfigurableNode
 
     @Override
     public Optional<ModifiableNodeCreationConfiguration> getNewNodeCreationConfiguration() {
-        return Optional.ofNullable(m_portConfigChanged ? m_nodeCreationConfig : null);
+        final var newNodeCreationConfiguration = Optional.ofNullable(m_portConfigChanged ? m_nodeCreationConfig : null);
+        m_portConfigChanged = false;
+        return newNodeCreationConfiguration;
     }
-
 }

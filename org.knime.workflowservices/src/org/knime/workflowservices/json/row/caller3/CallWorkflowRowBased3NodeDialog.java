@@ -20,6 +20,7 @@
  */
 package org.knime.workflowservices.json.row.caller3;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -42,8 +43,13 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.util.SwingWorkerWithContext;
-import org.knime.workflowservices.Deployment;
+import org.knime.workflowservices.CalleeParameterFlow;
+import org.knime.workflowservices.CalleePropertyFlow;
+import org.knime.workflowservices.Fetcher;
+import org.knime.workflowservices.HubCalleeSelectionFlow;
 import org.knime.workflowservices.InvocationTargetPanel;
+import org.knime.workflowservices.InvocationTargetProvider;
+import org.knime.workflowservices.InvocationTargetProviderWorkflowChooserImplementation;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration.ConnectionType;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
@@ -58,7 +64,11 @@ import org.knime.workflowservices.connection.util.CreateReportControls;
  *
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
-final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
+final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane implements Fetcher.StatefulConsumer<Map<String, ExternalNodeData>> {
+
+    /** Manages asynchronous data fetching. */
+    private final CalleePropertyFlow m_calleePropertyFlow;
+
     /**
      * A JSON column in the input table can be selected as input for a callee workflow input parameter.
      *
@@ -72,6 +82,10 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
 
     private ParameterUpdateWorker m_parameterUpdateWorker;
 
+    /**
+     * This could also implement Fetcher.StatefulConsumer<Map<String, ExternalNodeData>> but it's used by legacy code I
+     * don't want to touch.
+     */
     private final JsonInputParametersPanel m_inputParameters;
 
     private final CreateReportControls m_createReport;
@@ -92,42 +106,46 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
             }
         });
 
+        final var versionSelector = m_invocationTargetPanel.getVersionSelector();
+        final var parameterDisplay = this;
+        InvocationTargetProvider<?> invocationTarget;
+        if (m_configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
+            invocationTarget = new InvocationTargetProviderWorkflowChooserImplementation(m_configuration.getWorkflowChooserModel());
+            m_calleePropertyFlow = new HubCalleeSelectionFlow<>(m_configuration, invocationTarget, versionSelector,
+                parameterDisplay, CallWorkflowRowBased3NodeDialog::fetchParameters);
+        } else {
+            invocationTarget = m_invocationTargetPanel.getDeploymentSelector();
+            m_calleePropertyFlow = new CalleeParameterFlow<>(m_configuration,
+                invocationTarget, parameterDisplay, CallWorkflowRowBased3NodeDialog::fetchParameters);
+        }
+
         addTab("Workflow", createMainTab());
         addTab("Advanced Settings", createAdvancedTab());
-
-        // Callback wiring
-        m_invocationTargetPanel.addDeploymentChangedListener(this::deploymentChanged);
-        m_configuration.getWorkflowChooserModel().addChangeListener(e -> fetchWorkflowProperties());
-    }
-
-    /*
-     * Callbacks
-     */
-
-    private void deploymentChanged(final Deployment newDeployment) {
-        m_configuration.setDeploymentId(newDeployment.id());
-        fetchWorkflowProperties();
     }
 
     /**
-     * Retrieve the callee workflow input parameters and pass them to the {@link Controls#m_inputParameters} panel to
-     * allow binding data to the input parameters.
-     *
-     * @throws InvalidSettingsException
+     * Synchronous parameter fetch operation that is wrapped in a swing worker via {@link CalleeParameterFlow}.
+     * @param configuration to create the connection,
+     * @return input and output parameters of the callee workflow
+     * @throws Exception if the backend cannot be created or the input/output resource descriptions cannot be retrieved
      */
-    private void fetchWorkflowProperties() {
-        if (m_parameterUpdateWorker != null) {
-            m_parameterUpdateWorker.cancel(true);
-            m_parameterUpdateWorker = null;
+    private static Map<String, ExternalNodeData> fetchParameters(final CallWorkflowConnectionConfiguration configuration)
+        throws IOException, Exception {
+        final var isEmptyCallee = switch (configuration.getConnectionType()) {
+            case FILE_SYSTEM -> StringUtils.isEmpty(configuration.getWorkflowPath());
+            case HUB_AUTHENTICATION -> StringUtils.isEmpty(configuration.getDeploymentId());
+        };
+        if (isEmptyCallee) {
+            return Map.of();
         }
-        var tempConfig = m_configuration.createFetchConfiguration();
-
-        m_parameterUpdateWorker =
-            new ParameterUpdateWorker(tempConfig, this::onWorkflowParametersLoad, this::onFailure);
-        m_parameterUpdateWorker.execute();
+        ConnectionUtil.validateConfiguration(configuration);
+        try (var backend = ConnectionUtil.createWorkflowBackend(configuration)) {
+            return backend.getInputNodes();
+        }
     }
 
-    private void onWorkflowParametersLoad(final Map<String, ExternalNodeData> inputNodes) {
+    @Override
+    public void accept(final Map<String, ExternalNodeData> inputNodes) {
         m_inputParameters.createPanels(inputNodes, m_inputTableSpec);
         m_inputParameters.loadConfiguration(m_configuration);
         m_inputParameters.clearError();
@@ -139,7 +157,8 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
         panel.repaint();
     }
 
-    private void onFailure(final String message) {
+    @Override
+    public void exception(final String message) {
         m_inputParameters.setError(message);
         NodeLogger.getLogger(CallWorkflowRowBased3NodeDialog.class).debug(message);
     }
@@ -177,26 +196,37 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] inSpecs)
         throws NotConfigurableException {
 
-        m_invocationTargetPanel.loadChooser(settings, inSpecs);
-        m_configuration.loadSettingsInDialog(settings);
-        m_invocationTargetPanel.loadSettingsInDialog(m_configuration, settings, inSpecs);
+        // when re-opening the dialog, delay data fetching until in consistent state again.
+        m_calleePropertyFlow.enable(false);
+        try {
+            m_invocationTargetPanel.loadChooser(settings, inSpecs);
+            m_configuration.loadSettingsInDialog(settings);
+            m_invocationTargetPanel.loadSettingsInDialog(m_configuration, settings, inSpecs);
 
-        m_connectionControls.loadConfiguration(m_configuration);
+            m_connectionControls.loadConfiguration(m_configuration);
 
-        m_inputTableSpec = (DataTableSpec)inSpecs[CallWorkflowRowBased3NodeFactory.getDataPortIndex(m_configuration)];
+            m_inputTableSpec =
+                (DataTableSpec)inSpecs[CallWorkflowRowBased3NodeFactory.getDataPortIndex(m_configuration)];
 
-        // load settings
-        m_createReport.loadFromConfiguration(m_configuration);
+            // load settings
+            m_createReport.loadFromConfiguration(m_configuration);
 
-        // disable timeouts and backoff controls if connection is local
-        if (m_configuration.getConnectionType() == ConnectionType.HUB_AUTHENTICATION) {
-            m_connectionControls.setRemoteConnection();
-        } else {
-            m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
+            // disable timeouts and backoff controls if connection is local
+            if (m_configuration.getConnectionType() == ConnectionType.HUB_AUTHENTICATION) {
+                m_connectionControls.setRemoteConnection();
+            } else {
+                m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
+            }
+
+            final var versionSelectorVisible = ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());
+            m_invocationTargetPanel.getVersionSelector().setVisible(versionSelectorVisible);
+        } finally {
+            m_calleePropertyFlow.enable(true);
         }
-        fetchWorkflowProperties();
-    }
 
+        // fetch remote data
+        m_calleePropertyFlow.loadInvocationTargets();
+    }
 
     /**
      * @return contains the main server connection settings (polling, job discard/keep), workflow path selector, input
@@ -287,6 +317,24 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane {
                 }
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clear() {
+        // TODO Auto-generated method stub
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void loading() {
+        // TODO Auto-generated method stub
+
     }
 
 }

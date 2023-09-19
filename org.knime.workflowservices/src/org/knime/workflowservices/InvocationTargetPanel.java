@@ -35,6 +35,7 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.VariableType;
+import org.knime.core.util.hub.HubItemVersionPersistor;
 import org.knime.filehandling.core.data.location.variable.FSLocationVariableType;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.DialogComponentWorkflowChooser;
 import org.knime.filehandling.core.util.GBCBuilder;
@@ -51,6 +52,8 @@ public final class InvocationTargetPanel {
 
     private DialogComponentWorkflowChooser m_workflowChooser;
 
+    private final CalleeVersionSelectionPanel m_versionSelector;
+
     private final ExecutionContextSelector m_executionContextSelector;
 
     private final DeploymentSelectionPanel m_deploymentSelector;
@@ -66,6 +69,7 @@ public final class InvocationTargetPanel {
     public InvocationTargetPanel(final CallWorkflowConnectionConfiguration configuration, final NodeDialogPane pane) {
         m_configuration = configuration;
         m_pane = pane;
+        m_versionSelector = new CalleeVersionSelectionPanel(HubItemVersionPersistor.createFlowVariableModel(pane));
         m_executionContextSelector = new ExecutionContextSelector();
         m_deploymentSelector = new DeploymentSelectionPanel(configuration,
             pane.createFlowVariableModel("deploymentId", VariableType.StringType.INSTANCE));
@@ -84,6 +88,8 @@ public final class InvocationTargetPanel {
 
         if (m_configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
             executionPanel.add(createWorkflowSelectionPanel(), gbc.build());
+            gbc.incY();
+            executionPanel.add(m_versionSelector.getPanel(), gbc.build());
             gbc.incY();
             executionPanel.add(m_executionContextSelector.createSelectionPanel(), gbc.build());
         } else {
@@ -152,7 +158,8 @@ public final class InvocationTargetPanel {
                 throw new NotConfigurableException("Node is not connected to the Hub.");
             }
         } else {
-            m_workflowChooser.loadSettingsFrom(settings, specs);
+            // workflow location is loaded in #loadChooser
+            m_versionSelector.set(configuration.getItemVersion());
             m_executionContextSelector.loadSettingsInDialog(configuration);
         }
     }
@@ -183,4 +190,17 @@ public final class InvocationTargetPanel {
         }
     }
 
+    /**
+     * @return the component used to display and manipulate the callee hub repository item version.
+     */
+    public CalleeVersionSelectionPanel getVersionSelector() {
+        return m_versionSelector;
+    }
+
+    /**
+     * @return
+     */
+    public InvocationTargetProvider<String> getDeploymentSelector() {
+        return m_deploymentSelector;
+    }
 }

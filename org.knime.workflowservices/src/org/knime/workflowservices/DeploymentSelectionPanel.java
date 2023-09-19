@@ -24,6 +24,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.beans.PropertyChangeEvent;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
@@ -43,6 +44,7 @@ import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.util.SwingWorkerWithContext;
+import org.knime.filehandling.core.connections.meta.FSType;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.DeploymentExecutionConnector;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
@@ -77,7 +79,7 @@ import org.knime.workflowservices.connection.util.ConnectionUtil;
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
 @SuppressWarnings("javadoc")
-class DeploymentSelectionPanel {
+class DeploymentSelectionPanel implements InvocationTargetProvider<String> {
 
     /** The panel has the following life cycle. */
     private enum Status {
@@ -95,24 +97,11 @@ class DeploymentSelectionPanel {
             VALID;
     }
 
-
     class DeploymentWorker extends SwingWorkerWithContext<List<Deployment>, Void> {
 
         @Override
         protected List<Deployment> doInBackgroundWithContext() throws Exception {
-            var callWorkflowConnection =
-                ConnectionUtil.createConnection(m_configuration).orElseThrow(this::cannotCreateConnection);
-            if (callWorkflowConnection instanceof DeploymentExecutionConnector deploymentConnection) {
-                return deploymentConnection.getServiceDeployments();
-            }
-            throw new InvalidSettingsException(
-                "No Hub Authentication connection, please use the Hub Authenticator to list the available deployments");
-        }
-
-        InvalidSettingsException cannotCreateConnection() {
-            return new InvalidSettingsException(
-                String.format("Can not create the deployment execution connection for the deployment '%s'",
-                    m_configuration.getDeploymentId()));
+            return fetch(m_configuration);
         }
 
         @Override
@@ -131,7 +120,21 @@ class DeploymentSelectionPanel {
                 }
             }
         }
+
+        static List<Deployment> fetch(final CallWorkflowConnectionConfiguration configuration)
+            throws InvalidSettingsException, IOException, InterruptedException {
+            var callWorkflowConnection = ConnectionUtil.createConnection(configuration)
+                .orElseThrow(() -> new InvalidSettingsException(
+                    String.format("Can not create the deployment execution connection for the deployment '%s'",
+                        configuration.getDeploymentId())));
+            if (callWorkflowConnection instanceof DeploymentExecutionConnector deploymentConnection) {
+                return deploymentConnection.getServiceDeployments();
+            }
+            throw new InvalidSettingsException(
+                "No Hub Authentication connection, please use the Hub Authenticator to list the available deployments");
+        }
     }
+
     // state
 
     private Status m_state;
@@ -206,6 +209,14 @@ class DeploymentSelectionPanel {
         });
     }
 
+    @Override
+    public void addChangeListener(final Consumer<String> listener) {
+        m_dialogManager.addDeploymentChangedListener(e -> {
+            Deployment newDeployement = (Deployment)e.getNewValue();
+            listener.accept(newDeployement.id());
+        });
+    }
+
     /**
      * @param id the id of the deployment to select or null if nothing should be selected.
      */
@@ -245,6 +256,16 @@ class DeploymentSelectionPanel {
         return m_selectedDeployment;
     }
 
+    @Override
+    public String get() {
+        return m_selectedDeployment.get().id();
+    }
+
+    @Override
+    public boolean isLocationValid() {
+        return m_state == Status.VALID;
+    }
+
     /**
      * @param message error message, e.g., in case the deployments cannot be fetched
      */
@@ -277,9 +298,15 @@ class DeploymentSelectionPanel {
      *
      * @param configuration the configuration
      */
-    void saveToConfiguration(final CallWorkflowConnectionConfiguration configuration) {
+    @Override
+    public void saveToConfiguration(final CallWorkflowConnectionConfiguration configuration) {
         getSelectedDeployment()
             .ifPresent(deployment -> configuration.setDeploymentId(deployment.id()));
+    }
+
+    @Override
+    public FSType getFileSystemType() {
+        return FSType.HUB;
     }
 
     /**
@@ -299,6 +326,15 @@ class DeploymentSelectionPanel {
         close();
         m_deploymentWorker = new DeploymentWorker();
         m_deploymentWorker.execute();
+    }
+
+    @Override
+    public void loadInvocationTargets(final CallWorkflowConnectionConfiguration configuration) {
+        try {
+            setDeployments(DeploymentWorker.fetch(configuration));
+        } catch (InvalidSettingsException | IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /** if the deployment id is set via a flow variable, disable the browse button */

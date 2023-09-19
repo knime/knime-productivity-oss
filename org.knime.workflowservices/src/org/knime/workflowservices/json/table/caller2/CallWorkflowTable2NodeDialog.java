@@ -25,13 +25,13 @@ import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
@@ -46,8 +46,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.knime.core.data.json.container.credentials.ContainerCredentialsJsonSchema;
 import org.knime.core.data.json.container.table.ContainerTableJsonSchema;
 import org.knime.core.node.InvalidSettingsException;
@@ -59,20 +57,22 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.util.CheckUtils;
-import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.filehandling.core.util.GBCBuilder;
-import org.knime.workflowservices.Deployment;
+import org.knime.workflowservices.CalleeParameterFlow;
+import org.knime.workflowservices.CalleePropertyFlow;
+import org.knime.workflowservices.Fetcher;
+import org.knime.workflowservices.HubCalleeSelectionFlow;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.InvocationTargetPanel;
+import org.knime.workflowservices.InvocationTargetProvider;
+import org.knime.workflowservices.InvocationTargetProviderWorkflowChooserImplementation;
+import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration.ConnectionType;
 import org.knime.workflowservices.connection.util.BackoffPolicy;
 import org.knime.workflowservices.connection.util.CallWorkflowConnectionControls;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller.CallWorkflowTableNodeConfiguration;
 import org.knime.workflowservices.json.table.caller.ParameterId;
-import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterRenderer;
-import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterSelection;
-import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog.ParameterUpdater;
 
 import jakarta.json.JsonValue;
 
@@ -83,7 +83,10 @@ import jakarta.json.JsonValue;
  * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
-public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
+public final class CallWorkflowTable2NodeDialog extends NodeDialogPane implements Fetcher.StatefulConsumer<List<Map<String, JsonValue>>> {
+
+    /** Manages asynchronous data fetching. */
+    private final CalleePropertyFlow m_calleePropertyFlow;
 
     private static final NodeLogger LOGGER = NodeLogger.getLogger(CallWorkflowTable2NodeDialog.class);
 
@@ -93,8 +96,6 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
     /** For errors when fetching workflow parameters */
     private final JLabel m_workflowErrorLabel = new JLabel();
-
-    private ParameterUpdater m_parameterUpdater;
 
     private ParameterSelection m_inputParameterSelectionPanel;
 
@@ -118,10 +119,26 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
     private final CallWorkflowTableNodeConfiguration m_configuration;
 
+    private boolean m_loading = false;
+
     CallWorkflowTable2NodeDialog(final CallWorkflowTableNodeConfiguration config) {
 
         m_configuration = config;
         m_invocationTargetPanel = new InvocationTargetPanel(m_configuration, this);
+
+        final var versionSelector = m_invocationTargetPanel.getVersionSelector();
+        final var parameterDisplay = this;
+        InvocationTargetProvider<?> invocationTarget;
+        if (m_configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
+            invocationTarget =
+                new InvocationTargetProviderWorkflowChooserImplementation(m_configuration.getWorkflowChooserModel());
+            m_calleePropertyFlow = new HubCalleeSelectionFlow<>(m_configuration, invocationTarget, versionSelector,
+                parameterDisplay, this::fetchParameters);
+        } else {
+            invocationTarget = m_invocationTargetPanel.getDeploymentSelector();
+            m_calleePropertyFlow =
+                new CalleeParameterFlow<>(m_configuration, invocationTarget, parameterDisplay, this::fetchParameters);
+        }
 
         var gbc = new GridBagLayout();
         final var p = new JPanel(gbc);
@@ -136,29 +153,131 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
         addTab("Workflow", new JScrollPane(p));
         addTab("Advanced Settings", createAdvancedTab());
-
-        // Callback wiring
-        m_invocationTargetPanel.addDeploymentChangedListener(this::deploymentChanged);
-        m_configuration.getWorkflowChooserModel().addChangeListener(e -> fetchWorkflowProperties());
     }
 
     /*
      * Callbacks
      */
 
-    private void deploymentChanged(final Deployment newDeployment) {
-        m_configuration.setDeploymentId(newDeployment.id());
-        fetchWorkflowProperties();
+    private List<Map<String, JsonValue>> fetchParameters(final CallWorkflowConnectionConfiguration configuration) throws IOException, Exception {
+        final var isEmptyCallee = switch (configuration.getConnectionType()) {
+            case FILE_SYSTEM -> StringUtils.isEmpty(configuration.getWorkflowPath());
+            case HUB_AUTHENTICATION -> StringUtils.isEmpty(configuration.getDeploymentId());
+        };
+        if(isEmptyCallee) {
+            return List.of();
+        }
+
+        var tempConfig = configuration.createFetchConfiguration();
+        m_serverSettings.saveToConfiguration(tempConfig);
+        ConnectionUtil.validateConfiguration(tempConfig);
+
+        try (var backend = ConnectionUtil.createWorkflowBackend(tempConfig)) {
+            if (backend != null) {
+                return Arrays.asList(getInputNodeValues(backend), backend.getOutputValuesForConfiguration());
+            } else {
+                return null;
+            }
+        }
+    }
+    private static Map<String, JsonValue> getInputNodeValues(final IWorkflowBackend backend) {
+        Map<String, JsonValue> inputNodes = new HashMap<>();
+        for (Map.Entry<String, ExternalNodeData> e : backend.getInputNodes().entrySet()) {
+            var json = e.getValue().getJSONValue();
+            if (json != null) {
+                inputNodes.put(e.getKey(), json);
+            }
+        }
+        return inputNodes;
     }
 
-    private void fetchWorkflowProperties() {
-        removeConfiguredSelections();
-        if (m_parameterUpdater == null || m_parameterUpdater.isDone() || m_parameterUpdater.cancel(true)) {
-            m_parameterUpdater = new ParameterUpdater();
-            m_parameterUpdater.execute();
-        } else {
-            m_workflowErrorLabel.setText("Failed to interrupt analysis of current workflow!");
+
+    @Override
+    public void clear() {
+        m_loading = false;
+        m_workflowErrorLabel.setText("");
+    }
+
+    @Override
+    public void loading() {
+        m_loading = true;
+        m_workflowErrorLabel.setText("");
+    }
+
+    @Override
+    public void accept(final List<Map<String, JsonValue>> parameterMaps) {
+        m_loading = false;
+
+        var inputNodeData = parameterMaps.get(0);
+
+        // Given a map of input node data, each entry corresponding to a container input node in the
+        //   called workflow, we want to partition these entries by type of container input node
+        //   s.t. we can constrain the range of choices to only those of matching type
+        //  (e.g. as a target container input node for table data the user should only be able to
+        //   select Container Input (Table) nodes).
+        // There is currently no clean way to determine the type of Container Input node based
+        //   on the given input node data. As a heuristic, this is determined based on the
+        //   example/template JSON that some container input nodes provide. Table and Credential
+        //   inputs provide characteristic template JSON. Flow Variable input nodes, however, can
+        //   accept any JSON containing key/value pairs (since AP-16680).
+        // Partition the given map based on matching the provided template JSONs against each node's
+        //   schema. Provide table and credential inputs with only those choices that can be matched,
+        //   all other cases are eligible to be pushed as flow variables.
+        // See AP-17403.
+        Map<String, JsonValue> tableInputs = new HashMap<>();
+        Map<String, JsonValue> credentialInputs = new HashMap<>();
+        Map<String, JsonValue> otherInputs = new HashMap<>();
+        for (Entry<String, JsonValue> entry : inputNodeData.entrySet()) {
+            if (ContainerTableJsonSchema.hasContainerTableJsonSchema(entry.getValue())) {
+                tableInputs.put(entry.getKey(), entry.getValue());
+            } else if (ContainerCredentialsJsonSchema.hasValidSchema(entry.getValue())) {
+                credentialInputs.put(entry.getKey(), entry.getValue());
+            } else {
+                otherInputs.put(entry.getKey(), entry.getValue());
+            }
         }
+
+        m_inputParameterSelectionPanel.update(tableInputs, m_configuredInputParameter);
+        if (!m_hasInputTable) {
+            m_inputParameterSelectionPanel.setEnabled(false);
+            if (!m_inputParameterSelectionPanel.isEmpty()) {
+                m_inputParameterSelectionPanel.setWarning("No input table connected");
+            }
+        }
+        m_flowCredentialsDestination.update(credentialInputs, m_configuredFlowCredentialsDestination);
+        m_flowVariableDestination.update(otherInputs, m_configuredFlowVariableDestination);
+
+        Map<String, JsonValue> outputNodeData = parameterMaps.get(1).entrySet().stream()
+            .filter(entry -> ContainerTableJsonSchema.hasContainerTableJsonSchema(entry.getValue()))
+            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+        m_outputParameterSelectionPanel.update(outputNodeData, m_configuredOutputParameter);
+
+        m_workflowErrorLabel.setText("");
+    }
+
+    @Override
+    public void exception(final String cause) {
+        m_loading = false;
+
+        m_inputParameterSelectionPanel.clearParameters();
+        m_outputParameterSelectionPanel.clearParameters();
+        m_flowVariableDestination.clearParameters();
+
+        // TODO
+
+//        Pair<String, Throwable> errorPair;
+//        if (cause instanceof InvalidSettingsException) {
+//            // addresses AP-19370: bogus error message when wrong node is in Callee
+//            errorPair = Pair.of(cause + " (wrong node types in use?)", cause);
+//        } else {
+//            errorPair = Pair.of(ExceptionUtils.getRootCauseMessage(e), ExceptionUtils.getRootCause(e));
+//        }
+//
+//        if (!(cause instanceof InvalidSettingsException)) {
+//            LOGGER.debug(errorPair.getLeft(), errorPair.getRight());
+//        }
+//        m_workflowErrorLabel.setText(errorPair.getLeft());
+
     }
 
     /*
@@ -189,9 +308,9 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         parameterPanel.add(m_flowCredentialsDestination, gbc.incY().setWeightX(1).insetLeft(5).build());
 
         m_useFullyQualifiedNamesChecker = new JCheckBox("Use Fully Qualified Name for Input and Output Parameters");
-        m_useFullyQualifiedNamesChecker.addItemListener(e -> updateParameters());
-        m_useFullyQualifiedNamesChecker.addItemListener(e -> updateParameters());
-        m_useFullyQualifiedNamesChecker.addItemListener(e -> updateParameters());
+        m_useFullyQualifiedNamesChecker.addItemListener(e -> m_calleePropertyFlow.invocationTargetUpdated());
+        m_useFullyQualifiedNamesChecker.addItemListener(e -> m_calleePropertyFlow.invocationTargetUpdated());
+        m_useFullyQualifiedNamesChecker.addItemListener(e -> m_calleePropertyFlow.invocationTargetUpdated());
 
         parameterPanel.add(m_useFullyQualifiedNamesChecker, gbc.incY().setWeightX(1).insetLeft(5).build());
 
@@ -200,7 +319,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
     @Override
     protected final void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        CheckUtils.checkSetting(m_parameterUpdater == null, "Can't apply configuration while analysis is ongoing");
+        CheckUtils.checkSetting(!m_loading, "Can't apply configuration while analysis is ongoing");
         storeUiStateInConfiguration();
         m_invocationTargetPanel.saveSettingsTo(settings, m_configuration);
         m_configuration.save(settings);
@@ -212,7 +331,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
      * @throws InvalidSettingsException
      */
     private void storeUiStateInConfiguration() throws InvalidSettingsException {
-        CheckUtils.checkSetting(m_parameterUpdater == null, "Can't apply configuration while analysis is ongoing");
+        CheckUtils.checkSetting(!m_loading , "Can't apply configuration while analysis is ongoing");
 
         m_serverSettings.saveToConfiguration(m_configuration);
 
@@ -254,15 +373,31 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
     @Override
     protected final void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
         throws NotConfigurableException {
-        m_invocationTargetPanel.loadChooser(settings, specs);
-        m_configuration.loadInDialog(settings);
-        m_invocationTargetPanel.loadSettingsInDialog(m_configuration, settings, specs);
+        // when re-opening the dialog, delay data fetching until in consistent state again.
+        m_calleePropertyFlow.enable(false);
+        try {
+            m_invocationTargetPanel.loadChooser(settings, specs);
+            m_configuration.loadInDialog(settings);
+            m_invocationTargetPanel.loadSettingsInDialog(m_configuration, settings, specs);
+            loadConfiguration(m_configuration, specs);
+
+            final var versionSelectorVisible = ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());
+            m_invocationTargetPanel.getVersionSelector().setVisible(versionSelectorVisible);
+        } finally {
+            m_calleePropertyFlow.enable(true);
+        }
+
+        // fetch remote data
+        m_calleePropertyFlow.loadInvocationTargets();
         loadConfiguration(m_configuration, specs);
     }
 
-    /** Synchronize the user interface with the current configuration
+    /**
+     * Synchronize the user interface with the current configuration
+     *
      * @throws InvalidSettingsException
-     * @throws NotConfigurableException */
+     * @throws NotConfigurableException
+     */
     private void loadConfiguration(final CallWorkflowTableNodeConfiguration configuration,
         final PortObjectSpec[] inSpecs) throws NotConfigurableException {
 
@@ -279,8 +414,6 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
             m_inputParameterSelectionPanel.setEnabled(true);
             m_hasInputTable = true;
         }
-
-
 
         // If we open the dialog a second time and an panelUpdater is currently running (probably waiting
         // for the workflow lock because the workflow to call is already executing) we need to cancel it to avoid
@@ -317,21 +450,9 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
         m_configuredFlowCredentialsDestination = null;
     }
 
-    private void updateParameters() {
-        if (m_parameterUpdater == null || m_parameterUpdater.isDone() || m_parameterUpdater.cancel(true)) {
-            m_parameterUpdater = new ParameterUpdater();
-            m_parameterUpdater.execute();
-        } else {
-            m_workflowErrorLabel.setText("Failed to interrupt analysis of current workflow!");
-        }
-    }
-
     @Override
     public void onClose() {
-        if (m_parameterUpdater != null) {
-            m_parameterUpdater.cancel(true);
-            m_parameterUpdater = null;
-        }
+        m_calleePropertyFlow.close();
         m_invocationTargetPanel.close();
         super.onClose();
     }
@@ -352,128 +473,6 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
      *
      * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
      */
-    final class ParameterUpdater extends SwingWorkerWithContext<List<Map<String, JsonValue>>, Void> {
-
-        ParameterUpdater() {
-            m_workflowErrorLabel.setText("");
-        }
-
-        @Override
-        protected List<Map<String, JsonValue>> doInBackgroundWithContext() throws Exception {
-            if (isEmptyCallee()) {
-                return List.of();
-            }
-            var tempConfig = m_configuration.createFetchConfiguration();
-            m_serverSettings.saveToConfiguration(tempConfig);
-            ConnectionUtil.validateConfiguration(tempConfig);
-
-            try (var backend = ConnectionUtil.createWorkflowBackend(tempConfig)) {
-                if (backend != null) {
-                    return Arrays.asList(getInputNodeValues(backend), backend.getOutputValuesForConfiguration());
-                } else {
-                    return null;
-                }
-            }
-        }
-
-        private boolean isEmptyCallee() {
-            if (m_configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
-                return StringUtils.isEmpty(m_configuration.getWorkflowPath());
-            } else {
-                return StringUtils.isEmpty(m_configuration.getDeploymentId());
-            }
-        }
-
-
-        private Map<String, JsonValue> getInputNodeValues(final IWorkflowBackend backend) {
-            Map<String, JsonValue> inputNodes = new HashMap<>();
-            for (Map.Entry<String, ExternalNodeData> e : backend.getInputNodes().entrySet()) {
-                var json = e.getValue().getJSONValue();
-                if (json != null) {
-                    inputNodes.put(e.getKey(), json);
-                }
-            }
-            return inputNodes;
-        }
-
-        @Override
-        protected void doneWithContext() {
-            if (!isCancelled()) {
-                try {
-                    var parameterMaps = get();
-                    if (parameterMaps != null) {
-                        var inputNodeData = parameterMaps.get(0);
-
-                        // Given a map of input node data, each entry corresponding to a container input node in the
-                        //   called workflow, we want to partition these entries by type of container input node
-                        //   s.t. we can constrain the range of choices to only those of matching type
-                        //  (e.g. as a target container input node for table data the user should only be able to
-                        //   select Container Input (Table) nodes).
-                        // There is currently no clean way to determine the type of Container Input node based
-                        //   on the given input node data. As a heuristic, this is determined based on the
-                        //   example/template JSON that some container input nodes provide. Table and Credential
-                        //   inputs provide characteristic template JSON. Flow Variable input nodes, however, can
-                        //   accept any JSON containing key/value pairs (since AP-16680).
-                        // Partition the given map based on matching the provided template JSONs against each node's
-                        //   schema. Provide table and credential inputs with only those choices that can be matched,
-                        //   all other cases are eligible to be pushed as flow variables.
-                        // See AP-17403.
-                        Map<String, JsonValue> tableInputs = new HashMap<>();
-                        Map<String, JsonValue> credentialInputs = new HashMap<>();
-                        Map<String, JsonValue> otherInputs = new HashMap<>();
-                        for (Entry<String, JsonValue> entry : inputNodeData.entrySet()) {
-                            if (ContainerTableJsonSchema.hasContainerTableJsonSchema(entry.getValue())) {
-                                tableInputs.put(entry.getKey(), entry.getValue());
-                            } else if (ContainerCredentialsJsonSchema.hasValidSchema(entry.getValue())) {
-                                credentialInputs.put(entry.getKey(), entry.getValue());
-                            } else {
-                                otherInputs.put(entry.getKey(), entry.getValue());
-                            }
-                        }
-
-                        m_inputParameterSelectionPanel.update(tableInputs, m_configuredInputParameter);
-                        if (!m_hasInputTable) {
-                            m_inputParameterSelectionPanel.setEnabled(false);
-                            if (!m_inputParameterSelectionPanel.isEmpty()) {
-                                m_inputParameterSelectionPanel.setWarning("No input table connected");
-                            }
-                        }
-                        m_flowCredentialsDestination.update(credentialInputs, m_configuredFlowCredentialsDestination);
-                        m_flowVariableDestination.update(otherInputs, m_configuredFlowVariableDestination);
-
-                        Map<String, JsonValue> outputNodeData = parameterMaps.get(1).entrySet().stream()
-                            .filter(entry -> ContainerTableJsonSchema.hasContainerTableJsonSchema(entry.getValue()))
-                            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-                        m_outputParameterSelectionPanel.update(outputNodeData, m_configuredOutputParameter);
-
-                        m_workflowErrorLabel.setText("");
-                    }
-                } catch (InterruptedException | CancellationException e) {
-                    // do nothing
-                } catch (Exception e) {
-                    m_inputParameterSelectionPanel.clearParameters();
-                    m_outputParameterSelectionPanel.clearParameters();
-                    m_flowVariableDestination.clearParameters();
-
-                    var cause = ExceptionUtils.getRootCause(e);
-
-                    Pair<String, Throwable> errorPair;
-                    if (cause instanceof InvalidSettingsException) {
-                        // addresses AP-19370: bogus error message when wrong node is in Callee
-                        errorPair = Pair.of(cause.getMessage() + " (wrong node types in use?)", cause);
-                    } else {
-                        errorPair = Pair.of(ExceptionUtils.getRootCauseMessage(e), ExceptionUtils.getRootCause(e));
-                    }
-
-                    if (!(cause instanceof InvalidSettingsException)) {
-                        LOGGER.debug(errorPair.getLeft(), errorPair.getRight());
-                    }
-                    m_workflowErrorLabel.setText(errorPair.getLeft());
-                }
-            }
-            m_parameterUpdater = null;
-        }
-    }
 
     /**
      * Panel holding an info label, a combo box where a parameter selection can be made and a warning label.
@@ -660,9 +659,6 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane {
 
         private static final long serialVersionUID = -5747012371561384934L;
 
-        /**
-         * {@inheritDoc}
-         */
         @Override
         public Component getListCellRendererComponent(@SuppressWarnings("rawtypes") final JList list,
             final Object value, final int index, final boolean isSelected, final boolean cellHasFocus) {
