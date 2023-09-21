@@ -20,6 +20,7 @@
  */
 package org.knime.workflowservices;
 
+import java.nio.file.NoSuchFileException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -52,7 +53,7 @@ public interface InvocationTargetProvider<T> extends Supplier<T> {
 
     /**
      * @return whether the result of {@link #get()} passes basic validation. Note that a space is also a valid location
-     *         but does not have versions. Note that a valid location may still cause a NoSuchFileException.
+     *         but does not have versions. Note that a valid location may still cause a {@link NoSuchFileException}.
      */
     boolean isLocationValid();
 

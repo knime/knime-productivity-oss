@@ -295,19 +295,23 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
             // combobox change events are suppressed if it is disabled
             m_versionSelector.setSelectedItem(validated.get());
             m_versionProperty.firePropertyChange("selectedVersion", null, m_selectedVersion);
+        } else {
+            m_versionProperty.firePropertyChange("selectedVersion", null, null);
         }
 
         // enable/disable selection
         final var enabled = m_versions != null && !m_isVersionsLoading && !m_isVersionControlledByFlowVariable
-            && m_versionsFetchError.isEmpty() && m_flowVariableParseError.isEmpty() && validated.isPresent();
+            && m_versionsFetchError.isEmpty() && m_flowVariableParseError.isEmpty();
         m_versionSelector.setEnabled(enabled);
 
         // status
         String message = null;
         // if the version is controlled by a flow variable, and invalid we show an error
-        if (m_isVersionControlledByFlowVariable && validated.isEmpty()) {
-            message =
-                inRed("The version %s set via flow variable does not exist.".formatted(readable(m_selectedVersion)));
+        if (validated.isEmpty()) {
+            message = m_isVersionControlledByFlowVariable
+                ? inRed("The version %s set via flow variable does not exist.".formatted(readable(m_selectedVersion)))
+                : inRed("Version %s does not exist. Switching to %s.".formatted(readable(m_selectedVersion),
+                    readable(HubItemVersion.currentState())));
         }
         if (m_isVersionsLoading) {
             message = "Loading versions...";

@@ -151,11 +151,11 @@ public final class Fetcher<R> extends SwingWorkerWithContext<R, Void> {
                 m_control.accept(result);
                 m_dataHandler.accept(result);
             } catch (InterruptedException | CancellationException e) {
-                NodeLogger.getLogger(HubCalleeSelectionFlow.class).warn(e);
+                NodeLogger.getLogger(this.getClass()).debug(e);
                 Thread.currentThread().interrupt();
             } catch (ExecutionException e) {
+                NodeLogger.getLogger(this.getClass()).debug(e);
                 m_control.exception(e.getMessage());
-                NodeLogger.getLogger(HubCalleeSelectionFlow.class).warn(e);
             }
         }
     }

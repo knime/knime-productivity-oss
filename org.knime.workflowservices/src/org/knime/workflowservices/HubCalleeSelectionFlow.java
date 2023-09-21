@@ -140,6 +140,8 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
             // version control is expected to reflect node settings/user selection after load
             // if this is a new location, reset the version to current state
             if (!sameLocation) {
+                // this would normally fire an event that leads to versionChanged but
+                // the control is disabled because clear() was called earlier
                 m_versionsControl.set(HubItemVersion.currentState());
             }
             // take into account
@@ -158,6 +160,12 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
     public void versionChanged(final HubItemVersion version) {
         if (!m_enabled) {
             // do not fetch parameters
+            return;
+        }
+
+        // version was determined to be invalid
+        if(version == null) {
+            m_parametersControl.clear();
             return;
         }
 
