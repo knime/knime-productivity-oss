@@ -69,7 +69,7 @@
        <portType
              color="#4386f7"
              hidden="false"
-             name="KNIME Hub Credentials"
+             name="Credential (KNIME Hub)"
              objectClass="org.knime.workflowservices.connection.AbstractHubAuthenticationPortObject"
              objectSerializer="org.knime.workflowservices.connection.AbstractHubAuthenticationPortObject$FailSerializer"
              specClass="org.knime.workflowservices.connection.AbstractHubAuthenticationPortObjectSpec"
