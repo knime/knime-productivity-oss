@@ -8,7 +8,6 @@ import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeView;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.port.PortType;
-import org.knime.core.node.port.PortTypeRegistry;
 import org.knime.filehandling.core.port.FileSystemPortObject;
 import org.knime.workflowservices.connection.AbstractHubAuthenticationPortObject;
 
@@ -33,9 +32,9 @@ public class CallWorkflow2NodeFactory extends ConfigurableNodeFactory<CallWorkfl
     protected Optional<PortsConfigurationBuilder> createPortsConfigBuilder() {
         final var b = new PortsConfigurationBuilder();
         Predicate<PortType> allPorts = p -> true;
-        b.addOptionalInputPortGroup(CONNECTION_INPUT_PORT_GRP_NAME, FileSystemPortObject.TYPE,
-            FileSystemPortObject.TYPE,
-            PortTypeRegistry.getInstance().getPortType(AbstractHubAuthenticationPortObject.class));
+        b.addOptionalInputPortGroup(CONNECTION_INPUT_PORT_GRP_NAME,//
+            FileSystemPortObject.TYPE,//
+            AbstractHubAuthenticationPortObject.TYPE);
         // non-interactive means this cannot be controlled by the user via the user interface. Instead, the node dialog
         // updates the input and output ports according to the selected callee workflow.
         b.addNonInteractiveExtendableInputPortGroup(INPUT_PORT_GROUP, allPorts);
