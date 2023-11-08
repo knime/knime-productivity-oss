@@ -1,4 +1,7 @@
-# ![Image](https://www.knime.com/files/knime_logo_github_40x40_4layers.png) KNIME® Analytics Platform
+# KNIME® Productivity Open Source Extensions
+
+[![Jenkins](https://jenkins.knime.com/buildStatus/icon?job=knime-productivity-oss%2Fmaster)](https://jenkins.knime.com/job/knime-productivity-oss/job/master/)
+This repository is maintained by the [KNIME Core Development Team](mailto:ap-core@knime.com).
 
 ### Content
 This repository contains the source code of [KNIME Analytics Platform](http://www.knime.org). The code is organized as follows:
