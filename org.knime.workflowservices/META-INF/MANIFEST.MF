@@ -20,7 +20,8 @@ Require-Bundle: org.knime.base;bundle-version="[5.2.0,6.0.0)",
  com.fifesoft.rstaui;bundle-version="[2.6.0,3.0.0)",
  com.fifesoft.rsyntaxtextarea;bundle-version="[2.6.0,3.0.0)",
  com.fifesoft.spellchecker;bundle-version="[2.6.0,3.0.0)",
- jakarta.ws.rs-api;bundle-version="[3.1.0,4.0.0)"
+ jakarta.ws.rs-api;bundle-version="[3.1.0,4.0.0)",
+ org.knime.gateway.impl;bundle-version="[5.2.0,6.0.0)"
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: org.knime.workflowservices
 Export-Package: org.knime.workflowservices,

@@ -104,14 +104,13 @@ import org.knime.core.util.URIUtil;
 import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.core.util.report.ReportingConstants;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
+import org.knime.gateway.impl.project.ProjectManager;
+import org.knime.gateway.impl.project.WorkflowServiceProjects;
 import org.knime.reporting.executor.ReportExecutor;
 import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.ExplorerURLStreamHandler;
 import org.knime.workbench.explorer.filesystem.LocalExplorerFileStore;
 import org.knime.workbench.ui.navigator.ProjectWorkflowMap;
-import org.knime.workflowservices.IWorkflowBackend.ReportGenerationException;
-import org.knime.workflowservices.IWorkflowBackend.ResourceContentType;
-import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
 import org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFactory;
 
 import com.google.common.cache.Cache;
@@ -306,7 +305,15 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
             return new LocalWorkflowBackend(localUri, l.getWorkflowManager());
         } else {
             // running in GUI mode
+
+            // classic UI
             WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(localUri);
+            if (m == null) {
+                // modern UI
+                m = WorkflowServiceProjects.getProject(file.toPath())
+                    .flatMap(id -> ProjectManager.getInstance().getCachedProject(id)).orElse(null);
+            }
+
             CheckUtils.checkState(execInfo instanceof AnalyticsPlatformExecutorInfo,
                 "Not running in an instance of %s", AnalyticsPlatformExecutorInfo.class.getName());
             if (m == null) {
@@ -334,7 +341,13 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                 WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
                     new WorkflowLoadHelper(ctx));
                 m = l.getWorkflowManager();
+
+                // classic UI
                 ProjectWorkflowMap.putWorkflow(localUri, m);
+
+                // modern UI
+                WorkflowServiceProjects.registerProject(m);
+
             }
             LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(localUri, m);
             ProjectWorkflowMap.registerClientTo(localUri, localWorkflowBackend);
@@ -541,8 +554,12 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         if (Boolean.getBoolean("java.awt.headless")) {
             m_manager.getParent().removeProject(m_manager.getID());
         } else {
+            // classic UI
             ProjectWorkflowMap.unregisterClientFrom(m_uri, this);
             ProjectWorkflowMap.remove(m_uri);
+
+            // modern UI
+            WorkflowServiceProjects.removeProject(new File(m_uri).toPath());
         }
         if (m_deleteAfterUse) {
             FileUtil.deleteRecursively(new File(m_uri));
