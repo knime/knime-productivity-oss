@@ -106,10 +106,6 @@
 			<i>Container Input (Variable)</i>/<i>Container Input (Credentials)</i> in the called workflow.
 			This routing is done via drop down menus showing all available parameters in the selected workflow.
 			</option>
-            
-            <option name="Create Report">
-                If checked, the report associated with the remote workflow will be generated and put into the output table. The format can be chosen in the drop-down. The output table will contain a column containing the binary content of the report (column type: binary object); the column can be further processed, e.g. use a &quot;Binary Objects to Files&quot; node to write the content to a file, or use a database writer to write the report as BLOB into a database. Failures to generate the report (for instance, because no report is attached to the workflow) will result in a missing cell.
-            </option>
 
 			<option name="Use Fully Qualified Name for Input and Output Parameters">If checked, use the full parameter name
 				to select the input and output. The parameter names are
