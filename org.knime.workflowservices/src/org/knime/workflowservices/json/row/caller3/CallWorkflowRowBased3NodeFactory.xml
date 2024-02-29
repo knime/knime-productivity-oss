@@ -12,7 +12,13 @@
             <b>Sending data.</b>
             The called workflow can receive data from this node via the Container Input nodes, e.g., JSON, Row, or Table, which all expect a JSON object but make different assumptions on the structure of the object. For instance, Container Input (JSON) accepts any JSON object, while Container Input (Row) expects a JSON object where each key corresponds to a column name and the associated value denotes the according cell content.
             <br />
-            What is passed to a specific Container Input node can be configured in this node's dialog. There are three options: pass the JSON contained in a selected column of the current input row, pass a static JSON (that can be overwritten by a flow variable), or send nothing, causing the default JSON object defined by the according Container Input node to be used.
+            What is passed to a specific Container Input node affects the execution of the called workflow. There are three options: 
+            <ul>
+            <li><i>From column:</i> pass the JSON contained in a selected column of the current input row. The called workflow is executed for each row.</li>
+            <li><i>Use custom JSON:</i> pass static JSON. The called workflow is executed only once, the result is reused for all subsequent rows.</li>
+            <li><i>Use default:</i> send nothing, causing the default JSON object defined by the according Container Input node to be used. The called workflow is executed once, the result is reused for all subsequent rows.
+            Note that if the called workflow has been saved with one of the output nodes in executed state, the return value for that output value is the json value "null".  </li>
+            </ul>
             <br /><br />
             <b>Receiving data.</b>
             The called workflow can send back data via Container Output nodes (Row, Table, or JSON). Each Container Output node will result in a column being appended to the output table.
