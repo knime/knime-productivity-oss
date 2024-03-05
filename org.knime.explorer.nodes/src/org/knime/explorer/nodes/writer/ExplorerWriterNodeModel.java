@@ -79,6 +79,7 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.util.FileUtil;
+import org.knime.core.util.proxy.URLConnectionFactory;
 
 
 /**
@@ -170,7 +171,7 @@ public class ExplorerWriterNodeModel extends NodeModel {
         LOGGER.debug("Writing file \"" + filePath + "\" to URL \""
                 + outputURL + ".");
         try {
-            con = outputURL.openConnection();
+            con = URLConnectionFactory.getConnection(outputURL);
         } catch (IOException e) {
             try {
                 bcInStream.close();

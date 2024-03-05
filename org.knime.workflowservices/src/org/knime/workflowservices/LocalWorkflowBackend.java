@@ -102,6 +102,7 @@ import org.knime.core.util.LockFailedException;
 import org.knime.core.util.Pair;
 import org.knime.core.util.URIUtil;
 import org.knime.core.util.pathresolve.ResolverUtil;
+import org.knime.core.util.proxy.URLConnectionFactory;
 import org.knime.core.util.report.ReportingConstants;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.gateway.impl.project.ProjectManager;
@@ -363,7 +364,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         File tempDir = FileUtil.createTempDir("Called-workflow");
         File zippedWorkflow = new File(tempDir, "workflow.knwf");
 
-        URLConnection connection = url.openConnection();
+        URLConnection connection = URLConnectionFactory.getConnection(url);
         if (connection instanceof HttpURLConnection && ((HttpURLConnection)connection).getResponseCode() == 403) {
             ((HttpURLConnection)connection).disconnect();
             throw new IOException("User does not have permissions to read workflow " + url + " on the server");
