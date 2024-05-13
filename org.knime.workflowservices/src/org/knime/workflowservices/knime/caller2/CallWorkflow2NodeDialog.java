@@ -59,7 +59,7 @@ final class CallWorkflow2NodeDialog extends NodeDialogPane implements Configurab
      *
      * @see #updateNodePorts(NodeCreationConfiguration)
      */
-    private volatile boolean m_portConfigChanged = false;
+    private volatile boolean m_portConfigChanged;
 
     /**
      * Needs to be {@link ModifiableNodeCreationConfiguration} instead of a regular {@link NodeCreationConfiguration}
@@ -106,7 +106,8 @@ final class CallWorkflow2NodeDialog extends NodeDialogPane implements Configurab
         final var parameterDisplay = m_parameterMappingPanel;
         InvocationTargetProvider<?> invocationTarget;
         if (m_configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
-            invocationTarget = new InvocationTargetProviderWorkflowChooserImplementation(m_configuration.getWorkflowChooserModel());
+            invocationTarget =
+                new InvocationTargetProviderWorkflowChooserImplementation(m_configuration.getWorkflowChooserModel());
             m_calleePropertyFlow = new HubCalleeSelectionFlow<>(m_configuration, invocationTarget, versionSelector,
                 parameterDisplay, this::fetchParameters);
         } else {
@@ -219,7 +220,7 @@ final class CallWorkflow2NodeDialog extends NodeDialogPane implements Configurab
      */
 
     @Override
-    protected final void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
+    protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         CheckUtils.checkSetting(m_parameterMappingPanel.getState() != PanelWorkflowParameters.State.ERROR,
             "Cannot apply configuration when workflow parameters could not be successfully fetched.");
         CheckUtils.checkSetting(m_parameterMappingPanel.getState() != PanelWorkflowParameters.State.LOADING,
@@ -249,7 +250,7 @@ final class CallWorkflow2NodeDialog extends NodeDialogPane implements Configurab
     }
 
     @Override
-    protected final void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] inSpecs)
+    protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] inSpecs)
         throws NotConfigurableException {
 
         // when re-opening the dialog, delay data fetching until in consistent state again.
@@ -278,7 +279,8 @@ final class CallWorkflow2NodeDialog extends NodeDialogPane implements Configurab
 
             m_configuration.getCalleeWorkflowProperties().ifPresent(m_parameterMappingPanel::accept);
 
-            final var versionSelectorVisible = ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());
+            final var versionSelectorVisible =
+                ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());
             m_invocationTargetPanel.getVersionSelector().setVisible(versionSelectorVisible);
         } finally {
             m_calleePropertyFlow.enable(true);

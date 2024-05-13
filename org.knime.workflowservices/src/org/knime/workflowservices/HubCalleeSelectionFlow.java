@@ -91,9 +91,9 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
     Fetcher<List<NamedItemVersion>> m_versionFetcher;
 
 
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
     // External operations
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
 
     /**
      * @param configuration Used to fetch remote data but also to store the dialog state (selected version, workflow
@@ -105,7 +105,8 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
      * @param fetchParameters
      */
     public HubCalleeSelectionFlow(final CallWorkflowConnectionConfiguration configuration,
-        final InvocationTargetProvider<T> invocationTarget, final Processor<List<NamedItemVersion>, HubItemVersion> versionsControl,
+        final InvocationTargetProvider<T> invocationTarget,
+        final Processor<List<NamedItemVersion>, HubItemVersion> versionsControl,
         final StatefulConsumer<P> parametersControl, final ConnectionCallable<P> fetchParameters) {
         super(configuration, invocationTarget, parametersControl, fetchParameters);
         m_versionsControl = versionsControl;
@@ -189,9 +190,9 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
 
 
 
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
     // Asynchronous wrappers
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
 
     void fetchVersionsAsync() {
         var ready = m_versionFetcher == null || m_versionFetcher.isDone() || m_versionFetcher.cancel(true);
@@ -199,14 +200,14 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
             m_versionsControl.exception("Failed to fetch versions.");
             return;
         }
-        m_versionFetcher = new Fetcher<>(m_configuration.createFetchConfiguration(), m_versionsControl,
-            this::fetchVersions);
+        m_versionFetcher =
+            new Fetcher<>(m_configuration.createFetchConfiguration(), m_versionsControl, this::fetchVersions);
         m_versionFetcher.execute();
     }
 
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
     // Synchronous fetch operations
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
 
     private List<NamedItemVersion> fetchVersions(final CallWorkflowConnectionConfiguration configuration)
         throws InvalidSettingsException, IOException {

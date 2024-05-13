@@ -33,6 +33,7 @@ import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.knime.caller.WorkflowParameters;
 
 /**
+ * Controls fetching information about workflows as executables.
  *
  * @param <T> invocation target type, e.g., {@link FSLocation} for adhoc execution or String for deployment execution.
  * @param <P> workflow parameter type, e.g., {@link WorkflowParameters} for Call Workflow Service or
@@ -52,11 +53,11 @@ public class CalleeParameterFlow<T, P> implements CalleePropertyFlow {
     private Fetcher<P> m_parameterFetcher;
 
     /** Whether listeners are enabled. */
-    protected volatile boolean m_enabled = false;
+    protected volatile boolean m_enabled;
 
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
     // External operations
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
 
     /**
      * @param configuration Used to fetch remote data but also to store the dialog state (selected version, workflow
@@ -123,9 +124,9 @@ public class CalleeParameterFlow<T, P> implements CalleePropertyFlow {
         Optional.ofNullable(m_parameterFetcher).ifPresent(f -> f.cancel(true));
     }
 
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
     // Asynchronous wrappers
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
 
     void fetchParametersAsync() {
         var ready = m_parameterFetcher == null || m_parameterFetcher.isDone() || m_parameterFetcher.cancel(true);
@@ -138,9 +139,9 @@ public class CalleeParameterFlow<T, P> implements CalleePropertyFlow {
         m_parameterFetcher.execute();
     }
 
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
     // Utility
-    // ------------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
 
     private InvalidSettingsException connectionCannotBeCreated() {
         return new InvalidSettingsException(String.format(
@@ -149,7 +150,7 @@ public class CalleeParameterFlow<T, P> implements CalleePropertyFlow {
 
     WorkflowExecutionConnector createConnection(final CallWorkflowConnectionConfiguration configuration)
         throws InvalidSettingsException {
-        return ConnectionUtil.createConnection(configuration).orElseThrow(() -> connectionCannotBeCreated());
+        return ConnectionUtil.createConnection(configuration).orElseThrow(this::connectionCannotBeCreated);
     }
 
 }

@@ -64,7 +64,8 @@ import org.knime.workflowservices.connection.util.CreateReportControls;
  *
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
-final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane implements Fetcher.StatefulConsumer<Map<String, ExternalNodeData>> {
+final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane
+    implements Fetcher.StatefulConsumer<Map<String, ExternalNodeData>> {
 
     /** Manages asynchronous data fetching. */
     private final CalleePropertyFlow m_calleePropertyFlow;
@@ -110,7 +111,8 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane implements Fe
         final var parameterDisplay = this;
         InvocationTargetProvider<?> invocationTarget;
         if (m_configuration.getConnectionType() == ConnectionType.FILE_SYSTEM) {
-            invocationTarget = new InvocationTargetProviderWorkflowChooserImplementation(m_configuration.getWorkflowChooserModel());
+            invocationTarget =
+                new InvocationTargetProviderWorkflowChooserImplementation(m_configuration.getWorkflowChooserModel());
             m_calleePropertyFlow = new HubCalleeSelectionFlow<>(m_configuration, invocationTarget, versionSelector,
                 parameterDisplay, CallWorkflowRowBased3NodeDialog::fetchParameters);
         } else {
@@ -129,8 +131,8 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane implements Fe
      * @return input and output parameters of the callee workflow
      * @throws Exception if the backend cannot be created or the input/output resource descriptions cannot be retrieved
      */
-    private static Map<String, ExternalNodeData> fetchParameters(final CallWorkflowConnectionConfiguration configuration)
-        throws IOException, Exception {
+    private static Map<String, ExternalNodeData>
+        fetchParameters(final CallWorkflowConnectionConfiguration configuration) throws Exception {
         final var isEmptyCallee = switch (configuration.getConnectionType()) {
             case FILE_SYSTEM -> StringUtils.isEmpty(configuration.getWorkflowPath());
             case HUB_AUTHENTICATION -> StringUtils.isEmpty(configuration.getDeploymentId());
@@ -218,7 +220,8 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane implements Fe
                 m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
             }
 
-            final var versionSelectorVisible = ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());
+            final var versionSelectorVisible =
+                ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());
             m_invocationTargetPanel.getVersionSelector().setVisible(versionSelectorVisible);
         } finally {
             m_calleePropertyFlow.enable(true);
@@ -319,18 +322,12 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane implements Fe
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void clear() {
         // TODO Auto-generated method stub
 
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void loading() {
         // TODO Auto-generated method stub
