@@ -40,6 +40,7 @@ import org.knime.base.node.viz.plotter.Axis;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.port.PortType;
+import org.knime.core.node.util.ViewUtils;
 import org.knime.filehandling.core.defaultnodesettings.status.DefaultStatusMessage;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusView;
@@ -264,9 +265,10 @@ public final class PanelWorkflowParameters implements Fetcher.Processor<Workflow
         setState(State.READY);
 
         checkParametersInSync();
-
-        m_panel.repaint();
-        m_panel.revalidate();
+        ViewUtils.runOrInvokeLaterInEDT(() -> {
+            m_panel.repaint();
+            m_panel.revalidate();
+        });
     }
 
     /** Called whenever the user interacts with the buttons to order the workflow parameters. */
@@ -321,16 +323,20 @@ public final class PanelWorkflowParameters implements Fetcher.Processor<Workflow
     public void setState(final State state) {
         // display the READY panel both for state READY and PARAMETER_CONFLICT
         String panel = state == State.PARAMETER_CONFLICT ? State.READY.name() : state.name();
-        m_cardLayout.show(getContentPane(), panel);
-
-        // enable sync button only when in conflict
-        m_confirmNodePortAdjustment.setEnabled(state == State.PARAMETER_CONFLICT);
-        // show warning when parameters are out of sync
-        m_outOfSyncWarning.setStatus(state == State.PARAMETER_CONFLICT ? PARAMETERS_OUT_OF_SYNC : PARAMETERS_IN_SYNC);
 
         m_currentState = state;
-        getContentPane().repaint();
-        getContentPane().revalidate();
+        ViewUtils.runOrInvokeLaterInEDT(() -> {
+            // enable sync button only when in conflict
+            m_confirmNodePortAdjustment.setEnabled(state == State.PARAMETER_CONFLICT);
+            // show warning when parameters are out of sync
+            m_outOfSyncWarning
+                .setStatus(state == State.PARAMETER_CONFLICT ? PARAMETERS_OUT_OF_SYNC : PARAMETERS_IN_SYNC);
+
+            m_cardLayout.show(getContentPane(), panel);
+            getContentPane().repaint();
+            getContentPane().revalidate();
+        });
+
     }
 
     public State getState() {

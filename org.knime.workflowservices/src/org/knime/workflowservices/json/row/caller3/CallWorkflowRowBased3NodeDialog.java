@@ -20,7 +20,6 @@
  */
 package org.knime.workflowservices.json.row.caller3;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -42,6 +41,7 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObjectSpec;
+import org.knime.core.node.util.ViewUtils;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.CalleeParameterFlow;
 import org.knime.workflowservices.CalleePropertyFlow;
@@ -154,9 +154,11 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane
 
         var panel = getPanel();
         // some weird sequence to force the UI to properly update, see AP-6191
-        panel.invalidate();
-        panel.revalidate();
-        panel.repaint();
+        ViewUtils.runOrInvokeLaterInEDT(() -> {
+            panel.invalidate();
+            panel.revalidate();
+            panel.repaint();
+        });
     }
 
     @Override

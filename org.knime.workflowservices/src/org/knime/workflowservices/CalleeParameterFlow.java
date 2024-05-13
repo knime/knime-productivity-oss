@@ -23,6 +23,7 @@ package org.knime.workflowservices;
 import java.util.Optional;
 
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.util.ViewUtils;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.filehandling.core.connections.FSLocation;
 import org.knime.workflowservices.Fetcher.ConnectionCallable;
@@ -107,7 +108,7 @@ public class CalleeParameterFlow<T, P> implements CalleePropertyFlow {
         m_invocationTarget.saveToConfiguration(m_configuration);
 
         // update gui
-        m_parametersControl.clear();
+        ViewUtils.runOrInvokeLaterInEDT(() -> m_parametersControl.clear());
 
         // during load, do not alter configuration data in response to location changes
         // during load, do not fetch data, as we're likely in inconsistent state

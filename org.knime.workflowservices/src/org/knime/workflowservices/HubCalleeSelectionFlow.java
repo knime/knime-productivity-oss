@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.util.ViewUtils;
 import org.knime.core.util.hub.HubItemVersion;
 import org.knime.core.util.hub.NamedItemVersion;
 import org.knime.filehandling.core.connections.FSLocation;
@@ -117,6 +118,10 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
 
     @Override
     public void invocationTargetUpdated() {
+        ViewUtils.runOrInvokeLaterInEDT(this::invocationTargetUpdatedInternal);
+    }
+
+    private void invocationTargetUpdatedInternal() {
         final var newLocation = m_invocationTarget.get();
         final boolean sameLocation = Objects.equal(m_data.m_previousCalleeLocation, newLocation);
 
@@ -159,27 +164,29 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
      *            event
      */
     public void versionChanged(final HubItemVersion version) {
-        if (!m_enabled) {
-            // do not fetch parameters
-            return;
-        }
+        ViewUtils.runOrInvokeLaterInEDT(() -> {
+            if (!m_enabled) {
+                // do not fetch parameters
+                return;
+            }
 
-        // version was determined to be invalid
-        if(version == null) {
-            m_parametersControl.clear();
-            return;
-        }
+            // version was determined to be invalid
+            if (version == null) {
+                m_parametersControl.clear();
+                return;
+            }
 
-        // the source of this event is the version selector control, so no need to update its state
+            // the source of this event is the version selector control, so no need to update its state
 
-        // update configuration
-        m_configuration.setItemVersion(version);
+            // update configuration
+            m_configuration.setItemVersion(version);
 
-        if (m_data.m_isLocationValid) {
-            fetchParametersAsync();
-        } else {
-            // this update was triggered by the bound flow variable or by loading the node settings
-        }
+            if (m_data.m_isLocationValid) {
+                fetchParametersAsync();
+            } else {
+                // this update was triggered by the bound flow variable or by loading the node settings
+            }
+        });
     }
 
     @Override
