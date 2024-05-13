@@ -41,6 +41,7 @@ import org.knime.core.node.FlowVariableModel;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.util.CheckUtils;
+import org.knime.core.node.util.ViewUtils;
 import org.knime.core.node.workflow.TemplateUpdateUtil.LinkType;
 import org.knime.core.util.hub.HubItemVersion;
 import org.knime.core.util.hub.HubItemVersionPersistor;
@@ -288,6 +289,10 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
     // ------------------- Internal operations -------------------
 
     private void updateState() {
+        ViewUtils.runOrInvokeLaterInEDT(this::updateStateInternal);
+    }
+
+    private void updateStateInternal() {
         final var validated = findInVersions(m_selectedVersion, m_versions);
 
         // fire change event if the version is valid
@@ -426,9 +431,11 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
      * @param b
      */
     public void setVisible(final boolean b) {
-        getPanel().setVisible(b);
-        getPanel().revalidate();
-        getPanel().repaint();
+        ViewUtils.runOrInvokeLaterInEDT(() -> {
+            getPanel().setVisible(b);
+            getPanel().revalidate();
+            getPanel().repaint();
+        });
     }
 
 }

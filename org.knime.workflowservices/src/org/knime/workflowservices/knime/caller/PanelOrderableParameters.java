@@ -60,6 +60,8 @@ import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.knime.core.node.util.ViewUtils;
+
 /**
  * Represents the port assignments for either workflow input or output parameters. Each parameter has an up and a down
  * button that allows assigning it to a different port.
@@ -275,8 +277,10 @@ final class PanelOrderableParameters {
             m_rows.get(m_rows.size() - 1).updateMoveButtons();
         }
 
-        m_panel.revalidate();
-        m_panel.repaint();
+        ViewUtils.runOrInvokeLaterInEDT(() -> {
+            m_panel.revalidate();
+            m_panel.repaint();
+        });
     }
 
 }

@@ -263,6 +263,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane
         m_inputParameterSelectionPanel.clearParameters();
         m_outputParameterSelectionPanel.clearParameters();
         m_flowVariableDestination.clearParameters();
+        LOGGER.info(cause);
 
         // TODO
 
