@@ -25,7 +25,6 @@ import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -83,7 +82,8 @@ import jakarta.json.JsonValue;
  * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
-public final class CallWorkflowTable2NodeDialog extends NodeDialogPane implements Fetcher.StatefulConsumer<List<Map<String, JsonValue>>> {
+public final class CallWorkflowTable2NodeDialog extends NodeDialogPane
+    implements Fetcher.StatefulConsumer<List<Map<String, JsonValue>>> {
 
     /** Manages asynchronous data fetching. */
     private final CalleePropertyFlow m_calleePropertyFlow;
@@ -119,7 +119,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane implement
 
     private final CallWorkflowTableNodeConfiguration m_configuration;
 
-    private boolean m_loading = false;
+    private boolean m_loading;
 
     CallWorkflowTable2NodeDialog(final CallWorkflowTableNodeConfiguration config) {
 
@@ -159,7 +159,8 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane implement
      * Callbacks
      */
 
-    private List<Map<String, JsonValue>> fetchParameters(final CallWorkflowConnectionConfiguration configuration) throws IOException, Exception {
+    private List<Map<String, JsonValue>> fetchParameters(final CallWorkflowConnectionConfiguration configuration)
+        throws Exception {
         final var isEmptyCallee = switch (configuration.getConnectionType()) {
             case FILE_SYSTEM -> StringUtils.isEmpty(configuration.getWorkflowPath());
             case HUB_AUTHENTICATION -> StringUtils.isEmpty(configuration.getDeploymentId());
@@ -318,7 +319,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane implement
     }
 
     @Override
-    protected final void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
+    protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         CheckUtils.checkSetting(!m_loading, "Can't apply configuration while analysis is ongoing");
         storeUiStateInConfiguration();
         m_invocationTargetPanel.saveSettingsTo(settings, m_configuration);
@@ -371,7 +372,7 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane implement
     }
 
     @Override
-    protected final void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
+    protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
         throws NotConfigurableException {
         // when re-opening the dialog, delay data fetching until in consistent state again.
         m_calleePropertyFlow.enable(false);
@@ -381,7 +382,8 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane implement
             m_invocationTargetPanel.loadSettingsInDialog(m_configuration, settings, specs);
             loadConfiguration(m_configuration, specs);
 
-            final var versionSelectorVisible = ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());
+            final var versionSelectorVisible =
+                ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());
             m_invocationTargetPanel.getVersionSelector().setVisible(versionSelectorVisible);
         } finally {
             m_calleePropertyFlow.enable(true);
@@ -664,9 +666,9 @@ public final class CallWorkflowTable2NodeDialog extends NodeDialogPane implement
             final Object value, final int index, final boolean isSelected, final boolean cellHasFocus) {
 
             String text = null;
-            if (value instanceof ParameterId) {
+            if (value instanceof ParameterId parameter) {
                 var useFullyQualifiedName = m_useFullyQualifiedNamesChecker.isSelected();
-                text = ((ParameterId)value).getId(useFullyQualifiedName);
+                text = parameter.getId(useFullyQualifiedName);
             }
 
             return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus);

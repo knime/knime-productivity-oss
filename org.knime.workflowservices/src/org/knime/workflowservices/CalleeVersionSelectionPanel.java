@@ -154,12 +154,14 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
             return;
         }
 
-        // this can be null in case the version selector panel is hidden. It would be nicer to not even create it in this case.
+        // this can be null in case the version selector panel is hidden.
+        // It would be nicer to not even create it in this case.
         final var toStore = Optional.ofNullable((NamedItemVersion)m_versionSelector.getSelectedItem())
             .map(CalleeVersionSelectionPanel::fromNamedItemVersion).orElse(null);
 
         if (toStore == null) {
-            // if the combo box sends null we don't care - selecting no version is not allowed but happens if there are no elements in the combo box yet
+            // if the combo box sends null we don't care -
+            // selecting no version is not allowed but happens if there are no elements in the combo box yet
             return;
         }
 

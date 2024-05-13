@@ -21,7 +21,7 @@
 package org.knime.workflowservices;
 
 /**
- *
+ * Controls fetching of information about executables.
  * @author Carl Witt, KNIME AG, Zurich, Switzerland
  */
 public interface CalleePropertyFlow {
@@ -51,7 +51,7 @@ public interface CalleePropertyFlow {
     void close();
 
     /**
-     * @return
+     * @return provider for the executable
      */
     InvocationTargetProvider<?> getInvocationTarget();
 
