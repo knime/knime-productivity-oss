@@ -358,7 +358,7 @@ Public License instead of this License.
    </license>
 
    <requires>
-      <import feature="org.eclipse.birt.knime.osgi.runtime" version="4.13.0.v202303021806-20230421-knime" match="greaterOrEqual"/>
+      <import feature="org.eclipse.birt.engine.runtime" version="4.15.0.v202403260939" match="greaterOrEqual"/>
    </requires>
 
    <plugin
