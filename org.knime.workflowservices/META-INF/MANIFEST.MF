@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: KNIME Nodes to build and use KNIME workflow services
 Bundle-SymbolicName: org.knime.workflowservices;singleton:=true
-Bundle-Version: 5.2.0.qualifier
+Bundle-Version: 5.2.4.qualifier
 Bundle-ClassPath: workflowservices-nodes.jar
 Bundle-Vendor: KNIME AG, Zurich, Switzerland
 Require-Bundle: org.knime.base;bundle-version="[5.2.0,6.0.0)",
