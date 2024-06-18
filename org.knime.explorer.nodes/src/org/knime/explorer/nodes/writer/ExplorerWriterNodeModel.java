@@ -79,6 +79,7 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.util.FileUtil;
+import org.knime.core.util.ThreadLocalHTTPAuthenticator;
 import org.knime.core.util.proxy.URLConnectionFactory;
 
 
@@ -118,100 +119,102 @@ public class ExplorerWriterNodeModel extends NodeModel {
                     + filePathVariableName + "\" is empty.");
         }
 
-        String fileName;
-        long fileSize = -1L;
-        InputStream inputStream;
-        try {
-            URL url = new URL(filePath);
-            inputStream = url.openStream();
-            if ("file".equals(url.getProtocol())) {
-                File f = FileUtil.getFileFromURL(url);
-                if (f.exists()) {
-                    fileSize = f.length();
-                }
-                fileName = f.getName();
-            } else {
-                // delete all until last slash
-                String tempFileName = url.getPath().replaceFirst(".*\\/", "");
-                if (tempFileName.isEmpty()) {
-                    tempFileName = new SimpleDateFormat(
-                            "yyyy-MM-dd_hh-mm-ss").format(
-                                    new Date()).concat(".file");
-                    LOGGER.warn("Could not derive file name from URL \""
-                            + filePath + "\", will use \"" + tempFileName
-                            + "\" instead.");
-                }
-                fileName = tempFileName;
-            }
-        } catch (MalformedURLException mue) {
-            File file = new File(filePath);
-            if (!file.exists()) {
-                throw new Exception("File path \"" + filePathVariableName
-                        + "\" does not denote an existing file, nor "
-                        + "can be parsed as URL", mue);
-            }
-            inputStream = new FileInputStream(file);
-            fileSize = file.length();
-            fileName = file.getName();
-        }
-        ByteCountingStream bcInStream = new ByteCountingStream(inputStream);
-
-        URLConnection con = null;
-        OutputStream out = null;
-
-        // Building the output URL
-        String parentURL = m_config.getOutputURL();
-        StringBuffer sb = new StringBuffer(parentURL);
-        if (!parentURL.endsWith("/")) {
-            sb.append("/");
-        }
-        sb.append(fileName);
-        URL outputURL = new URL(sb.toString());
-
-        LOGGER.debug("Writing file \"" + filePath + "\" to URL \""
-                + outputURL + ".");
-        try {
-            con = URLConnectionFactory.getConnection(outputURL);
-        } catch (IOException e) {
+        try (final var c = ThreadLocalHTTPAuthenticator.suppressAuthenticationPopups()) {
+            String fileName;
+            long fileSize = -1L;
+            InputStream inputStream;
             try {
-                bcInStream.close();
-            } catch (IOException e1) {
-                LOGGER.error("Could not close input stream on \" " +
-                        filePath + "\".", e);
-            }
-            throw new IOException("Could not open output stream.", e);
-        }
-        if (!m_config.isOverwriteOK() && con.getContentLength() != -1) {
-            bcInStream.close();
-            throw new IOException("Resource \"" + outputURL
-                    + "\" exists already and \"Overwrite existing files\" "
-                    + "is not checked. Writing was cancelled...");
-        }
-        con.setDoOutput(true);
-        out = con.getOutputStream();
-        byte[] b = new byte[1024 * 1024]; // 1MB
-        int len = -1;
-        try {
-            while ((len = bcInStream.read(b)) > 0) {
-                out.write(b, 0, len);
-                exec.checkCanceled();
-                long progressed = bcInStream.bytesRead();
-                double sizeInMB = progressed / (double)(1024 * 1024);
-                String size = NumberFormat.getInstance().format(sizeInMB);
-                String message = "Writing to explorer space (" + size
-                    + "MB)";
-                if (fileSize > 0L) {
-                    double prog = (double)progressed / fileSize;
-                    exec.setProgress(prog, message);
+                URL url = new URL(filePath);
+                inputStream = url.openStream();
+                if ("file".equals(url.getProtocol())) {
+                    File f = FileUtil.getFileFromURL(url);
+                    if (f.exists()) {
+                        fileSize = f.length();
+                    }
+                    fileName = f.getName();
                 } else {
-                    exec.setProgress(message);
+                    // delete all until last slash
+                    String tempFileName = url.getPath().replaceFirst(".*\\/", "");
+                    if (tempFileName.isEmpty()) {
+                        tempFileName = new SimpleDateFormat(
+                                "yyyy-MM-dd_hh-mm-ss").format(
+                                        new Date()).concat(".file");
+                        LOGGER.warn("Could not derive file name from URL \""
+                                + filePath + "\", will use \"" + tempFileName
+                                + "\" instead.");
+                    }
+                    fileName = tempFileName;
                 }
+            } catch (MalformedURLException mue) {
+                File file = new File(filePath);
+                if (!file.exists()) {
+                    throw new Exception("File path \"" + filePathVariableName
+                            + "\" does not denote an existing file, nor "
+                            + "can be parsed as URL", mue);
+                }
+                inputStream = new FileInputStream(file);
+                fileSize = file.length();
+                fileName = file.getName();
             }
-        } finally {
-            bcInStream.close();
-            out.close();
+            ByteCountingStream bcInStream = new ByteCountingStream(inputStream);
+
+            URLConnection con = null;
+            OutputStream out = null;
+
+            // Building the output URL
+            String parentURL = m_config.getOutputURL();
+            StringBuffer sb = new StringBuffer(parentURL);
+            if (!parentURL.endsWith("/")) {
+                sb.append("/");
+            }
+            sb.append(fileName);
+            URL outputURL = new URL(sb.toString());
+
+            LOGGER.debug("Writing file \"" + filePath + "\" to URL \""
+                    + outputURL + ".");
+            try {
+                con = URLConnectionFactory.getConnection(outputURL);
+            } catch (IOException e) {
+                try {
+                    bcInStream.close();
+                } catch (IOException e1) {
+                    LOGGER.error("Could not close input stream on \" " +
+                            filePath + "\".", e);
+                }
+                throw new IOException("Could not open output stream.", e);
+            }
+            if (!m_config.isOverwriteOK() && con.getContentLength() != -1) {
+                bcInStream.close();
+                throw new IOException("Resource \"" + outputURL
+                        + "\" exists already and \"Overwrite existing files\" "
+                        + "is not checked. Writing was cancelled...");
+            }
+            con.setDoOutput(true);
+            out = con.getOutputStream();
+            byte[] b = new byte[1024 * 1024]; // 1MB
+            int len = -1;
+            try {
+                while ((len = bcInStream.read(b)) > 0) {
+                    out.write(b, 0, len);
+                    exec.checkCanceled();
+                    long progressed = bcInStream.bytesRead();
+                    double sizeInMB = progressed / (double)(1024 * 1024);
+                    String size = NumberFormat.getInstance().format(sizeInMB);
+                    String message = "Writing to explorer space (" + size
+                        + "MB)";
+                    if (fileSize > 0L) {
+                        double prog = (double)progressed / fileSize;
+                        exec.setProgress(prog, message);
+                    } else {
+                        exec.setProgress(message);
+                    }
+                }
+            } finally {
+                bcInStream.close();
+                out.close();
+            }
+            return new BufferedDataTable[0];
         }
-        return new BufferedDataTable[0];
     }
 
     /**

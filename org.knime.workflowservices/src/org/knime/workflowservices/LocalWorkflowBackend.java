@@ -57,7 +57,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -100,6 +99,7 @@ import org.knime.core.util.FileUtil;
 import org.knime.core.util.KNIMETimer;
 import org.knime.core.util.LockFailedException;
 import org.knime.core.util.Pair;
+import org.knime.core.util.ThreadLocalHTTPAuthenticator;
 import org.knime.core.util.URIUtil;
 import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.core.util.proxy.URLConnectionFactory;
@@ -364,16 +364,17 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         File tempDir = FileUtil.createTempDir("Called-workflow");
         File zippedWorkflow = new File(tempDir, "workflow.knwf");
 
-        URLConnection connection = URLConnectionFactory.getConnection(url);
-        if (connection instanceof HttpURLConnection && ((HttpURLConnection)connection).getResponseCode() == 403) {
-            ((HttpURLConnection)connection).disconnect();
-            throw new IOException("User does not have permissions to read workflow " + url + " on the server");
-        }
 
-        try (OutputStream os = new FileOutputStream(zippedWorkflow); InputStream is = connection.getInputStream()) {
-            IOUtils.copy(is, os);
-        } catch (IOException ex) {
-            throw ex;
+        try (final var c = ThreadLocalHTTPAuthenticator.suppressAuthenticationPopups()) {
+            final var connection = URLConnectionFactory.getConnection(url);
+            if (connection instanceof HttpURLConnection httpConnection && httpConnection.getResponseCode() == 403) {
+                httpConnection.disconnect();
+                throw new IOException("User does not have permissions to read workflow " + url + " on the server");
+            }
+
+            try (OutputStream os = new FileOutputStream(zippedWorkflow); InputStream is = connection.getInputStream()) {
+                IOUtils.copy(is, os);
+            }
         }
         FileUtil.unzip(zippedWorkflow, tempDir);
         Files.delete(zippedWorkflow.toPath());
