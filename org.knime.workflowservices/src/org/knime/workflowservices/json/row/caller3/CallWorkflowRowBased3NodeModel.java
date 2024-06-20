@@ -159,8 +159,7 @@ public class CallWorkflowRowBased3NodeModel extends NodeModel {
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         if (inSpecs.length > 0 && inSpecs[0] instanceof AbstractHubAuthenticationPortObjectSpec hubAuthPortObjectSpec) {
-            m_configuration.setAuthenticator(hubAuthPortObjectSpec.getAuthenticator()
-                .orElse(null));
+            m_configuration.setHubAuthentication(hubAuthPortObjectSpec);
         } else {
             m_configuration.configureCalleeModel(inSpecs);
             ConnectionUtil.validateConfiguration(m_configuration);
