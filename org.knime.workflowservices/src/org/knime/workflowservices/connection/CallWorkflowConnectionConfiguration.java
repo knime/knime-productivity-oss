@@ -34,7 +34,6 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.port.PortObjectSpec;
-import org.knime.core.util.auth.Authenticator;
 import org.knime.core.util.hub.HubItemVersion;
 import org.knime.core.util.hub.HubItemVersionPersistor;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
@@ -142,7 +141,7 @@ public class CallWorkflowConnectionConfiguration {
     private String m_deploymentId;
 
     /** Used in {@link Version#VERSION_2} to authenticate to a hub instance. */
-    private Authenticator m_authenticator;
+    private AbstractHubAuthenticationPortObjectSpec m_hubAuthentication;
 
     /** Used in {@link Version#VERSION_2} to distinguish between calling deployments and ad hoc workflow invocation */
     private ConnectionType m_connectionType;
@@ -598,19 +597,19 @@ public class CallWorkflowConnectionConfiguration {
     /**
      * Sets the authenticator to be used (only valid for Hub).
      *
-     * @param authneticator the authneticator of the connected Hub instance.
+     * @param authenticator the authenticator of the connected Hub instance.
      */
-    public void setAuthenticator(final Authenticator authneticator) {
-        m_authenticator = authneticator;
+    public void setHubAuthentication(final AbstractHubAuthenticationPortObjectSpec authenticator) {
+        m_hubAuthentication = authenticator;
     }
 
     /**
      * Returns the authenticator to be used (only valid for Hub).
      *
-     * @return authneticator the authneticator of the connected Hub instance.
+     * @return authenticator the authenticator of the connected Hub instance.
      */
-    public Authenticator getAuthenticator() {
-        return m_authenticator;
+    public AbstractHubAuthenticationPortObjectSpec getHubAuthentication() {
+        return m_hubAuthentication;
     }
 
     /**
@@ -659,7 +658,7 @@ public class CallWorkflowConnectionConfiguration {
         } else {
             result = new CallWorkflowConnectionConfiguration(m_connectorPortGroup.nodeConfiguration(),
                 m_connectorPortGroup.connectorPortGroupName());
-            result.setAuthenticator(getAuthenticator());
+            result.setHubAuthentication(getHubAuthentication());
             if(m_version == Version.VERSION_2 && m_connectionType == ConnectionType.FILE_SYSTEM) {
                 result.setWorkflowChooserModel(getWorkflowChooserModel());
                 result.setItemVersion(getItemVersion());

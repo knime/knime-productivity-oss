@@ -152,8 +152,7 @@ public final class InvocationTargetPanel {
         if (m_configuration.getConnectionType() == ConnectionType.HUB_AUTHENTICATION) {
             m_deploymentSelector.loadSettingsInDialog(configuration, settings);
             if (specs.length > 0 && specs[0] instanceof AbstractHubAuthenticationPortObjectSpec hubAuthPortObjectSpec) {
-                m_configuration.setAuthenticator(hubAuthPortObjectSpec.getAuthenticator()
-                    .orElseThrow(() -> new NotConfigurableException("Node is not connected to the Hub.")));
+                m_configuration.setHubAuthentication(hubAuthPortObjectSpec);
             } else {
                 throw new NotConfigurableException("Node is not connected to the Hub.");
             }

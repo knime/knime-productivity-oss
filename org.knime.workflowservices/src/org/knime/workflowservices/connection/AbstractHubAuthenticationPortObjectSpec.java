@@ -20,6 +20,7 @@
  */
 package org.knime.workflowservices.connection;
 
+import java.net.URI;
 import java.util.Optional;
 
 import org.knime.core.node.port.PortObjectSpec;
@@ -45,5 +46,10 @@ public interface AbstractHubAuthenticationPortObjectSpec extends PortObjectSpec 
      * @return the authenticator of the hub instance.
      */
     public Optional<Authenticator> getAuthenticator();
+
+    /**
+     * @return the base URL of the Hub REST API (in legacy format), e.g. https://api.hub.knime.com/knime/rest.
+     */
+    Optional<URI> getHubURL();
 
 }
