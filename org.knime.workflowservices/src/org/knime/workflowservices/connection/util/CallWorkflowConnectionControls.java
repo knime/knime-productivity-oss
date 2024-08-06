@@ -26,6 +26,7 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ItemEvent;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -170,6 +171,17 @@ public final class CallWorkflowConnectionControls {
             bg.add(m_asyncInvocationChecker);
             m_syncInvocationChecker.doClick();
 
+            m_asyncInvocationChecker.addItemListener(e -> {
+                if (e.getStateChange() == ItemEvent.SELECTED) {
+                    m_discardJobOnSuccesfulExecution.setSelected(false);
+                    m_discardJobOnSuccesfulExecution.setEnabled(false);
+                }
+                if (e.getStateChange() == ItemEvent.DESELECTED) {
+                    m_discardJobOnSuccesfulExecution.setEnabled(true);
+                    m_discardJobOnSuccesfulExecution.setSelected(true);
+                }
+            });
+
             gbc.anchor = GridBagConstraints.WEST;
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridx = 0;
@@ -244,7 +256,13 @@ public final class CallWorkflowConnectionControls {
         }
 
         m_controls.m_retainJobOnFailure.setSelected(configuration.isKeepFailingJobs());
-        m_controls.m_discardJobOnSuccesfulExecution.setSelected(configuration.isDiscardJobOnSuccessfulExecution());
+
+        if (m_controls.m_asyncInvocationChecker.isSelected()) {
+            m_controls.m_discardJobOnSuccesfulExecution.setSelected(false);
+            m_controls.m_discardJobOnSuccesfulExecution.setEnabled(false);
+        } else {
+            m_controls.m_discardJobOnSuccesfulExecution.setSelected(configuration.isDiscardJobOnSuccessfulExecution());
+        }
 
         m_controls.m_timeoutPanel.loadFromConfiguration(configuration);
 
@@ -347,7 +365,13 @@ public final class CallWorkflowConnectionControls {
         m_controls.m_asyncInvocationChecker.setEnabled(isRemoteConnection);
         m_controls.m_syncInvocationChecker.setEnabled(isRemoteConnection);
         m_controls.m_retainJobOnFailure.setEnabled(isRemoteConnection);
-        m_controls.m_discardJobOnSuccesfulExecution.setEnabled(isRemoteConnection);
+
+        if (m_controls.m_asyncInvocationChecker.isSelected()) {
+            m_controls.m_discardJobOnSuccesfulExecution.setSelected(false);
+            m_controls.m_discardJobOnSuccesfulExecution.setEnabled(false);
+        } else {
+            m_controls.m_discardJobOnSuccesfulExecution.setEnabled(isRemoteConnection);
+        }
 
         m_controls.m_backoffpanel.setEnabled(isRemoteConnection);
         m_controls.m_timeoutPanel.setEnabled(isRemoteConnection);
@@ -362,7 +386,13 @@ public final class CallWorkflowConnectionControls {
         m_controls.m_asyncInvocationChecker.setEnabled(true);
         m_controls.m_syncInvocationChecker.setEnabled(true);
         m_controls.m_retainJobOnFailure.setEnabled(true);
-        m_controls.m_discardJobOnSuccesfulExecution.setEnabled(true);
+
+        if (m_controls.m_asyncInvocationChecker.isSelected()) {
+            m_controls.m_discardJobOnSuccesfulExecution.setSelected(false);
+            m_controls.m_discardJobOnSuccesfulExecution.setEnabled(false);
+        } else {
+            m_controls.m_discardJobOnSuccesfulExecution.setEnabled(true);
+        }
 
         m_controls.m_backoffpanel.setEnabled(true);
         m_controls.m_timeoutPanel.setEnabled(true);
