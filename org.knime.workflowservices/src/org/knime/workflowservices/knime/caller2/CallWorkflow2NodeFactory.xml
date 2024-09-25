@@ -73,6 +73,12 @@
 			The selected path can be set via a path flow variable or exported to a path flow variable.
 			</option>
 			
+			<option name="Version">
+				If available, select the version of the workflow to read. A limited number of versions will be fetched and provided in a
+				dropdown menu. If the desired version is not included in the dropdown list, the option <i>hubItemVersion</i> can be set
+				with a flow variable (e.g. "333" for version 333 on the hub).
+			</option>
+			
 			<option name="Deployment">The deployed workflow to execute. Use the "Browse..." button to select.
 			This option is only visible when the node is connected to a KNIME Hub Authenticator node.
 			</option>
