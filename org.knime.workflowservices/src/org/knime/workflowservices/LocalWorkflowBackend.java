@@ -105,6 +105,7 @@ import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.core.util.proxy.URLConnectionFactory;
 import org.knime.core.util.report.ReportingConstants;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
+import org.knime.gateway.impl.project.Project;
 import org.knime.gateway.impl.project.ProjectManager;
 import org.knime.gateway.impl.project.WorkflowServiceProjects;
 import org.knime.reporting.executor.ReportExecutor;
@@ -267,9 +268,8 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
              * will facilite a RunningOnServerItselfServerConnection, which will instantiate a real server connection.
              */
             // compute the new path in the server repository base on the caller's path and the URL type
-            if (location instanceof RestLocationInfo) {
+            if (location instanceof RestLocationInfo remoteInfo) {
                 // callerContext.getRemoteRepositoryAddress().isPresent() && callerContext.getRelativeRemotePath().isPresent()
-                final RestLocationInfo remoteInfo = (RestLocationInfo) location;
                 String relPath;
                 if (ExplorerURLStreamHandler.WORKFLOW_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
                     // relPath = callerContext.getRelativeRemotePath().get() + "/" + originalUrl.getPath();
@@ -306,22 +306,22 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
             } else {
                 ctx = WorkflowContextV2.forTemporaryWorkflow(file.toPath(), null);
             }
-            final var l = WorkflowManager.loadProject(file, new ExecutionMonitor(), new WorkflowLoadHelper(ctx));
-            return new LocalWorkflowBackend(localUri, l.getWorkflowManager());
+            final var loadResult = WorkflowManager.loadProject(file, new ExecutionMonitor(), new WorkflowLoadHelper(ctx));
+            return new LocalWorkflowBackend(localUri, loadResult.getWorkflowManager());
         } else {
             // running in GUI mode
 
             // classic UI
-            WorkflowManager m = (WorkflowManager)ProjectWorkflowMap.getWorkflow(localUri);
-            if (m == null) {
+            WorkflowManager wfm = (WorkflowManager)ProjectWorkflowMap.getWorkflow(localUri);
+            if (wfm == null) {
                 // modern UI
-                m = WorkflowServiceProjects.getProject(file.toPath())
-                    .flatMap(id -> ProjectManager.getInstance().getCachedProject(id)).orElse(null);
+                wfm = WorkflowServiceProjects.getProjectIdAt(file.toPath())
+                    .flatMap(id -> ProjectManager.getInstance().getProject(id)).flatMap(Project::getWorkflowManagerIfLoaded).orElse(null);
             }
 
             CheckUtils.checkState(execInfo instanceof AnalyticsPlatformExecutorInfo,
                 "Not running in an instance of %s", AnalyticsPlatformExecutorInfo.class.getName());
-            if (m == null) {
+            if (wfm == null) {
                 // two cases really:
                 // - regular open in KNIME GUI -- mount table is present and "ExplorerFileStore" can be located
                 // - test cases: mimic mount table by setting mountpoint (id and path) for callee
@@ -343,18 +343,18 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                         })
                         .withLocalLocation()
                         .build();
-                WorkflowLoadResult l = WorkflowManager.loadProject(file, new ExecutionMonitor(),
+                var loadResult = WorkflowManager.loadProject(file, new ExecutionMonitor(),
                     new WorkflowLoadHelper(ctx));
-                m = l.getWorkflowManager();
+                wfm = loadResult.getWorkflowManager();
 
                 // classic UI
-                ProjectWorkflowMap.putWorkflow(localUri, m);
+                ProjectWorkflowMap.putWorkflow(localUri, wfm);
 
                 // modern UI
-                WorkflowServiceProjects.registerProject(m);
+                WorkflowServiceProjects.registerProject(wfm);
 
             }
-            LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(localUri, m);
+            LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(localUri, wfm);
             ProjectWorkflowMap.registerClientTo(localUri, localWorkflowBackend);
             return localWorkflowBackend;
         }
