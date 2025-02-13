@@ -62,9 +62,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.WeakHashMap;
@@ -82,16 +80,13 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.util.CheckUtils;
-import org.knime.core.node.workflow.NodeContainerState;
 import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.NodeMessage;
 import org.knime.core.node.workflow.UnsupportedWorkflowVersionException;
 import org.knime.core.node.workflow.WorkflowLoadHelper;
 import org.knime.core.node.workflow.WorkflowManager;
-import org.knime.core.node.workflow.WorkflowPersistor.WorkflowLoadResult;
 import org.knime.core.node.workflow.contextv2.AnalyticsPlatformExecutorInfo;
 import org.knime.core.node.workflow.contextv2.HubSpaceLocationInfo;
-import org.knime.core.node.workflow.contextv2.LocationInfo;
 import org.knime.core.node.workflow.contextv2.RestLocationInfo;
 import org.knime.core.node.workflow.contextv2.ServerLocationInfo;
 import org.knime.core.node.workflow.contextv2.WorkflowContextV2;
@@ -111,7 +106,6 @@ import org.knime.gateway.impl.project.WorkflowServiceProjects;
 import org.knime.reporting.executor.ReportExecutor;
 import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.ExplorerURLStreamHandler;
-import org.knime.workbench.explorer.filesystem.LocalExplorerFileStore;
 import org.knime.workbench.ui.navigator.ProjectWorkflowMap;
 import org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFactory;
 
@@ -134,20 +128,20 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
 
     private static final NodeLogger LOGGER = NodeLogger.getLogger(LocalWorkflowBackend.class);
 
-    private static final Cache<URI, LocalWorkflowBackend> CACHE = CacheBuilder.newBuilder()
-        .expireAfterAccess(1L, TimeUnit.MINUTES).maximumSize(5)
-        .removalListener((final RemovalNotification<URI, LocalWorkflowBackend> notification) -> {
-            final LocalWorkflowBackend value = notification.getValue();
-            if (value.isInUse()) {
-                value.setDiscardAfterUse();
-            } else {
-                value.discard();
-            }
-        }).build();
+    private static final Cache<URI, LocalWorkflowBackend> CACHE =
+        CacheBuilder.newBuilder().expireAfterAccess(1L, TimeUnit.MINUTES).maximumSize(5)
+            .removalListener((final RemovalNotification<URI, LocalWorkflowBackend> notification) -> {
+                final var value = notification.getValue();
+                if (value.isInUse()) {
+                    value.setDiscardAfterUse();
+                } else {
+                    value.discard();
+                }
+            }).build();
 
     static {
         WorkflowServiceProjects.setOnRemoveAllProjectsCallback(CACHE::invalidateAll);
-     }
+    }
 
     private static final Map<WorkflowManager, Set<URI>> CALLER_MAP = new WeakHashMap<>();
 
@@ -168,7 +162,8 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
      * @return a new local workflow backend
      * @throws Exception if the path does not point to a workflow
      */
-    public static LocalWorkflowBackend newInstance(final String path, final WorkflowManager callingWorkflow) throws Exception {
+    public static LocalWorkflowBackend newInstance(final String path, final WorkflowManager callingWorkflow)
+        throws Exception {
         CACHE.cleanUp();
 
         URL originalUrl;
@@ -183,7 +178,6 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                 originalUrl = new URL("knime", ExplorerURLStreamHandler.WORKFLOW_RELATIVE, "/" + path);
             }
         }
-
 
         // resolve relative URLs into absolute URLs, usually either file or http, may also return a KNIME URI in some
         // legacy code paths
@@ -226,9 +220,9 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         // Converting the path directly to URI leads to key matching problems in the ProjectWorkflowMap as three
         // slashes will be added after the scheme part of the URI, however the value will be accessed with only one slash
         // after the scheme. Hence, convert to file first. Furthermore, keys will be accessed with normalized URIs. See AP-7589.
-        URI localUri = workflowDir.toFile().toURI().normalize();
-        URL ou = originalUrl; // Just to make the compiler happy
-        final LocalWorkflowBackend localWorkflowBackend = CACHE.get(localUri, () -> loadWorkflow(localUri, ou));
+        var localUri = workflowDir.toFile().toURI().normalize();
+        var ou = originalUrl; // Just to make the compiler happy
+        final var localWorkflowBackend = CACHE.get(localUri, () -> loadWorkflow(localUri, ou));
         localWorkflowBackend.lock();
 
         localWorkflowBackend.m_deleteAfterUse = deleteAfterUse;
@@ -247,19 +241,19 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
      * @param originalUrl the original URL as configured by the user, e.g. knime://knime.workflow/../Called
      * @return a new local backend
      */
-    private static LocalWorkflowBackend loadWorkflow(final URI localUri,
-        final URL originalUrl) throws IOException, InvalidSettingsException, CanceledExecutionException,
-            UnsupportedWorkflowVersionException, LockFailedException, CoreException {
-        File file = new File(localUri);
+    private static LocalWorkflowBackend loadWorkflow(final URI localUri, final URL originalUrl)
+        throws IOException, InvalidSettingsException, CanceledExecutionException, UnsupportedWorkflowVersionException,
+        LockFailedException, CoreException {
+        var file = new File(localUri);
 
         CheckUtils.checkState(NodeContext.getContext() != null, "NodeContext not set while loading callee workflow");
-        final WorkflowContextV2 callerContext = NodeContext.getContext().getWorkflowManager().getContextV2();
+        final var callerContext = NodeContext.getContext().getWorkflowManager().getContextV2();
         var execInfo = callerContext.getExecutorInfo();
 
         if (Boolean.getBoolean("java.awt.headless")) {
             // running as an executor on the server or as batch executor
 
-            final LocationInfo location = callerContext.getLocationInfo();
+            final var location = callerContext.getLocationInfo();
             //ctxFac = callerContext.createCopy();
 
             WorkflowContextV2 ctx;
@@ -284,67 +278,61 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                 relPath = FilenameUtils.normalize(relPath, true);
                 final RestLocationInfo targetLocation;
                 if (remoteInfo instanceof ServerLocationInfo) {
-                    targetLocation = ServerLocationInfo.builder()
-                            .withRepositoryAddress(remoteInfo.getRepositoryAddress())
-                            .withWorkflowPath(relPath)
-                            .withAuthenticator(remoteInfo.getAuthenticator())
-                            .withDefaultMountId(remoteInfo.getDefaultMountId())
-                            .build();
+                    targetLocation =
+                        ServerLocationInfo.builder().withRepositoryAddress(remoteInfo.getRepositoryAddress())
+                            .withWorkflowPath(relPath).withAuthenticator(remoteInfo.getAuthenticator())
+                            .withDefaultMountId(remoteInfo.getDefaultMountId()).build();
                 } else if (remoteInfo instanceof HubSpaceLocationInfo) {
                     throw new IllegalStateException(
                         "Hub Execution not supported for deprecated 'Call Local Workflow' node, update the calling "
-                        + "workflow to use a non-deprecated variant.");
+                            + "workflow to use a non-deprecated variant.");
                 } else {
                     throw new IllegalStateException(
                         "Location info of type " + remoteInfo.getClass().getName() + " not implemented");
                 }
 
-                ctx = WorkflowContextV2.builder()
-                        .withExecutor(execInfo)
-                        .withLocation(targetLocation)
-                        .build();
+                ctx = WorkflowContextV2.builder().withExecutor(execInfo).withLocation(targetLocation).build();
             } else {
                 ctx = WorkflowContextV2.forTemporaryWorkflow(file.toPath(), null);
             }
-            final var loadResult = WorkflowManager.loadProject(file, new ExecutionMonitor(), new WorkflowLoadHelper(ctx));
+            final var loadResult =
+                WorkflowManager.loadProject(file, new ExecutionMonitor(), new WorkflowLoadHelper(ctx));
             return new LocalWorkflowBackend(localUri, loadResult.getWorkflowManager());
         } else {
             // running in GUI mode
 
             // classic UI
-            WorkflowManager wfm = (WorkflowManager)ProjectWorkflowMap.getWorkflow(localUri);
+            var wfm = (WorkflowManager)ProjectWorkflowMap.getWorkflow(localUri);
             if (wfm == null) {
                 // modern UI
-                wfm = WorkflowServiceProjects.getProjectIdAt(file.toPath())
-                    .flatMap(id -> ProjectManager.getInstance().getProject(id)).flatMap(Project::getWorkflowManagerIfLoaded).orElse(null);
+                wfm = WorkflowServiceProjects.getProjectIdAt(file.toPath()) //
+                    .flatMap(id -> ProjectManager.getInstance().getProject(id)) //
+                    .flatMap(Project::getWorkflowManagerIfLoaded).orElse(null);
             }
 
-            CheckUtils.checkState(execInfo instanceof AnalyticsPlatformExecutorInfo,
-                "Not running in an instance of %s", AnalyticsPlatformExecutorInfo.class.getName());
+            CheckUtils.checkState(execInfo instanceof AnalyticsPlatformExecutorInfo, "Not running in an instance of %s",
+                AnalyticsPlatformExecutorInfo.class.getName());
             if (wfm == null) {
                 // two cases really:
                 // - regular open in KNIME GUI -- mount table is present and "ExplorerFileStore" can be located
                 // - test cases: mimic mount table by setting mountpoint (id and path) for callee
-                Optional<Pair<URI, Path>> mpOptional = ((AnalyticsPlatformExecutorInfo)execInfo).getMountpoint();
+                var mpOptional = ((AnalyticsPlatformExecutorInfo)execInfo).getMountpoint();
                 final var localWorkflowPath = file.toPath();
-                final LocalExplorerFileStore fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
-                final var mountpoint = fs == null ?
-                    mpOptional.map(p -> Pair.create(p.getFirst().getAuthority(), p.getSecond())).orElse(null) :
-                    Pair.create(fs.getMountID(), fs.getContentProvider().getRootStore().toLocalFile().toPath());
-                final WorkflowContextV2 ctx = WorkflowContextV2.builder()
-                        .withAnalyticsPlatformExecutor(exec -> {
-                            final var exec2 = exec
-                                    .withCurrentUserAsUserId()
-                                    .withLocalWorkflowPath(localWorkflowPath);
-                            if (mountpoint != null) {
-                                exec2.withMountpoint(mountpoint.getFirst(), mountpoint.getSecond());
-                            }
-                            return exec2;
-                        })
-                        .withLocalLocation()
-                        .build();
-                var loadResult = WorkflowManager.loadProject(file, new ExecutionMonitor(),
-                    new WorkflowLoadHelper(ctx));
+                final var fs = ExplorerMountTable.getFileSystem().fromLocalFile(file);
+                final var mountpoint = fs == null
+                    ? mpOptional.map(p -> Pair.create(p.getFirst().getAuthority(), p.getSecond())).orElse(null)
+                    : Pair.create(fs.getMountID(), fs.getContentProvider().getRootStore().toLocalFile().toPath());
+                final var ctx = WorkflowContextV2.builder().withAnalyticsPlatformExecutor(exec -> {
+                    final var exec2 = exec.withCurrentUserAsUserId().withLocalWorkflowPath(localWorkflowPath);
+                    if (mountpoint != null) {
+                        exec2.withMountpoint(mountpoint.getFirst(), mountpoint.getSecond());
+                    }
+                    return exec2;
+                }).withLocalLocation().build();
+                var loadResult = WorkflowManager.loadProject(file, //
+                    new ExecutionMonitor(), //
+                    new WorkflowLoadHelper(ctx) //
+                );
                 wfm = loadResult.getWorkflowManager();
 
                 // classic UI
@@ -354,16 +342,15 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                 WorkflowServiceProjects.registerProject(wfm);
 
             }
-            LocalWorkflowBackend localWorkflowBackend = new LocalWorkflowBackend(localUri, wfm);
+            var localWorkflowBackend = new LocalWorkflowBackend(localUri, wfm);
             ProjectWorkflowMap.registerClientTo(localUri, localWorkflowBackend);
             return localWorkflowBackend;
         }
     }
 
     private static Path downloadAndExtractRemoteWorkflow(final URL url) throws IOException {
-        File tempDir = FileUtil.createTempDir("Called-workflow");
-        File zippedWorkflow = new File(tempDir, "workflow.knwf");
-
+        var tempDir = FileUtil.createTempDir("Called-workflow");
+        var zippedWorkflow = new File(tempDir, "workflow.knwf");
 
         try (final var c = ThreadLocalHTTPAuthenticator.suppressAuthenticationPopups()) {
             final var connection = URLConnectionFactory.getConnection(url);
@@ -372,7 +359,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                 throw new IOException("User does not have permissions to read workflow " + url + " on the server");
             }
 
-            try (OutputStream os = new FileOutputStream(zippedWorkflow); InputStream is = connection.getInputStream()) {
+            try (OutputStream os = new FileOutputStream(zippedWorkflow); var is = connection.getInputStream()) {
                 IOUtils.copy(is, os);
             }
         }
@@ -388,9 +375,9 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
      */
     public static void cleanCalledWorkflows(final WorkflowManager callingWorkflow) {
         synchronized (CALLER_MAP) {
-            Set<URI> workflowsUsedBy = CALLER_MAP.remove(callingWorkflow);
+            var workflowsUsedBy = CALLER_MAP.remove(callingWorkflow);
             if (workflowsUsedBy != null) {
-                for (URI workflowUri : workflowsUsedBy) {
+                for (var workflowUri : workflowsUsedBy) {
                     CACHE.invalidate(workflowUri);
                 }
                 CACHE.cleanUp();
@@ -425,8 +412,8 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
     public Map<String, JsonValue> getOutputValues() {
         Map<String, JsonValue> map = new HashMap<>();
 
-        for (Map.Entry<String, ExternalNodeData> e : m_manager.getExternalOutputs().entrySet()) {
-            JsonValue json = e.getValue().getJSONValue();
+        for (var e : m_manager.getExternalOutputs().entrySet()) {
+            var json = e.getValue().getJSONValue();
             if (json != null) {
                 map.put(e.getKey(), json);
             }
@@ -475,7 +462,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
     /** {@inheritDoc} */
     @Override
     public WorkflowState execute(final Map<String, ExternalNodeData> input) throws Exception {
-       return executeAsWorkflowService(input);
+        return executeAsWorkflowService(input);
     }
 
     /**
@@ -485,7 +472,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
     public WorkflowState executeAsWorkflowService(final Map<String, ExternalNodeData> input) throws Exception {
         updateWorkflow(input);
         m_manager.executeAllAndWaitUntilDone();
-        NodeContainerState state = m_manager.getNodeContainerState();
+        var state = m_manager.getNodeContainerState();
         if (state.isExecuted()) {
             return WorkflowState.EXECUTED;
         } else if (state.isExecutionInProgress()) {
@@ -500,10 +487,10 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
      */
     @Override
     public String getWorkflowMessage() {
-        List<Pair<String, NodeMessage>> errors = m_manager.getNodeMessages(NodeMessage.Type.ERROR);
+        var errors = m_manager.getNodeMessages(NodeMessage.Type.ERROR);
         if (!errors.isEmpty()) {
-            StringBuilder b = new StringBuilder();
-            for (Pair<String, NodeMessage> p : errors) {
+            var b = new StringBuilder();
+            for (var p : errors) {
                 if (b.length() > 0) {
                     b.append('\n');
                 }
@@ -511,10 +498,10 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
             }
             return b.toString();
         }
-        List<Pair<String, NodeMessage>> warnings = m_manager.getNodeMessages(NodeMessage.Type.WARNING);
+        var warnings = m_manager.getNodeMessages(NodeMessage.Type.WARNING);
         if (!warnings.isEmpty()) {
-            StringBuilder b = new StringBuilder();
-            for (Pair<String, NodeMessage> p : warnings) {
+            var b = new StringBuilder();
+            for (var p : warnings) {
                 if (b.length() > 0) {
                     b.append('\n');
                 }
@@ -572,9 +559,11 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         }
     }
 
-
-    /** {@inheritDoc}
-     * @throws ReportGenerationException */
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws ReportGenerationException
+     */
     @Override
     public byte[] generateReport(final RptOutputFormat format) throws ReportGenerationException {
         File reportDocDir = null;
@@ -584,12 +573,12 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         } catch (EngineException e) {
             throw new ReportGenerationException("The generation of the report document failed.", e);
         } catch (IOException e) {
-            throw new ReportGenerationException("Reading the report design file or writing the report document failed: "
-                    + e.getMessage(), e);
+            throw new ReportGenerationException(
+                "Reading the report design file or writing the report document failed: " + e.getMessage(), e);
         }
         try {
-            byte[] report = ReportExecutor.renderReport(m_manager, reportDocDir, format,
-                new ReportingConstants.RptOutputOptions());
+            var report =
+                ReportExecutor.renderReport(m_manager, reportDocDir, format, new ReportingConstants.RptOutputOptions());
             LOGGER.debugWithFormat("Successfully rendered report (%s) for workflow '%s'; report is %s large",
                 format.getExtension(), m_manager.getName(), FileUtils.byteCountToDisplaySize(report.length));
             return report;
