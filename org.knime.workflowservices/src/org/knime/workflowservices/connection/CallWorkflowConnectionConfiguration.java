@@ -34,8 +34,8 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.port.PortObjectSpec;
-import org.knime.core.util.hub.HubItemVersion;
-import org.knime.core.util.hub.HubItemVersionPersistor;
+import org.knime.core.util.hub.ItemVersion;
+import org.knime.core.util.hub.ItemVersionStringPersistor;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.SettingsModelWorkflowChooser;
 import org.knime.filehandling.core.defaultnodesettings.status.NodeModelStatusConsumer;
@@ -116,7 +116,7 @@ public class CallWorkflowConnectionConfiguration {
     private final Version m_version;
 
     /** Hub repository item version of the workflow to execute. */
-    private HubItemVersion m_itemVersion = HubItemVersion.currentState();
+    private ItemVersion m_itemVersion = ItemVersion.currentState();
 
     // ---- version 2 exclusive members ----
 
@@ -201,14 +201,14 @@ public class CallWorkflowConnectionConfiguration {
         settings.addBoolean("isSynchronous", m_isSynchronous);
         settings.addBoolean("keepFailingJobs", m_keepFailingJobs);
         settings.addString("executionContext", m_executionContext);
-        HubItemVersionPersistor.save(m_itemVersion, settings);
+        ItemVersionStringPersistor.save(m_itemVersion, settings);
         settings.addString("deploymentId", m_deploymentId);
 
         if (m_version == Version.VERSION_1) {
             settings.addString("workflow", getWorkflowPath());
         } else if (m_version == Version.VERSION_2 && m_connectionType == ConnectionType.FILE_SYSTEM) {
             m_workflowChooserModel.saveSettingsTo(settings);
-            HubItemVersionPersistor.save(m_itemVersion, settings);
+            ItemVersionStringPersistor.save(m_itemVersion, settings);
         }
 
         m_reportConfiguration.save(settings);
@@ -245,7 +245,7 @@ public class CallWorkflowConnectionConfiguration {
         m_keepFailingJobs = settings.getBoolean("keepFailingJobs", true);
         m_executionContext = settings.getString("executionContext", "");
         m_deploymentId = settings.getString("deploymentId", "");
-        m_itemVersion = HubItemVersionPersistor.load(settings).orElse(HubItemVersion.currentState());
+        m_itemVersion = ItemVersionStringPersistor.load(settings).orElse(ItemVersion.currentState());
         // base, multiplier, and retries
         m_backoffPolicy = BackoffPolicy.loadFromSettings(settings);
 
@@ -565,14 +565,14 @@ public class CallWorkflowConnectionConfiguration {
     /**
      * @return the hub item version of the workflow to call, empty for server and local connections.
      */
-    public HubItemVersion getItemVersion() {
+    public ItemVersion getItemVersion() {
         return m_itemVersion;
     }
 
     /**
      * @param itemVersion the itemVersion to set
      */
-    public void setItemVersion(final HubItemVersion itemVersion) {
+    public void setItemVersion(final ItemVersion itemVersion) {
         m_itemVersion = itemVersion;
     }
 

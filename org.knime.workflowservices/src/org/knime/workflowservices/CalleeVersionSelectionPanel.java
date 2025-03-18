@@ -27,9 +27,9 @@ import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JComboBox;
@@ -42,10 +42,12 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.ViewUtils;
-import org.knime.core.node.workflow.TemplateUpdateUtil.LinkType;
 import org.knime.core.util.hub.HubItemVersion;
 import org.knime.core.util.hub.HubItemVersionPersistor;
+import org.knime.core.util.hub.ItemVersion;
+import org.knime.core.util.hub.ItemVersionStringPersistor;
 import org.knime.core.util.hub.NamedItemVersion;
+import org.knime.core.util.hub.SpecificVersion;
 
 /**
  * A panel that allows to select a version for a workflow.
@@ -75,7 +77,7 @@ import org.knime.core.util.hub.NamedItemVersion;
  * @since 5.2
  */
 @SuppressWarnings("javadoc")
-public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List<NamedItemVersion>, HubItemVersion> {
+public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List<NamedItemVersion>, ItemVersion> {
 
     private static final NamedItemVersion LATEST_STATE =
         new NamedItemVersion(Integer.MAX_VALUE, "Latest edits", "", "", "", "");
@@ -83,22 +85,18 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
     private static final NamedItemVersion LATEST_VERSION =
         new NamedItemVersion(Integer.MAX_VALUE, "Latest version", "", "", "", "");
 
-    private static final Map<LinkType, NamedItemVersion> PSEUDO_VERSIONS = Map.of( //
-        LinkType.LATEST_STATE, LATEST_STATE, //
-        LinkType.LATEST_VERSION, LATEST_VERSION);
-
     /** For registering listeners on the selected hub item version. */
     private final PropertyChangeSupport m_versionProperty = new PropertyChangeSupport(this);
 
     /** The selected version. It is never null, but it might be invalid, see m_isVersionValid */
-    private HubItemVersion m_selectedVersion = HubItemVersion.currentState();
+    private ItemVersion m_selectedVersion = ItemVersion.currentState();
 
-    private boolean m_isVersionControlledByFlowVariable = false;
+    private boolean m_isVersionControlledByFlowVariable;
 
     /** Content of the selection drop down including pseudo versions latest edits and latest version. */
-    private List<NamedItemVersion> m_versions = null;
+    private List<NamedItemVersion> m_versions;
 
-    private boolean m_isVersionsLoading = false;
+    private boolean m_isVersionsLoading;
 
     private Optional<String> m_versionsFetchError = Optional.empty();
 
@@ -176,17 +174,17 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
      */
     private synchronized void onVersionFlowVariableChanged(final ChangeEvent evt) {
         try {
-            final var toSet = HubItemVersionPersistor.fromFlowVariableChangeEvent(evt);
+            final var toSet = ItemVersionStringPersistor.fromFlowVariableChangeEvent(evt);
             m_flowVariableParseError = Optional.empty();
             if (toSet.isPresent()) {
                 m_selectedVersion = toSet.get();
                 m_isVersionControlledByFlowVariable = true;
             } else {
-                m_selectedVersion = HubItemVersion.currentState();
+                m_selectedVersion = ItemVersion.currentState();
                 m_isVersionControlledByFlowVariable = false;
             }
         } catch (InvalidSettingsException e) {
-            m_selectedVersion = HubItemVersion.currentState();
+            m_selectedVersion = ItemVersion.currentState();
             m_flowVariableParseError = Optional.of(e.getMessage());
             // an exception means there is a key for the version flow variable but the associated value is invalid.
             m_isVersionControlledByFlowVariable = true;
@@ -265,7 +263,7 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
      * @param version from node settings or from user interface. Not null.
      */
     @Override
-    public void set(final HubItemVersion version) {
+    public void set(final ItemVersion version) {
         // check not null
         CheckUtils.checkArgumentNotNull(version);
         if (!m_isVersionControlledByFlowVariable) {
@@ -279,7 +277,7 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
      *         Empty optional indicates that no valid version could be selected and the panel is not ready to proceed.
      */
     @Override
-    public HubItemVersion get() {
+    public ItemVersion get() {
         if (m_flowVariableParseError.isPresent()) {
             throw new IllegalStateException(m_flowVariableParseError.get());
         }
@@ -318,7 +316,7 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
             message = m_isVersionControlledByFlowVariable
                 ? inRed("The version %s set via flow variable does not exist.".formatted(readable(m_selectedVersion)))
                 : inRed("Version %s does not exist. Switching to %s.".formatted(readable(m_selectedVersion),
-                    readable(HubItemVersion.currentState())));
+                    readable(ItemVersion.currentState())));
         }
         if (m_isVersionsLoading) {
             message = "Loading versions...";
@@ -338,32 +336,28 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
      * @param versions in this list
      * @return the NamedItemVersion, if present and versions is not null
      */
-    private static Optional<NamedItemVersion> findInVersions(final HubItemVersion version,
+    private static Optional<NamedItemVersion> findInVersions(final ItemVersion version,
         final List<NamedItemVersion> versions) {
         CheckUtils.checkArgumentNotNull(version);
-
-        if (version.versionNumber() == null) {
-            return Optional.of(PSEUDO_VERSIONS.get(version.linkType()));
-        }
-        if (versions == null) {
-            return Optional.empty();
-        }
-        return versions.stream() //
-            .filter(d -> d.version() == version.versionNumber()) //
-            .findAny();
+        return version.match( //
+            () -> Optional.of(LATEST_STATE), //
+            () -> Optional.of(LATEST_VERSION), //
+            sv -> Optional.ofNullable(versions).map(List::stream).orElseGet(Stream::empty) //
+                .filter(d -> d.version() == sv) //
+                .findAny());
     }
 
-    private static HubItemVersion fromNamedItemVersion(final NamedItemVersion niv) {
+    private static ItemVersion fromNamedItemVersion(final NamedItemVersion niv) {
         if (niv == null) {
             return null;
         }
         if (niv == LATEST_STATE) {
-            return HubItemVersion.currentState();
+            return ItemVersion.currentState();
         }
         if (niv == LATEST_VERSION) {
-            return HubItemVersion.latestVersion();
+            return ItemVersion.mostRecent();
         }
-        return HubItemVersion.of(niv.version());
+        return new SpecificVersion(niv.version());
     }
 
     // ------------------- Utility -------------------
@@ -376,12 +370,8 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
                 """.formatted(message);
     }
 
-    private static String readable(final HubItemVersion version) {
-        return switch (version.linkType()) {
-            case FIXED_VERSION -> version.versionNumber().toString();
-            case LATEST_VERSION -> "Latest version";
-            case LATEST_STATE -> "Latest edits";
-        };
+    private static String readable(final ItemVersion version) {
+        return version.match(() -> "Latest edits", () -> "Latest version", sv -> Integer.toString(sv));
     }
 
     /** layout the controls */

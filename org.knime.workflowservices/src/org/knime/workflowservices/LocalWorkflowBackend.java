@@ -191,10 +191,11 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                 workflowDir = FileUtil.resolveToPath(resolvedUrl);
                 deleteAfterUse = false;
             } else if (resolvedUrl.getProtocol().equalsIgnoreCase("knime")) {
-                // ExplorerStreamHandler cannot handle some mount point absolute uris, e.g., knime://knime-teamspace/OS/Callee
-                // it will just return the input unchanged. In this case, the resolver util can help (but applying it in the
-                // first place would cause compatibility isses because it copies temporary files into different locations).
-                // the resolver util expects an encoded URI (e.g., it throws an exception if given a URI containing spaces)
+                // ExplorerStreamHandler cannot handle some mount point absolute uris, e.g.,
+                // knime://knime-teamspace/OS/Callee, it will just return the input unchanged. In this case, the
+                // resolver util can help (but applying it in the first place would cause compatibility isses because it
+                // copies temporary files into different locations). the resolver util expects an encoded URI
+                // (e.g., it throws an exception if given a URI containing spaces)
                 var encodedUri = URIUtil.createEncodedURI(originalUrl).orElseThrow(() -> new IllegalArgumentException(
                     String.format("Invalid callee location, \"%s\" cannot be converted to URI.", path)));
                 workflowDir = ResolverUtil.resolveURItoLocalFile(encodedUri).toPath();
@@ -561,7 +562,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws ReportGenerationException
      */
     @Override
