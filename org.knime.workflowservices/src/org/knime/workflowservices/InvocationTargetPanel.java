@@ -35,7 +35,7 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.VariableType;
-import org.knime.core.util.hub.HubItemVersionPersistor;
+import org.knime.core.util.hub.ItemVersionStringPersistor;
 import org.knime.filehandling.core.data.location.variable.FSLocationVariableType;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.workflow.DialogComponentWorkflowChooser;
 import org.knime.filehandling.core.util.GBCBuilder;
@@ -69,7 +69,7 @@ public final class InvocationTargetPanel {
     public InvocationTargetPanel(final CallWorkflowConnectionConfiguration configuration, final NodeDialogPane pane) {
         m_configuration = configuration;
         m_pane = pane;
-        m_versionSelector = new CalleeVersionSelectionPanel(HubItemVersionPersistor.createFlowVariableModel(pane));
+        m_versionSelector = new CalleeVersionSelectionPanel(ItemVersionStringPersistor.createFlowVariableModel(pane));
         m_executionContextSelector = new ExecutionContextSelector();
         m_deploymentSelector = new DeploymentSelectionPanel(configuration,
             pane.createFlowVariableModel("deploymentId", VariableType.StringType.INSTANCE));

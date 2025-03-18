@@ -27,7 +27,7 @@ import java.util.Optional;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.util.ViewUtils;
-import org.knime.core.util.hub.HubItemVersion;
+import org.knime.core.util.hub.ItemVersion;
 import org.knime.core.util.hub.NamedItemVersion;
 import org.knime.filehandling.core.connections.FSLocation;
 import org.knime.workflowservices.Fetcher.ConnectionCallable;
@@ -87,7 +87,7 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
 
     final DialogData<T> m_data = new DialogData<>();
 
-    final Fetcher.Processor<List<NamedItemVersion>, HubItemVersion> m_versionsControl;
+    final Fetcher.Processor<List<NamedItemVersion>, ItemVersion> m_versionsControl;
 
     Fetcher<List<NamedItemVersion>> m_versionFetcher;
 
@@ -107,13 +107,13 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
      */
     public HubCalleeSelectionFlow(final CallWorkflowConnectionConfiguration configuration,
         final InvocationTargetProvider<T> invocationTarget,
-        final Processor<List<NamedItemVersion>, HubItemVersion> versionsControl,
+        final Processor<List<NamedItemVersion>, ItemVersion> versionsControl,
         final StatefulConsumer<P> parametersControl, final ConnectionCallable<P> fetchParameters) {
         super(configuration, invocationTarget, parametersControl, fetchParameters);
         m_versionsControl = versionsControl;
 
         // when the version changes, refetch workflow parameters
-        versionsControl.addListener(e -> versionChanged((HubItemVersion)e.getNewValue()));
+        versionsControl.addListener(e -> versionChanged((ItemVersion)e.getNewValue()));
     }
 
     @Override
@@ -148,7 +148,7 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
             if (!sameLocation) {
                 // this would normally fire an event that leads to versionChanged but
                 // the control is disabled because clear() was called earlier
-                m_versionsControl.set(HubItemVersion.currentState());
+                m_versionsControl.set(ItemVersion.currentState());
             }
             // take into account
             m_configuration.setItemVersion(m_versionsControl.get());
@@ -163,7 +163,7 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
      * @param version the new version as reported by the version selector - either via user interaction or flow variable
      *            event
      */
-    public void versionChanged(final HubItemVersion version) {
+    public void versionChanged(final ItemVersion version) {
         ViewUtils.runOrInvokeLaterInEDT(() -> {
             if (!m_enabled) {
                 // do not fetch parameters
