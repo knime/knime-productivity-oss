@@ -33,10 +33,12 @@ import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.contextv2.LocalLocationInfo;
 import org.knime.core.node.workflow.contextv2.WorkflowContextV2.LocationType;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
+import org.knime.core.workbench.mountpoint.api.WorkbenchMountPoint;
+import org.knime.core.workbench.mountpoint.api.WorkbenchMountPointState;
+import org.knime.core.workbench.mountpoint.api.WorkbenchMountTable;
 import org.knime.filehandling.core.connections.FSLocationSpec;
 import org.knime.filehandling.core.connections.meta.FSType;
 import org.knime.filehandling.core.port.FileSystemPortObjectSpec;
-import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.connection.AbstractConnectionFactory;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
@@ -235,8 +237,10 @@ public final class ConnectionUtil {
             // to find out what's behind a mount point, we consult the mount table
             String specifier = fsLocation.getFileSystemSpecifier().orElseThrow();
             String mountId = extractMountPointID(specifier);
-            var mountPoint = Optional.ofNullable(ExplorerMountTable.getMountPoint(mountId));
-            return mountPoint.orElseThrow(() -> new IllegalArgumentException("The mount point " + mountId + " no longer exists.")).getProvider().isRemote();
+            return WorkbenchMountTable.getMountPoint(mountId) //
+                    .map(WorkbenchMountPoint::getState) //
+                    .filter(WorkbenchMountPointState::isRemote) //
+                    .isPresent();
         } else if (fsType == FSType.RELATIVE_TO_SPACE || fsType == FSType.RELATIVE_TO_MOUNTPOINT
             || fsType == FSType.RELATIVE_TO_WORKFLOW) {
             return isRemoteWorkflowContext();
