@@ -48,32 +48,81 @@
  */
 package org.knime.workflowservices.knime.callee;
 
+import java.io.IOException;
 import java.util.Optional;
 
+import org.apache.xmlbeans.XmlException;
 import org.knime.core.node.ConfigurableNodeFactory;
+import org.knime.core.node.NodeDescription;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeView;
 import org.knime.core.node.context.NodeCreationConfiguration;
+import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortType;
+import org.knime.core.webui.node.dialog.NodeDialog;
+import org.knime.core.webui.node.dialog.NodeDialogFactory;
+import org.knime.core.webui.node.dialog.NodeDialogManager;
+import org.knime.core.webui.node.dialog.SettingsType;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeDialog;
+import org.knime.core.webui.node.impl.WebUINodeConfiguration;
+import org.knime.core.webui.node.impl.WebUINodeFactory;
+import org.xml.sax.SAXException;
 
 /**
+ * Node factory for Workflow Service Output node.
+ *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
-public final class WorkflowOutputNodeFactory extends ConfigurableNodeFactory<WorkflowOutputNodeModel> {
+@SuppressWarnings("restriction") // webui is not API yet
+public final class WorkflowOutputNodeFactory extends ConfigurableNodeFactory<WorkflowOutputNodeModel>
+    implements NodeDialogFactory {
 
     static final String INPUT_PORT_GROUP = "Callee Workflow Output";
 
     private final PortsConfigurationBuilder m_portsConfigurationBuilder;
 
+    private static final String FULL_DESCRIPTION = """
+            <p>
+            Sends a table or any other port object back to a KNIME workflow that executes this workflow using the
+            <i>Call Workflow Service</i> node.
+            A parameter name is used to identify the output among the possibly many outputs of this workflow.
+            </p>
+            """;
+
+    private static final WebUINodeConfiguration CONFIG = WebUINodeConfiguration.builder() //
+        .name("Workflow Output") //
+        .icon("service-out.png") //
+        .shortDescription("""
+                Sends back data to a KNIME workflow calling this workflow.
+                For use in workflows that are called from other workflows.
+                """) //
+        .fullDescription(FULL_DESCRIPTION) //
+        .modelSettingsClass(WorkflowOutputSettings.class) //
+        .addInputPort(INPUT_PORT_GROUP, PortObject.TYPE, //
+            """
+                Output provided by this workflow to a workflow executing this workflow using the
+                <i>Call Workflow Service</i> node.
+                The port can be configured to match the type of data that is to be sent to the calling workflow.
+                """) //
+        .addOutputPort("Unchanged Input", PortObject.TYPE, //
+            """
+                This port outputs the node's input without changes, for further processing in the workflow.
+                """) //
+        .nodeType(NodeType.Container) //
+        .sinceVersion(5, 5, 0) //
+        .build();
+
     /**
-     *
+     * Default constructor using the default port type.
      */
     public WorkflowOutputNodeFactory() {
         this(WorkflowBoundaryConfiguration.DEFAULT_PORT_TYPE);
     }
 
     /**
-     * @param type
+     * Constructor with custom port type.
+     *
+     * @param type custom type
      */
     public WorkflowOutputNodeFactory(final PortType type) {
         m_portsConfigurationBuilder = new PortsConfigurationBuilder();
@@ -81,6 +130,10 @@ public final class WorkflowOutputNodeFactory extends ConfigurableNodeFactory<Wor
             WorkflowBoundaryConfiguration.ALL_PORT_TYPES);
     }
 
+    @Override
+    protected NodeDescription createNodeDescription() throws SAXException, IOException, XmlException {
+        return WebUINodeFactory.createNodeDescription(CONFIG);
+    }
 
     @Override
     public WorkflowOutputNodeModel createNodeModel(final NodeCreationConfiguration creationConfig) {
@@ -104,17 +157,18 @@ public final class WorkflowOutputNodeFactory extends ConfigurableNodeFactory<Wor
 
     @Override
     protected NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
-        final var portConfig = creationConfig.getPortConfig().orElseThrow();
-        return new WorkflowBoundaryNodeDialog(portConfig, WorkflowOutputNodeModel.DEFAULT_PARAM_NAME);
+        return NodeDialogManager.createLegacyFlowVariableNodeDialog(createNodeDialog());
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public NodeView<WorkflowOutputNodeModel> createNodeView(final int viewIndex,
         final WorkflowOutputNodeModel nodeModel) {
         throw new UnsupportedOperationException("This node has no views.");
+    }
+
+    @Override
+    public NodeDialog createNodeDialog() {
+        return new DefaultNodeDialog(SettingsType.MODEL, WorkflowOutputSettings.class);
     }
 
 }

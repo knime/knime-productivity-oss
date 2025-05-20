@@ -69,23 +69,25 @@ import org.knime.core.node.port.PortTypeRegistry;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
 import org.knime.workflowservices.knime.util.CallWorkflowPayload;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
+@SuppressWarnings("restriction") // webui is not API yet
 final class WorkflowInputNodeModel extends AbstractPortObjectRepositoryNodeModel implements InputNode {
 
     public static final String DEFAULT_PARAM_NAME = "input-parameter";
 
-    private WorkflowBoundaryConfiguration m_config;
+    private WorkflowBoundaryConfiguration m_settings;
 
     private CallWorkflowPayload m_payload;
 
     WorkflowInputNodeModel(final PortsConfiguration creationConfig) {
         super(toOptional(creationConfig.getInputPorts()), creationConfig.getOutputPorts());
-        m_config = new WorkflowBoundaryConfiguration(DEFAULT_PARAM_NAME);
+        m_settings = new WorkflowInputSettings();
     }
 
     /**
@@ -135,7 +137,7 @@ final class WorkflowInputNodeModel extends AbstractPortObjectRepositoryNodeModel
 
     @Override
     public ExternalNodeData getInputData() {
-        var paramName = m_config.getParameterName();
+        var paramName = m_settings.getParameterName();
         return CallWorkflowUtil.createExternalNodeData(paramName, getOutPortType(0), null);
     }
 
@@ -165,17 +167,17 @@ final class WorkflowInputNodeModel extends AbstractPortObjectRepositoryNodeModel
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
-        m_config.saveSettingsTo(settings);
+        DefaultNodeSettings.saveSettings(WorkflowInputSettings.class, m_settings, settings);
     }
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        new WorkflowBoundaryConfiguration(DEFAULT_PARAM_NAME).loadSettingsFrom(settings);
+        DefaultNodeSettings.loadSettings(settings, WorkflowInputSettings.class);
     }
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_config = new WorkflowBoundaryConfiguration(DEFAULT_PARAM_NAME).loadSettingsFrom(settings);
+        m_settings = DefaultNodeSettings.loadSettings(settings, WorkflowInputSettings.class);
     }
 
     @Override

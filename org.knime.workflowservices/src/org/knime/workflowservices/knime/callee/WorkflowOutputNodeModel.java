@@ -74,6 +74,7 @@ import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.VariableTypeRegistry;
 import org.knime.core.node.workflow.capture.WorkflowPortObject;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
@@ -86,13 +87,16 @@ import org.knime.workflowservices.knime.util.CallWorkflowUtil;
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
+@SuppressWarnings("restriction") // webui is not API yet
 final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
+
+    static final NodeLogger LOGGER = NodeLogger.getLogger(WorkflowOutputNodeModel.class);
 
     public static final String DEFAULT_PARAM_NAME = "output-parameter";
 
     private static boolean hasReportedUnsupportedCreationOfHardLinks;
 
-    private WorkflowBoundaryConfiguration m_config = new WorkflowBoundaryConfiguration(DEFAULT_PARAM_NAME);
+    private WorkflowOutputSettings m_settings = new WorkflowOutputSettings();
 
     /**
      * Path to the temporary file containing the {@link PortObject} to return to the caller workflow.
@@ -133,8 +137,8 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
         if (portObj instanceof FlowVariablePortObject) {
             VariableType<?>[] allTypes = VariableTypeRegistry.getInstance().getAllTypes();
             return CallWorkflowUtil.writeFlowVariables(getAvailableFlowVariables(allTypes).values());
-        } else if (portObj instanceof WorkflowPortObject) {
-            return CallWorkflowUtil.writeWorkflowPortObjectAndReferencedData((WorkflowPortObject)portObj, exec);
+        } else if (portObj instanceof WorkflowPortObject wpo) {
+            return CallWorkflowUtil.writeWorkflowPortObjectAndReferencedData(wpo, exec);
         } else {
             return CallWorkflowUtil.writePortObject(exec, portObj);
         }
@@ -148,24 +152,25 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
      */
     @Override
     public ExternalNodeData getExternalOutput() {
-        var parameterName = m_config.getParameterName();
+        var parameterName = m_settings.getParameterName();
         var outputPath = Optional.ofNullable(m_output);
-        return CallWorkflowUtil.createExternalNodeData(parameterName, getInPortType(0), outputPath.map(Path::toFile).orElse(null));
+        return CallWorkflowUtil.createExternalNodeData(parameterName, getInPortType(0), outputPath.map(Path::toFile)
+            .orElse(null));
     }
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
-        m_config.saveSettingsTo(settings);
+        DefaultNodeSettings.saveSettings(WorkflowOutputSettings.class, m_settings, settings);
     }
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        new WorkflowBoundaryConfiguration(DEFAULT_PARAM_NAME).loadSettingsFrom(settings);
+        DefaultNodeSettings.loadSettings(settings, WorkflowOutputSettings.class);
     }
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_config = new WorkflowBoundaryConfiguration(DEFAULT_PARAM_NAME).loadSettingsFrom(settings);
+        m_settings = DefaultNodeSettings.loadSettings(settings, WorkflowOutputSettings.class);
     }
 
     /**
@@ -177,9 +182,10 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
     protected void loadInternals(final File nodeInternDir, final ExecutionMonitor exec)
         throws IOException, CanceledExecutionException {
         var files = FileUtils.listFiles(nodeInternDir, new RegexFileFilter("output-resource\\..+"), null);
-        if(files.size() != 1) {
+        if (files.size() != 1) {
             throw new IllegalStateException("Invalid internal node data in workflow output node."
-                + " There should be exactly one internal output-resource file but got: " + Arrays.toString(files.toArray()));
+                + " There should be exactly one internal output-resource file but got: "
+                + Arrays.toString(files.toArray()));
         }
         var portObjectFile = files.iterator().next().toPath();
 
@@ -231,8 +237,6 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
     public boolean isUseAlwaysFullyQualifiedParameterName() {
         return false;
     }
-
-    static final NodeLogger LOGGER = NodeLogger.getLogger(WorkflowOutputNodeModel.class);
 
     /**
      * Attempts to create a hard link from source to target to avoid unnecessary copying. If that is not supported (file

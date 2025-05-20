@@ -54,14 +54,18 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortTypeRegistry;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
+import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.NodeSettingsPersistor;
+import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.Persistor;
+import org.knime.core.webui.node.dialog.defaultdialog.widget.RichTextInputWidget;
+import org.knime.core.webui.node.dialog.defaultdialog.widget.Widget;
 import org.knime.workflowservices.knime.caller.WorkflowParameter;
 
 /**
  * Common configuration for the Workflow Input and Workflow Output nodes.
  */
-public final class WorkflowBoundaryConfiguration {
-
-    private static final String CFG_PARAMETER_NAME = "parameterName";
+@SuppressWarnings("restriction") // webui not API yet
+abstract class WorkflowBoundaryConfiguration implements DefaultNodeSettings {
 
     /**
      * New Workflow Input nodes are initialized with one output port of this type. New Workflow Output nodes are
@@ -74,39 +78,46 @@ public final class WorkflowBoundaryConfiguration {
         .availablePortTypes()//
         .toArray(PortType[]::new);
 
-    private String m_parameterName;
+    @Widget(title = "Parameter name", description = """
+            The parameter name is supposed to be unique, but this is not enforced.
+            In case multiple <i>Workflow Service Input</i> (<i>Workflow Service Output</i>) nodes define the same
+            parameter name, KNIME will make them unique by appending the node's node ID,
+            e.g., "input-table" becomes "input-table-7" ("output-table" becomes "output-table-7").
+            """)
+    String m_parameterName;
 
-    /**
-     * @param parameterName
-     */
-    WorkflowBoundaryConfiguration(final String parameterName) {
+    @Widget(title = "Description", description = """
+            The description for the workflow input (output) parameter describing the purpose of the parameter.
+            """)
+    @RichTextInputWidget
+    @Persistor(OptionalParameterDescription.class)
+    String m_parameterDescription;
+
+    // backwards compatibility
+    static final class OptionalParameterDescription implements NodeSettingsPersistor<String> {
+
+        private static final String CFG_PARAMETER_DESCRIPTION = "parameterDescription";
+
+        @Override
+        public String load(final NodeSettingsRO settings) throws InvalidSettingsException {
+            return settings.getString(CFG_PARAMETER_DESCRIPTION, "");
+        }
+
+        @Override
+        public void save(final String desc, final NodeSettingsWO settings) {
+            settings.addString(CFG_PARAMETER_DESCRIPTION, desc);
+        }
+
+        @Override
+        public String[][] getConfigPaths() {
+            return new String[][] {{ CFG_PARAMETER_DESCRIPTION }};
+        }
+    }
+
+    protected WorkflowBoundaryConfiguration(final String parameterName) {
         m_parameterName = parameterName;
     }
 
-    /**
-     * Saves the settings of this configuration to the given settings object.
-     *
-     * @param settings the settings to save to.
-     */
-    void saveSettingsTo(final NodeSettingsWO settings) {
-        settings.addString(CFG_PARAMETER_NAME, m_parameterName);
-    }
-
-    /**
-     * Loads the validated settings from the given settings object.
-     *
-     * @param settings the settings from which to load.
-     * @return this
-     */
-    WorkflowBoundaryConfiguration loadSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        var parameterName = settings.getString(CFG_PARAMETER_NAME);
-        m_parameterName = WorkflowParameter.validateParameterName(parameterName);
-        return this;
-    }
-
-    /**
-     * @return the parameterName
-     */
     String getParameterName() {
         return m_parameterName;
     }
@@ -119,11 +130,6 @@ public final class WorkflowBoundaryConfiguration {
     WorkflowBoundaryConfiguration setParameterName(final String parameterName) throws InvalidSettingsException {
         m_parameterName = WorkflowParameter.validateParameterName(parameterName);
         return this;
-    }
-
-    public static void saveConfigAsNodeSettings(final NodeSettingsWO settings, final String parameterName) {
-        var config = new WorkflowBoundaryConfiguration(parameterName);
-        config.saveSettingsTo(settings);
     }
 
 }
