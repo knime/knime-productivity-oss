@@ -48,18 +48,24 @@
  */
 package org.knime.workflowservices.knime.callee;
 
+import java.io.File;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortTypeRegistry;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
 import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.NodeSettingsPersistor;
 import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.Persistor;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.RichTextInputWidget;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.Widget;
 import org.knime.workflowservices.knime.caller.WorkflowParameter;
+import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
  * Common configuration for the Workflow Input and Workflow Output nodes.
@@ -130,6 +136,33 @@ abstract class WorkflowBoundaryConfiguration implements DefaultNodeSettings {
     WorkflowBoundaryConfiguration setParameterName(final String parameterName) throws InvalidSettingsException {
         m_parameterName = WorkflowParameter.validateParameterName(parameterName);
         return this;
+    }
+
+    /**
+     * Creates external node data from the settings and the given port type.
+     *
+     * @param portType non-{@code null} port type to use
+     * @param portContent {@code null}able file with the port content
+     * @return external node data
+     */
+    ExternalNodeData toExternalNodeData(final PortType portType, final File portContent) {
+        // this method was previously "duplicated" in WorklowInputNodeModel and WorkflowOutputNodeModel and was prone
+        // to NPE if the port type was null:
+        // down the line through createExternalNodeData->ResourceContentType.of(null portType)
+        CheckUtils.checkNotNull(portType);
+
+        try {
+            return CallWorkflowUtil.createExternalNodeData(
+                new WorkflowParameter(m_parameterName, m_parameterDescription, portType), portContent);
+        } catch (final InvalidSettingsException e) {
+            // The cause for this InvalidSettingsException is a null port type. Previously `getOutPortType(0)` was
+            // directly passed to `createExternalNodeData`, which would access a method on the given port type without
+            // a null check.
+            // Hence, we would have already gotten an NPE if the output port type was null before this change.
+            // We catch this condition earlier now (above) and rethrow any other ISE that might occur here as unchecked
+            // to adhere to the method interface.
+            throw ExceptionUtils.asRuntimeException(e);
+        }
     }
 
 }

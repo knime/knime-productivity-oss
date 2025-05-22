@@ -71,7 +71,6 @@ import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
 import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
 import org.knime.workflowservices.knime.util.CallWorkflowPayload;
-import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
@@ -137,8 +136,7 @@ final class WorkflowInputNodeModel extends AbstractPortObjectRepositoryNodeModel
 
     @Override
     public ExternalNodeData getInputData() {
-        var paramName = m_settings.getParameterName();
-        return CallWorkflowUtil.createExternalNodeData(paramName, getOutPortType(0), null);
+        return m_settings.toExternalNodeData(getOutPortType(0), null);
     }
 
     @Override

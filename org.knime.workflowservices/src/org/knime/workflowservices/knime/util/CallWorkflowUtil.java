@@ -36,7 +36,6 @@ import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortObject;
-import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortUtil;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.FlowVariable;
@@ -114,7 +113,7 @@ public final class CallWorkflowUtil {
                 tempFile = writePortObject(exec, portObject);
             }
 
-            var externalNodeData = createExternalNodeData(key, portDesc.getPortType(), tempFile);
+            var externalNodeData = createExternalNodeData(portDesc, tempFile);
 
             workflowInput.put(key, externalNodeData);
         }
@@ -154,18 +153,21 @@ public final class CallWorkflowUtil {
     }
 
     /**
-     * @param parameterName the workflow parameter name
-     * @param portType specifies the type of content in the file
+     * Creates external node data from the given workflow parameter and optional file.
+     *
+     * @param parameter workflow parameter with name, optional description, and port type specifying the file's content
+     *            type
      * @param portContent as written by, e.g., {@link CallWorkflowUtil#writePortObject(ExecutionContext, PortObject)}.
      *            If null, the node data's resource will point to {@code /dev/null}.
      * @return data for a workflow input parameter or from a workflow output parameter, with the port object contents in
      *         a file
      */
-    public static ExternalNodeData createExternalNodeData(final String parameterName, final PortType portType,
+    public static ExternalNodeData createExternalNodeData(final WorkflowParameter parameter,
         final File portContent) {
-        return ExternalNodeData.builder(parameterName)//
+        return ExternalNodeData.builder(parameter.getParameterName())//
+            .description(parameter.getParameterDescription().orElse(null))//
             .resource(portContent == null ? UriBuilder.fromUri("file:/dev/null").build() : portContent.toURI())//
-            .contentType(ResourceContentType.of(portType).asString()) //
+            .contentType(ResourceContentType.of(parameter.getPortType()).asString()) //
             .build();
     }
 

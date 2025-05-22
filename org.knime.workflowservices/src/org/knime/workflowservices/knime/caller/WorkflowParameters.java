@@ -124,7 +124,9 @@ public class WorkflowParameters {
                     // doesn't validate the parameter name, because it might be changed by the framework if not unique
                     // in the callee (e.g., from input-parameter to input-parameter-<node id> which isn't a valid
                     // parameter name for a user to choose
-                    desc = new WorkflowParameter(e.getKey(), e.getValue().toPortType());
+
+                    // parameter description is not passed by callers (IWorkflowBackend public methods)
+                    desc = new WorkflowParameter(e.getKey(), null, e.getValue().toPortType());
                 } catch (InvalidSettingsException ise) {
                     // TODO better error handling (in dialog) e.g. missing port type in submit client
                     NodeLogger.getLogger(WorkflowParameter.class).error(ise.getMessage(), ise);
@@ -259,15 +261,15 @@ public class WorkflowParameters {
         CheckUtils.checkSetting(names.length == parameters.size(), "Cannot reorder input parameters: too %s parameters",
             names.length < parameters.size() ? "few" : "many");
 
-        Map<String, PortType> parameterMap = parameters.stream()
-            .collect(Collectors.toMap(WorkflowParameter::getParameterName, WorkflowParameter::getPortType));
+        final var properties = parameters.stream() //
+                .collect(Collectors.toMap(WorkflowParameter::getParameterName, wp -> wp));
 
         List<WorkflowParameter> reordered = new ArrayList<>();
 
         for (String name : names) {
-            var portType = parameterMap.get(name);
-            CheckUtils.checkNotNull(portType, "The parameter %s does not exist in the properties.", name);
-            reordered.add(new WorkflowParameter(name, portType));
+            final var prop = properties.get(name);
+            CheckUtils.checkNotNull(prop, "The parameter %s does not exist in the properties.", name);
+            reordered.add(prop);
         }
 
         return reordered;

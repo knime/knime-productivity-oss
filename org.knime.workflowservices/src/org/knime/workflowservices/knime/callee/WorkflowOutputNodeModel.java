@@ -152,10 +152,8 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
      */
     @Override
     public ExternalNodeData getExternalOutput() {
-        var parameterName = m_settings.getParameterName();
-        var outputPath = Optional.ofNullable(m_output);
-        return CallWorkflowUtil.createExternalNodeData(parameterName, getInPortType(0), outputPath.map(Path::toFile)
-            .orElse(null));
+        final var outputPath = Optional.ofNullable(m_output);
+        return m_settings.toExternalNodeData(getInPortType(0), outputPath.map(Path::toFile).orElse(null));
     }
 
     @Override

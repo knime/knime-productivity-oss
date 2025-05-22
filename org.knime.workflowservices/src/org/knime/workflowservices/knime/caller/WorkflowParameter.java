@@ -46,6 +46,7 @@
 package org.knime.workflowservices.knime.caller;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
@@ -59,7 +60,7 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.node.util.CheckUtils;
 
 /**
- * Combines a workflow parameter name and its port type.
+ * Combines a workflow parameter (name and description) and its port type.
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
@@ -67,6 +68,7 @@ public final class WorkflowParameter {
 
     private static final String CFG_PORT_TYPE = "portType";
     private static final String CFG_PARAMETER_NAME = "parameterName";
+    private static final String CFG_PARAMETER_DESCRIPTION = "parameterDescription";
 
     /**
      * Used to determine whether the identifier for a callee workflow parameter is valid: not null and not empty.
@@ -89,18 +91,28 @@ public final class WorkflowParameter {
     /** {@link #getParameterName()} */
     private final String m_parameterName;
 
+    /**
+     * The {@code null}able parameter description.
+     */
+    private final String m_parameterDescription;
+
     /** {@link #getPortType()} */
     private final PortType m_portType;
 
     /**
-     * @param parameterName parameter name chosen by the user, e.g., input-parameter (as entered in the Workflow Service
+     * Creates a new workflow parameter.
+     *
+     * @param parameterName parameter name chosen by the user, e.g., input-parameter (as entered in the Workflow
      *            Input or Output dialog) or as modified by the framework (to make non-unique parameter names unique),
      *            e.g., input-parameter-1
+     * @param parameterDescription optional description set by the user
      * @param portType the port type of the Workflow Input or Output node
      * @throws InvalidSettingsException if the port type is null or the parameter name is invalid
      */
-    public WorkflowParameter(final String parameterName, final PortType portType) throws InvalidSettingsException {
+    public WorkflowParameter(final String parameterName, final String parameterDescription, final PortType portType)
+        throws InvalidSettingsException {
         m_parameterName = parameterName;
+        m_parameterDescription = parameterDescription;
         m_portType = CheckUtils.checkSettingNotNull(portType, "PortType must not be null");
     }
 
@@ -120,12 +132,22 @@ public final class WorkflowParameter {
     }
 
     /**
+     * Returns the optional parameter description.
+     *
+     * @return description for the parameter if set
+     */
+    public Optional<String> getParameterDescription() {
+        return Optional.ofNullable(m_parameterDescription);
+    }
+
+    /**
      * Saves object to argument, used during 'save' in model or dialog.
      *
      * @param settings To save to.
      */
     public void saveTo(final NodeSettingsWO settings) {
         settings.addString(CFG_PARAMETER_NAME, m_parameterName);
+        settings.addString(CFG_PARAMETER_DESCRIPTION, m_parameterDescription);
         var portSettings = settings.addNodeSettings(CFG_PORT_TYPE);
         m_portType.save(portSettings);
     }
@@ -139,15 +161,16 @@ public final class WorkflowParameter {
      */
     public static WorkflowParameter loadFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
         var parameterName = settings.getString(CFG_PARAMETER_NAME);
+        final var parameterDescription = settings.getString(CFG_PARAMETER_DESCRIPTION, null);
         var portSettings = settings.getNodeSettings(CFG_PORT_TYPE);
         var portType = PortType.load(portSettings);
         // doesn't validate parameter names here (they might have been changed by the framework to make them unique)
-        return new WorkflowParameter(parameterName, portType);
+        return new WorkflowParameter(parameterName, parameterDescription, portType);
     }
 
     @Override
     public String toString() {
-        return String.format("%s (%s)", m_parameterName, m_portType.getName());
+        return String.format("%s (%s): \"%s\"", m_parameterName, m_portType.getName(), m_parameterDescription);
     }
 
     @Override
