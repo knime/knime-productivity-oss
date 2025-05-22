@@ -98,7 +98,7 @@ public final class WorkflowInputNodeFactory extends ConfigurableNodeFactory<Work
         .addInputPort(INPUT_PORT_GROUP, PortObject.TYPE_OPTIONAL, //
             """
                 In case no input is provided by the calling workflow, the provided input is used instead.
-                This is also helpful to configure the downstream nodes of the <i>Workflow Service Input</i> node.
+                This is also helpful to configure the downstream nodes of the <i>Workflow Input</i> node.
                 """) //
         .addOutputPort(OUTPUT_PORT_GROUP, PortObject.TYPE, //
             """

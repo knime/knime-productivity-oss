@@ -61,9 +61,6 @@ import org.knime.core.node.port.PortTypeRegistry;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
 import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.NodeSettingsPersistor;
-import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.Persistor;
-import org.knime.core.webui.node.dialog.defaultdialog.widget.RichTextInputWidget;
-import org.knime.core.webui.node.dialog.defaultdialog.widget.Widget;
 import org.knime.workflowservices.knime.caller.WorkflowParameter;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
@@ -83,21 +80,6 @@ abstract class WorkflowBoundaryConfiguration implements DefaultNodeSettings {
     static final PortType[] ALL_PORT_TYPES = PortTypeRegistry.getInstance()//
         .availablePortTypes()//
         .toArray(PortType[]::new);
-
-    @Widget(title = "Parameter name", description = """
-            The parameter name is supposed to be unique, but this is not enforced.
-            In case multiple <i>Workflow Service Input</i> (<i>Workflow Service Output</i>) nodes define the same
-            parameter name, KNIME will make them unique by appending the node's node ID,
-            e.g., "input-table" becomes "input-table-7" ("output-table" becomes "output-table-7").
-            """)
-    String m_parameterName;
-
-    @Widget(title = "Description", description = """
-            The description for the workflow input (output) parameter describing the purpose of the parameter.
-            """)
-    @RichTextInputWidget
-    @Persistor(OptionalParameterDescription.class)
-    String m_parameterDescription;
 
     // backwards compatibility
     static final class OptionalParameterDescription implements NodeSettingsPersistor<String> {
@@ -120,23 +102,16 @@ abstract class WorkflowBoundaryConfiguration implements DefaultNodeSettings {
         }
     }
 
-    protected WorkflowBoundaryConfiguration(final String parameterName) {
-        m_parameterName = parameterName;
-    }
-
-    String getParameterName() {
-        return m_parameterName;
-    }
+    abstract String getParameterName();
 
     /**
      * @param parameterName the parameterName to set
      * @return this (method chaining)
      * @throws InvalidSettingsException if arg doesn't follow pattern
      */
-    WorkflowBoundaryConfiguration setParameterName(final String parameterName) throws InvalidSettingsException {
-        m_parameterName = WorkflowParameter.validateParameterName(parameterName);
-        return this;
-    }
+    abstract WorkflowBoundaryConfiguration setParameterName(final String parameterName) throws InvalidSettingsException;
+
+    abstract String getParameterDescription();
 
     /**
      * Creates external node data from the settings and the given port type.
@@ -153,7 +128,7 @@ abstract class WorkflowBoundaryConfiguration implements DefaultNodeSettings {
 
         try {
             return CallWorkflowUtil.createExternalNodeData(
-                new WorkflowParameter(m_parameterName, m_parameterDescription, portType), portContent);
+                new WorkflowParameter(getParameterName(), getParameterDescription(), portType), portContent);
         } catch (final InvalidSettingsException e) {
             // The cause for this InvalidSettingsException is a null port type. Previously `getOutPortType(0)` was
             // directly passed to `createExternalNodeData`, which would access a method on the given port type without
