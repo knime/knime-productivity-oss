@@ -55,6 +55,7 @@ import org.apache.xmlbeans.XmlException;
 import org.knime.core.node.ConfigurableNodeFactory;
 import org.knime.core.node.NodeDescription;
 import org.knime.core.node.NodeDialogPane;
+import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NodeView;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.port.PortObject;
@@ -69,7 +70,7 @@ import org.knime.core.webui.node.impl.WebUINodeFactory;
 import org.xml.sax.SAXException;
 
 /**
- * Node factory for Workflow Service Output node.
+ * Node factory for Workflow Output node.
  *
  * @author Carl Witt, KNIME GmbH, Berlin, Germany
  */
@@ -169,6 +170,18 @@ public final class WorkflowOutputNodeFactory extends ConfigurableNodeFactory<Wor
     @Override
     public NodeDialog createNodeDialog() {
         return new DefaultNodeDialog(SettingsType.MODEL, WorkflowOutputSettings.class);
+    }
+
+    /**
+     * Saves the settings of the node to the given settings object.
+     *
+     * @param settings settings object to save to
+     * @param parameterName the name of the output parameter
+     * @param parameterDescription the description of the output parameter
+     */
+    public static void saveToNodeSettings(final NodeSettingsWO settings, final String parameterName,
+            final String parameterDescription) {
+        WorkflowOutputSettings.saveToNodeSettings(settings, parameterName, parameterDescription);
     }
 
 }

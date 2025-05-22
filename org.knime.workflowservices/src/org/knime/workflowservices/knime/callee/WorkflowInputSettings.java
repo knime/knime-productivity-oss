@@ -21,16 +21,19 @@
 package org.knime.workflowservices.knime.callee;
 
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
 import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.Persistor;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.RichTextInputWidget;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.Widget;
 import org.knime.workflowservices.knime.caller.WorkflowParameter;
 
 /**
- * Settings class for Workflow Service Input node.
+ * Settings class for Workflow Input node.
  *
  * @author Manuel Hotz, KNIME GmbH, Konstanz, Germany
  */
+@SuppressWarnings("restriction") // webui not API yet
 final class WorkflowInputSettings extends WorkflowBoundaryConfiguration {
 
     @Widget(title = "Parameter name", description = """
@@ -64,4 +67,12 @@ final class WorkflowInputSettings extends WorkflowBoundaryConfiguration {
         return m_parameterDescription;
     }
 
+    // method for buildworkflows
+    static void saveToNodeSettings(final NodeSettingsWO settings, final String parameterName,
+        final String parameterDescription) {
+        final var config = new WorkflowInputSettings();
+        config.m_parameterName = parameterName;
+        config.m_parameterDescription = parameterDescription;
+        DefaultNodeSettings.saveSettings(WorkflowInputSettings.class, config, settings);
+    }
 }
