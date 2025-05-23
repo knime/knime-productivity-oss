@@ -45,17 +45,13 @@
  */
 package org.knime.workflowservices.knime.caller;
 
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
-import org.knime.core.node.dialog.DialogNode;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.util.CheckUtils;
 
@@ -69,24 +65,6 @@ public final class WorkflowParameter {
     private static final String CFG_PORT_TYPE = "portType";
     private static final String CFG_PARAMETER_NAME = "parameterName";
     private static final String CFG_PARAMETER_DESCRIPTION = "parameterDescription";
-
-    /**
-     * Used to determine whether the identifier for a callee workflow parameter is valid: not null and not empty.
-     */
-    public static final Predicate<String> PARAMETER_IDENTIFIER_IS_VALID = //
-        ((Predicate<String>)Objects::nonNull)//
-            .and(Predicate.not(String::isEmpty))//
-            .and(DialogNode.PARAMETER_NAME_PATTERN.asMatchPredicate());
-
-    /**
-     * Takes a parameter name and generates the error message that informs the user that the name of the parameter is
-     * invalid.
-     */
-    public static final UnaryOperator<String> PARAMETER_IDENTIFIER_ERROR_MESSAGE =
-        parameterName -> String.format("Invalid parameter name: \"%s\". "
-            + "Valid parameter names consist of one or several strings, separated by dashes or underscores. "
-            + "Parameter names must not end with a digit. "
-            + "For instance, input1 is not a valid parameter name, but input1-table is. ", parameterName);
 
     /** {@link #getParameterName()} */
     private final String m_parameterName;
@@ -181,18 +159,6 @@ public final class WorkflowParameter {
     @Override
     public boolean equals(final Object obj) {
         return EqualsBuilder.reflectionEquals(this, obj, true);
-    }
-
-    /**
-     * @param parameterName the name of the workflow input or output parameter to check
-     * @return the unchanged parameter name
-     * @throws InvalidSettingsException if the parameter name is invalid, see
-     *             {@link WorkflowParameter#PARAMETER_IDENTIFIER_ERROR_MESSAGE}
-     */
-    public static String validateParameterName(final String parameterName) throws InvalidSettingsException {
-        CheckUtils.checkSetting(PARAMETER_IDENTIFIER_IS_VALID.test(parameterName),
-            PARAMETER_IDENTIFIER_ERROR_MESSAGE.apply(parameterName));
-        return parameterName;
     }
 
 }

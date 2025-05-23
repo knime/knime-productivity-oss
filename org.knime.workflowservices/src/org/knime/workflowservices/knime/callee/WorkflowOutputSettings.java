@@ -20,13 +20,13 @@
  */
 package org.knime.workflowservices.knime.callee;
 
-import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
 import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.Persistor;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.RichTextInputWidget;
+import org.knime.core.webui.node.dialog.defaultdialog.widget.TextInputWidget;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.Widget;
-import org.knime.workflowservices.knime.caller.WorkflowParameter;
+import org.knime.core.webui.node.dialog.defaultdialog.widget.validation.internal.WorkflowIOParameterNameValidation;
 
 /**
  * Settings class for Workflow Output node.
@@ -42,6 +42,7 @@ final class WorkflowOutputSettings extends WorkflowBoundaryConfiguration {
             parameter name, KNIME will make them unique by appending the node's node ID,
             e.g., "output-table" becomes "output-table-7".
             """)
+    @TextInputWidget(patternValidation = WorkflowIOParameterNameValidation.class)
     String m_parameterName = "output-parameter";
 
     @Widget(title = "Description", description = """
@@ -54,12 +55,6 @@ final class WorkflowOutputSettings extends WorkflowBoundaryConfiguration {
     @Override
     String getParameterName() {
         return m_parameterName;
-    }
-
-    @Override
-    WorkflowBoundaryConfiguration setParameterName(final String parameterName) throws InvalidSettingsException {
-        m_parameterName = WorkflowParameter.validateParameterName(parameterName);
-        return this;
     }
 
     @Override

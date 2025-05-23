@@ -102,13 +102,6 @@ abstract class WorkflowBoundaryConfiguration implements DefaultNodeSettings {
 
     abstract String getParameterName();
 
-    /**
-     * @param parameterName the parameterName to set
-     * @return this (method chaining)
-     * @throws InvalidSettingsException if arg doesn't follow pattern
-     */
-    abstract WorkflowBoundaryConfiguration setParameterName(final String parameterName) throws InvalidSettingsException;
-
     abstract String getParameterDescription();
 
     /**
