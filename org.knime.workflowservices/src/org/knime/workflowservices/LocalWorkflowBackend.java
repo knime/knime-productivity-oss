@@ -533,14 +533,25 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
             if (m_discardAfterUse) {
                 discard();
             }
-            KNIMETimer.getInstance().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    CACHE.cleanUp();
-                }
-            }, TimeUnit.SECONDS.toMillis(65L));
+            KNIMETimer.getInstance().schedule(new CacheCleanUpTask(), TimeUnit.SECONDS.toMillis(65L));
         } finally {
             m_inUse.unlock();
+        }
+    }
+
+    /**
+     * @implNote It is essential that this remains a static inner class and is not inlined as an inner class / anonymous
+     *           class / lambda. These will have an implicit reference to the outer class ({@code this$0}). Here, the
+     *           outer class ({@code LocalWorkflowBackend}) in turn has a reference {@code m_manager} to the
+     *           WorkflowManager instance. In effect, this means that the WorkflowManager instance can not be
+     *           garbage-collected while the TimerTask instance is alive. In other words, a call to {@code close} would
+     *           force the wfm instance to be kept alive for the timer duration, no matter whether it is still in the
+     *           {@link LocalWorkflowBackend#CACHE}.
+     */
+    private static class CacheCleanUpTask extends TimerTask {
+        @Override
+        public void run() {
+            CACHE.cleanUp();
         }
     }
 
