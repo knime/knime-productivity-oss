@@ -74,7 +74,7 @@ import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.VariableTypeRegistry;
 import org.knime.core.node.workflow.capture.WorkflowPortObject;
-import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
+import org.knime.node.parameters.NodeParameters;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.validation.internal.WorkflowIOParameterNameValidation;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
@@ -159,18 +159,18 @@ final class WorkflowOutputNodeModel extends NodeModel implements OutputNode {
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
-        DefaultNodeSettings.saveSettings(WorkflowOutputSettings.class, m_settings, settings);
+        NodeParameters.saveSettings(WorkflowOutputSettings.class, m_settings, settings);
     }
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        var s = DefaultNodeSettings.loadSettings(settings, WorkflowOutputSettings.class);
+        var s = NodeParameters.loadSettings(settings, WorkflowOutputSettings.class);
         WorkflowIOParameterNameValidation.validateParameterName(s.m_parameterName);
     }
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_settings = DefaultNodeSettings.loadSettings(settings, WorkflowOutputSettings.class);
+        m_settings = NodeParameters.loadSettings(settings, WorkflowOutputSettings.class);
     }
 
     /**
