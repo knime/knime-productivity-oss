@@ -21,12 +21,12 @@
 package org.knime.workflowservices.knime.callee;
 
 import org.knime.core.node.NodeSettingsWO;
-import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
-import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.Persistor;
-import org.knime.core.webui.node.dialog.defaultdialog.widget.RichTextInputWidget;
-import org.knime.core.webui.node.dialog.defaultdialog.widget.TextInputWidget;
-import org.knime.core.webui.node.dialog.defaultdialog.widget.Widget;
+import org.knime.core.webui.node.dialog.defaultdialog.NodeParametersUtil;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.validation.internal.WorkflowIOParameterNameValidation;
+import org.knime.node.parameters.Widget;
+import org.knime.node.parameters.persistence.Persistor;
+import org.knime.node.parameters.widget.text.RichTextInputWidget;
+import org.knime.node.parameters.widget.text.TextInputWidget;
 
 /**
  * Settings class for Workflow Output node.
@@ -68,7 +68,7 @@ final class WorkflowOutputSettings extends WorkflowBoundaryConfiguration {
         final var config = new WorkflowOutputSettings();
         config.m_parameterName = parameterName;
         config.m_parameterDescription = parameterDescription;
-        DefaultNodeSettings.saveSettings(WorkflowOutputSettings.class, config, settings);
+        NodeParametersUtil.saveSettings(WorkflowOutputSettings.class, config, settings);
     }
 
 }

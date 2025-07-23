@@ -58,15 +58,15 @@ import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.PortTypeRegistry;
 import org.knime.core.node.util.CheckUtils;
-import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeSettings;
-import org.knime.core.webui.node.dialog.defaultdialog.persistence.api.NodeSettingsPersistor;
+import org.knime.node.parameters.NodeParameters;
+import org.knime.node.parameters.persistence.NodeParametersPersistor;
 import org.knime.workflowservices.knime.util.CallWorkflowUtil;
 
 /**
  * Common configuration for the Workflow Input and Workflow Output nodes.
  */
 @SuppressWarnings("restriction") // webui not API yet
-abstract class WorkflowBoundaryConfiguration implements DefaultNodeSettings {
+abstract class WorkflowBoundaryConfiguration implements NodeParameters {
 
     /**
      * New Workflow Input nodes are initialized with one output port of this type. New Workflow Output nodes are
@@ -80,7 +80,7 @@ abstract class WorkflowBoundaryConfiguration implements DefaultNodeSettings {
         .toArray(PortType[]::new);
 
     // backwards compatibility
-    static final class OptionalParameterDescription implements NodeSettingsPersistor<String> {
+    static final class OptionalParameterDescription implements NodeParametersPersistor<String> {
 
         private static final String CFG_PARAMETER_DESCRIPTION = "parameterDescription";
 
