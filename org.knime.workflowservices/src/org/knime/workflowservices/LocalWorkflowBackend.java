@@ -308,7 +308,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
                 // modern UI
                 wfm = WorkflowServiceProjects.getProjectIdAt(file.toPath()) //
                     .flatMap(id -> ProjectManager.getInstance().getProject(id)) //
-                    .flatMap(Project::getWorkflowManagerIfLoaded).orElse(null);
+                    .flatMap(Project::getWorkflowManager).orElse(null);
             }
 
             CheckUtils.checkState(execInfo instanceof AnalyticsPlatformExecutorInfo, "Not running in an instance of %s",
