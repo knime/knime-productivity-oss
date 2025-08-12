@@ -97,11 +97,13 @@ public final class ConnectionUtil {
 
     /**
      * The default connect timeout for the HTTP client in call workflow nodes.
+     * @since 5.7
      */
     public static final Duration DEFAULT_CONNECT_TIMEOUT = DEFAULT_TIMEOUT;
 
     /**
      * The default read timeout for the HTTP client in call workflow nodes.
+     * @since 5.7
      */
     public static final Duration DEFAULT_READ_TIMEOUT = DEFAULT_TIMEOUT;
 
