@@ -90,8 +90,20 @@ public final class ConnectionUtil {
             DELETE_SUCCESSFUL_JOBS;
     }
 
-    /** Default value for connection and read timeout. */
+    /** Default value for the timeout. It is the same value as in
+     * {@code com.knime.enterprise.server.rest.client.AbstractClient#DEFAULT_TIMEOUT}. */
+    @Deprecated(since = "5.7", forRemoval = false)
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
+
+    /**
+     * The default connect timeout for the HTTP client in call workflow nodes.
+     */
+    public static final Duration DEFAULT_CONNECT_TIMEOUT = DEFAULT_TIMEOUT;
+
+    /**
+     * The default read timeout for the HTTP client in call workflow nodes.
+     */
+    public static final Duration DEFAULT_READ_TIMEOUT = DEFAULT_TIMEOUT;
 
     /**
      * The default timeout to use when loading a remote workflow.
