@@ -90,6 +90,7 @@ import org.knime.core.node.workflow.contextv2.HubSpaceLocationInfo;
 import org.knime.core.node.workflow.contextv2.RestLocationInfo;
 import org.knime.core.node.workflow.contextv2.ServerLocationInfo;
 import org.knime.core.node.workflow.contextv2.WorkflowContextV2;
+import org.knime.core.util.CoreConstants;
 import org.knime.core.util.FileUtil;
 import org.knime.core.util.KNIMETimer;
 import org.knime.core.util.LockFailedException;
@@ -100,12 +101,12 @@ import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.core.util.proxy.URLConnectionFactory;
 import org.knime.core.util.report.ReportingConstants;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
+import org.knime.core.util.urlresolve.KnimeUrlResolver;
 import org.knime.gateway.impl.project.Project;
 import org.knime.gateway.impl.project.ProjectManager;
 import org.knime.gateway.impl.project.WorkflowServiceProjects;
 import org.knime.reporting.executor.ReportExecutor;
 import org.knime.workbench.explorer.ExplorerMountTable;
-import org.knime.workbench.explorer.ExplorerURLStreamHandler;
 import org.knime.workbench.ui.navigator.ProjectWorkflowMap;
 import org.knime.workflowservices.json.row.caller.local.CallLocalWorkflowNodeFactory;
 
@@ -177,9 +178,9 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
             // no URL, try mountpoint relative path instead; for backwards-compatibility only, new nodes always
             // use a URL
             if (path.startsWith("/")) { // absolute path
-                originalUrl = new URL("knime", ExplorerURLStreamHandler.MOUNTPOINT_RELATIVE, path);
+                originalUrl = new URL("knime", CoreConstants.MOUNTPOINT_RELATIVE, path);
             } else {
-                originalUrl = new URL("knime", ExplorerURLStreamHandler.WORKFLOW_RELATIVE, "/" + path);
+                originalUrl = new URL("knime", CoreConstants.WORKFLOW_RELATIVE, "/" + path);
             }
         }
 
@@ -189,7 +190,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         URL resolvedUrl = null;
         final boolean deleteAfterUse;
         try {
-            resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(originalUrl);
+            resolvedUrl = KnimeUrlResolver.getResolver(callingWorkflow.getContextV2()).resolve(originalUrl);
 
             if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
                 workflowDir = FileUtil.resolveToPath(resolvedUrl);
@@ -270,10 +271,10 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
             if (location instanceof RestLocationInfo remoteInfo) {
                 // callerContext.getRemoteRepositoryAddress().isPresent() && callerContext.getRelativeRemotePath().isPresent()
                 String relPath;
-                if (ExplorerURLStreamHandler.WORKFLOW_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
+                if (CoreConstants.WORKFLOW_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
                     // relPath = callerContext.getRelativeRemotePath().get() + "/" + originalUrl.getPath();
                     relPath = remoteInfo.getWorkflowPath() + "/" + originalUrl.getPath();
-                } else if (ExplorerURLStreamHandler.MOUNTPOINT_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
+                } else if (CoreConstants.MOUNTPOINT_RELATIVE.equalsIgnoreCase(originalUrl.getHost())) {
                     relPath = originalUrl.getPath();
                 } else {
                     // this shouldn't happen
