@@ -131,9 +131,11 @@ public final class HubCalleeSelectionFlow<T, P> extends CalleeParameterFlow<T, P
         // Note that a valid location may still cause a NoSuchFileException.
         m_data.m_isLocationValid = m_invocationTarget.isLocationValid();
 
-        // update gui
-        m_versionsControl.clear();
-        m_parametersControl.clear();
+        // update gui if we need to reinitialize for new location
+        if (!sameLocation) {
+            m_versionsControl.clear();
+            m_parametersControl.clear();
+        }
 
         // during load, do not alter configuration data in response to location changes
         // during load, do not fetch data, as we're likely in inconsistent state
