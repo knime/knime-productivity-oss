@@ -211,16 +211,26 @@ public final class PanelWorkflowParameters implements Fetcher.Processor<Workflow
     /**
      * Called during loadSettings of the Call Worflow Serivce node dialog. Since the user-defined order is stored in the
      * node settings, it must not be changed when initializing the panel.
+     *
+     * @param workflowParameters the properties of the callee workflow
      */
     public void load(final WorkflowParameters workflowParameters) {
+        // initializes the incoming parameters as current state
         m_userDefinedOrder = true;
         m_currentProperties = workflowParameters.copy();
-        accept(workflowParameters);
+        set(workflowParameters);
     }
 
     @Override
-    public void accept(final WorkflowParameters p) {
-        set(p);
+    public void accept(final WorkflowParameters workflowParameters) {
+        // updates the incoming parameters if not already initialized
+        update(workflowParameters, false);
+    }
+
+    @Override
+    public void set(final WorkflowParameters workflowParameters) {
+        // sets the incoming parameters as new state, after initialization
+        update(workflowParameters, true);
     }
 
     /**
@@ -233,18 +243,25 @@ public final class PanelWorkflowParameters implements Fetcher.Processor<Workflow
      * Called asynchronously after successfully fetching parameters for a workflow.
      *
      * @param workflowParameters new workflow input/output parameters
+     * @param overwrite whether to overwrite existing workflow parameters
      */
-    @Override
-    public void set(final WorkflowParameters workflowParameters) {
+    void update(final WorkflowParameters workflowParameters, final boolean overwrite) {
+        // if input is empty, nothing was selected in the workflow chooser
+        if (workflowParameters == null) {
+            setState(State.NO_WORKFLOW_SELECTED);
+            return;
+        }
 
         // if a user-defined order exists, try to apply it
-        if (m_userDefinedOrder) {
-            // m_userDefinedOrder == true implies m_currentProperties != null
-            if (!m_currentProperties.compatible(workflowParameters)) { // NOSONAR
-                // the user defined order is not applicable and thus invalid
-                m_userDefinedOrder = false;
+        if (m_currentProperties != null) {
+            if (!overwrite) {
+                setState(State.READY);
+                return;
             }
-            // otherwise just keep the current properties (which reflect the user defined order)
+            // the user defined order is not applicable and thus invalid
+            m_userDefinedOrder = m_currentProperties.compatible(workflowParameters);
+        } else {
+            m_userDefinedOrder = false;
         }
 
         // if no user-defined order exists, try to reorder the parameters according to the node ports.
@@ -355,7 +372,9 @@ public final class PanelWorkflowParameters implements Fetcher.Processor<Workflow
 
     @Override
     public void clear() {
+        // resets all fields in this instance, except for the configuration
         m_currentProperties = null;
+        m_userDefinedOrder = false;
         this.setState(State.NO_WORKFLOW_SELECTED);
     }
 
