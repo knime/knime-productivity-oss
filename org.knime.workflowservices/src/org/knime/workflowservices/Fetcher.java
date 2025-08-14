@@ -23,9 +23,13 @@ package org.knime.workflowservices;
 import java.beans.PropertyChangeListener;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.util.SwingWorkerWithContext;
 import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration;
@@ -39,6 +43,8 @@ import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration
  * @noreference non-public API
  */
 public final class Fetcher<R> extends SwingWorkerWithContext<R, Void> {
+
+    private Lock m_lock = new ReentrantLock();
 
     /**
      * @param <R> output of the operation on the connection
@@ -146,7 +152,14 @@ public final class Fetcher<R> extends SwingWorkerWithContext<R, Void> {
     @Override
     protected void doneWithContext() {
         if (!isCancelled()) {
+            // we need the lock because we set the cancellation status in this method,
+            // since the `org.knime.core.node.CanceledExecutionException` is not
+            // covered by the `Future#isCancelled()` check - see below
+            m_lock.lock();
             try {
+                if (isCancelled()) {
+                    return;
+                }
                 final var result = get();
                 m_control.accept(result);
                 m_dataHandler.accept(result);
@@ -155,7 +168,13 @@ public final class Fetcher<R> extends SwingWorkerWithContext<R, Void> {
                 Thread.currentThread().interrupt();
             } catch (ExecutionException e) {
                 NodeLogger.getLogger(this.getClass()).debug(e);
-                m_control.exception(e.getMessage());
+                if (ExceptionUtils.getRootCause(e) instanceof CanceledExecutionException) {
+                    this.cancel(true);
+                } else {
+                    m_control.exception(e.getMessage());
+                }
+            } finally {
+                m_lock.unlock();
             }
         }
     }
