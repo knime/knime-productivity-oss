@@ -272,7 +272,6 @@ public final class JSONInputPanel extends JPanel {
             gbc.fill = GridBagConstraints.NONE;
             m_hostPanel.add(new JLabel(), gbc);
         }
-        invalidate();
         revalidate();
         repaint();
     }

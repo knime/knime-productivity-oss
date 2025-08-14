@@ -283,8 +283,8 @@ public final class PanelWorkflowParameters implements Fetcher.Processor<Workflow
 
         checkParametersInSync();
         ViewUtils.runOrInvokeLaterInEDT(() -> {
-            m_panel.repaint();
             m_panel.revalidate();
+            m_panel.repaint();
         });
     }
 
@@ -335,28 +335,38 @@ public final class PanelWorkflowParameters implements Fetcher.Processor<Workflow
     }
 
     /**
+     * This method is synchronized because of its "transactional" nature. Changing
+     * the state is the central setter to update workflow parameters. Based on it,
+     * other configuration flow and the UI is updated.
+     *
      * @param state adjust display according to a given state.
      */
-    public void setState(final State state) {
+    public synchronized void setState(final State state) {
         // display the READY panel both for state READY and PARAMETER_CONFLICT
         String panel = state == State.PARAMETER_CONFLICT ? State.READY.name() : state.name();
 
         m_currentState = state;
-        ViewUtils.runOrInvokeLaterInEDT(() -> {
-            // enable sync button only when in conflict
-            m_confirmNodePortAdjustment.setEnabled(state == State.PARAMETER_CONFLICT);
-            // show warning when parameters are out of sync
-            m_outOfSyncWarning
-                .setStatus(state == State.PARAMETER_CONFLICT ? PARAMETERS_OUT_OF_SYNC : PARAMETERS_IN_SYNC);
 
-            m_cardLayout.show(getContentPane(), panel);
-            getContentPane().repaint();
-            getContentPane().revalidate();
-        });
+        // enable sync button only when in conflict
+        m_confirmNodePortAdjustment.setEnabled(state == State.PARAMETER_CONFLICT);
+        // show warning when parameters are out of sync
+        m_outOfSyncWarning
+            .setStatus(state == State.PARAMETER_CONFLICT ? PARAMETERS_OUT_OF_SYNC : PARAMETERS_IN_SYNC);
 
+        // it is safe to call these methods without `ViewUtils.runOrInvokeLaterInEDT`, they ensure
+        // their execution in EDT (https://www.oracle.com/java/technologies/painting.html#paint_process)
+        m_cardLayout.show(getContentPane(), panel);
+        getContentPane().revalidate();
+        getContentPane().repaint();
     }
 
-    public State getState() {
+    /**
+     * Returns the state enum (synchronized). See {@link State} for descriptions
+     * of each of the five different callee parameter flow states.
+     *
+     * @return state
+     */
+    public synchronized State getState() {
         return m_currentState;
     }
 

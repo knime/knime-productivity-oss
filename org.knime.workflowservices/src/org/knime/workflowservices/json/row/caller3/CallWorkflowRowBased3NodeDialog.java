@@ -155,7 +155,6 @@ final class CallWorkflowRowBased3NodeDialog extends NodeDialogPane
         var panel = getPanel();
         // some weird sequence to force the UI to properly update, see AP-6191
         ViewUtils.runOrInvokeLaterInEDT(() -> {
-            panel.invalidate();
             panel.revalidate();
             panel.repaint();
         });
