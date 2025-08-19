@@ -74,6 +74,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.birt.report.engine.api.EngineException;
 import org.eclipse.core.runtime.CoreException;
+import org.knime.core.internal.knimeurl.ExplorerURLStreamHandler;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
@@ -101,7 +102,6 @@ import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.core.util.proxy.URLConnectionFactory;
 import org.knime.core.util.report.ReportingConstants;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
-import org.knime.core.util.urlresolve.KnimeUrlResolver;
 import org.knime.gateway.impl.project.Project;
 import org.knime.gateway.impl.project.ProjectManager;
 import org.knime.gateway.impl.project.WorkflowServiceProjects;
@@ -190,7 +190,7 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
         URL resolvedUrl = null;
         final boolean deleteAfterUse;
         try {
-            resolvedUrl = KnimeUrlResolver.getResolver(callingWorkflow.getContextV2()).resolve(originalUrl);
+            resolvedUrl = ExplorerURLStreamHandler.resolveKNIMEURL(originalUrl);
 
             if (resolvedUrl.getProtocol().equalsIgnoreCase("file")) {
                 workflowDir = FileUtil.resolveToPath(resolvedUrl);

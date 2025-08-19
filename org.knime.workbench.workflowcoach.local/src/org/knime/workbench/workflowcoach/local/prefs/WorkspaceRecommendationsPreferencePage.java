@@ -75,12 +75,12 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.preferences.ScopedPreferenceStore;
-import org.knime.core.internal.KNIMEPath;
 import org.knime.core.node.NodeFrequencies;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.recommendation.WorkspaceAnalyzer;
 import org.knime.core.ui.workflowcoach.NodeRecommendationManager;
 import org.knime.core.ui.workflowcoach.data.NodeTripleProvider;
+import org.knime.core.workbench.KNIMEWorkspacePath;
 import org.knime.workbench.workflowcoach.local.data.WorkspaceTripleProvider;
 import org.osgi.framework.FrameworkUtil;
 
@@ -98,7 +98,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
         @Override
         protected IStatus run(final IProgressMonitor monitor) {
             try {
-                WorkspaceAnalyzer wa = new WorkspaceAnalyzer(KNIMEPath.getWorkspaceDirPath().toPath());
+                WorkspaceAnalyzer wa = new WorkspaceAnalyzer(KNIMEWorkspacePath.getWorkspaceDirPath().toPath());
                 int count = wa.countWorkflows();
                 SubMonitor subMonitor = SubMonitor.convert(monitor, count);
                 wa.addProgressListener(s -> {
@@ -198,7 +198,7 @@ public class WorkspaceRecommendationsPreferencePage extends PreferencePage imple
             .getBoolean(WorkspaceRecommendationsPreferenceInitializer.P_WORKSPACE_NODE_TRIPLE_PROVIDER));
         m_analyseButton.setEnabled(m_checkWorkspaceProvider.getSelection());
 
-        Optional<Optional<LocalDateTime>> lastUpdate = NodeRecommendationManager.getInstance().getNodeTripleProviders()
+        Optional<Optional<LocalDateTime>> lastUpdate = NodeRecommendationManager.getNodeTripleProviders()
                 .stream().filter(p -> p instanceof WorkspaceTripleProvider)
                 .map(p -> p.getLastUpdate()).findFirst();
 
