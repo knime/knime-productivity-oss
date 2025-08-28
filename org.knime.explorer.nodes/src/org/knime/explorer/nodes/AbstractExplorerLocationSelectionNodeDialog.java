@@ -71,6 +71,7 @@ import org.knime.workbench.explorer.ExplorerMountTable;
 import org.knime.workbench.explorer.dialogs.SpaceResourceSelectionDialog;
 import org.knime.workbench.explorer.dialogs.Validator;
 import org.knime.workbench.explorer.filesystem.AbstractExplorerFileStore;
+import org.knime.workbench.explorer.filesystem.ExplorerRemoteContentRefresher;
 import org.knime.workbench.explorer.view.AbstractContentProvider;
 
 /**
@@ -113,10 +114,12 @@ public abstract class AbstractExplorerLocationSelectionNodeDialog extends
 
                         }
 
-                        SpaceResourceSelectionDialog dialog =
-                                new SpaceResourceSelectionDialog(Display
-                                        .getDefault().getActiveShell(),
-                                        mountIDs.toArray(new String[0]), null);
+                        // When the fetcher's are not used it's necessary to refresh the remote content providers
+                        final var dialog = new SpaceResourceSelectionDialog(Display.getDefault().getActiveShell(),
+                            ExplorerRemoteContentRefresher
+                                .refreshContentProvidersWithProgress(Display.getDefault().getActiveShell(), mountIDs)
+                                .toArray(String[]::new),
+                            null);
                         dialog.setTitle("Target workflow group selection");
                         dialog.setDescription(
                                 "Please select the location to write to.");
