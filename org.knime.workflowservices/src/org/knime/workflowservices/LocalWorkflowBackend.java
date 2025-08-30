@@ -141,6 +141,10 @@ public final class LocalWorkflowBackend implements IWorkflowBackend {
 
     static {
         WorkflowServiceProjects.setOnRemoveAllProjectsCallback(CACHE::invalidateAll);
+        WorkflowServiceProjects.setOnClearCallback(removedPath -> {
+            CACHE.invalidate(removedPath.toUri());
+            CACHE.cleanUp();
+        });
     }
 
     private static final Map<WorkflowManager, Set<URI>> CALLER_MAP = new WeakHashMap<>();

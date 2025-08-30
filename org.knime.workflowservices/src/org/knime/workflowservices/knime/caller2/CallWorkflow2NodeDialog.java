@@ -13,6 +13,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
+import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.ConfigurableNodeFactory.ConfigurableNodeDialog;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
@@ -128,6 +129,17 @@ final class CallWorkflow2NodeDialog extends NodeDialogPane implements Configurab
      */
     private WorkflowParameters fetchParameters(final CallWorkflowConnectionConfiguration configuration)
         throws Exception {
+        final var isEmptyCallee = switch (configuration.getConnectionType()) {
+            case FILE_SYSTEM -> StringUtils.isEmpty(configuration.getWorkflowPath());
+            case HUB_AUTHENTICATION -> StringUtils.isEmpty(configuration.getDeploymentId());
+        };
+        if (isEmptyCallee) {
+            // need to check here, otherwise we would attempt to create a workflow backend from
+            // no selected workflow (would fail with "No such node ID..." in core), same checks in:
+            // - `org.knime.workflowservices.json.row.caller3.CallWorkflowRowBased3NodeDialog#fetchParameters`
+            // - `org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeDialog#fetchParameters`
+            return null;
+        }
         m_configuration.setCalleeWorkflowProperties(null);
         try (IWorkflowBackend backend = ConnectionUtil.createWorkflowBackend(configuration)) {
             var parameters =
@@ -277,7 +289,9 @@ final class CallWorkflow2NodeDialog extends NodeDialogPane implements Configurab
                 m_connectionControls.setRemoteConnection(m_configuration.getWorkflowChooserModel().getLocation());
             }
 
-            m_configuration.getCalleeWorkflowProperties().ifPresent(m_parameterMappingPanel::accept);
+            // use load instead of `StatefulConsumer#accept` to initialize before consuming properties,
+            // avoids NPE if `PanelWorkflowParameters#get` is null
+            m_configuration.getCalleeWorkflowProperties().ifPresent(m_parameterMappingPanel::load);
 
             final var versionSelectorVisible =
                 ConnectionUtil.isHubConnection(m_calleePropertyFlow.getInvocationTarget().getFileSystemType());

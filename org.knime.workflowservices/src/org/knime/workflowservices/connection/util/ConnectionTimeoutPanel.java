@@ -29,9 +29,9 @@ public class ConnectionTimeoutPanel extends JPanel {
 
     JSpinner m_loadTimeoutSpinner = createSpinner((int)ConnectionUtil.DEFAULT_LOAD_TIMEOUT.getSeconds());
 
-    JSpinner m_connectionTimeoutSpinner = createSpinner((int)ConnectionUtil.DEFAULT_TIMEOUT.getSeconds());
+    JSpinner m_connectionTimeoutSpinner = createSpinner((int)ConnectionUtil.DEFAULT_CONNECT_TIMEOUT.getSeconds());
 
-    JSpinner m_readTimeoutSpinner = createSpinner((int)ConnectionUtil.DEFAULT_TIMEOUT.getSeconds());
+    JSpinner m_readTimeoutSpinner = createSpinner((int)ConnectionUtil.DEFAULT_READ_TIMEOUT.getSeconds());
 
     @SuppressWarnings("java:S1699") // calling public methods in constructor
     public ConnectionTimeoutPanel() {
