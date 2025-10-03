@@ -2,13 +2,13 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: KNIME Nodes for the KNIME Explorer
 Bundle-SymbolicName: org.knime.explorer.nodes;singleton:=true
-Bundle-Version: 5.6.0.qualifier
+Bundle-Version: 5.8.0.qualifier
 Bundle-ClassPath: .
 Bundle-Vendor: KNIME AG, Zurich, Switzerland
 Require-Bundle: org.eclipse.ui;bundle-version="[3.119.0,4.0.0)",
  org.eclipse.core.filesystem;bundle-version="[1.7.700,2.0.0)",
- org.knime.base;bundle-version="[5.6.0,6.0.0)",
- org.knime.workbench.explorer.view;bundle-version="[9.1.0,10.0.0)",
+ org.knime.base;bundle-version="[5.8.0,6.0.0)",
+ org.knime.workbench.explorer.view;bundle-version="[9.3.0,10.0.0)",
  org.apache.commons.lang3;bundle-version="[3.9.0,4.0.0)",
  com.google.guava;bundle-version="[31.0.0,32.0.0)"
 Bundle-RequiredExecutionEnvironment: JavaSE-17
