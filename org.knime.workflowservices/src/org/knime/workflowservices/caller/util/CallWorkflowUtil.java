@@ -56,7 +56,7 @@ public final class CallWorkflowUtil {
 
             /**
              * String history identifier for workflow paths entered in port object-based call workflow nodes; likely
-             * those that use (Call Workflow Service Input/Output nodes).
+             * those that use (Workflow Input/Output nodes).
              */
             PORT_OBJECT_BASED_WORKFLOWS("call.workfklow.portobject");
 
@@ -113,8 +113,8 @@ public final class CallWorkflowUtil {
      * {@link FlowVariable#load(NodeSettingsRO)} (which won't accept flow variables with reserved names).
      *
      * @param variableName the flow variable name to test for inclusion
-     * @return whether the flow variable can be re-instantiated on the receiving side (the callee for a Workflow Service
-     *         Input node, the caller for a Workflow Service Output node).
+     * @return whether the flow variable can be re-instantiated on the receiving side (the callee for a Workflow
+     *         Input node, the caller for a Workflow Output node).
      */
     public static boolean verifyCredentialIdentifier(final String variableName) {
         try {

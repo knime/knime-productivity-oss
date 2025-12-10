@@ -145,7 +145,7 @@ final class WorkflowInputNodeModel extends AbstractPortObjectRepositoryNodeModel
         URI resource = inputData.getResource();
         CheckUtils.checkSettingNotNull(resource, "Input data expected to provide a binary object (via URI)");
         CheckUtils.checkSetting(!Objects.equals(resource, ExternalNodeData.NO_URI_VALUE_YET),
-            "No input data specified for Workflow Service Input");
+            "No input data specified for Workflow Input");
     }
 
     /**

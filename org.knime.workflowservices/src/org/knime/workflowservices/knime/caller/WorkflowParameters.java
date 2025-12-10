@@ -60,7 +60,7 @@ public class WorkflowParameters {
         .thenComparing(WorkflowParameter::getParameterName);
 
     /**
-     * Contains one entry for each Workflow Service Input node in the callee workflow.
+     * Contains one entry for each Workflow Input node in the callee workflow.
      */
     private List<WorkflowParameter> m_inputParameters;
 
@@ -87,7 +87,7 @@ public class WorkflowParameters {
      * @param inputParameters each entry consists of the node id of the workflow Input node and the parameters it
      *            declares. The order will be reflected in the Call Workflow Service node dialog and in the order of the
      *            dynamic ports of the Call Workflow Service node.
-     * @param outputParameters like above just for the Workflow Service Output nodes in the workflow.
+     * @param outputParameters like above just for the Workflow Output nodes in the workflow.
      */
     public WorkflowParameters(final List<WorkflowParameter> inputParameters,
         final List<WorkflowParameter> outputParameters) {
