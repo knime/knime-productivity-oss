@@ -28,6 +28,7 @@ import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.VariableTypeRegistry;
 import org.knime.core.node.workflow.virtual.AbstractPortObjectRepositoryNodeModel;
+import org.knime.workflowservices.CallWorkflowParameters;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.WorkflowState;
 import org.knime.workflowservices.connection.AbstractHubAuthenticationPortObjectSpec;
@@ -167,6 +168,14 @@ class CallWorkflow2NodeModel extends AbstractPortObjectRepositoryNodeModel {
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
+        if (settings.getBoolean(CallWorkflowParameters.WORKFLOW_IS_LOADING_CFG_KEY, false)) {
+            throw new InvalidSettingsException("Cannot apply configuration while fetching parameters.");
+        }
+        if (settings.getBoolean(CallWorkflow2NodeParameters.HAS_WORKFLOW_PARAMETERS_ERROR_CFG_KEY, false)) {
+            throw new InvalidSettingsException(
+                "Cannot apply configuration when workflow parameters could not be successfully fetched.");
+        }
+
         new CallWorkflowNodeConfiguration(m_ncc, CallWorkflow2NodeFactory.CONNECTION_INPUT_PORT_GRP_NAME)
             .loadSettingsInModel(settings);
     }
