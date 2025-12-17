@@ -284,9 +284,9 @@ public class CallWorkflowConnectionConfiguration {
      *
      * @param settings
      * @throws InvalidSettingsException
+     * @since 5.9 // TODO -> 5.10
      */
-    protected void loadSettingsInModel(final NodeSettingsRO settings)
-        throws InvalidSettingsException {
+    public void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
         loadBaseSettings(settings, true);
         m_reportConfiguration.loadInModel(settings);
         ConnectionUtil.validateConfiguration(this);
