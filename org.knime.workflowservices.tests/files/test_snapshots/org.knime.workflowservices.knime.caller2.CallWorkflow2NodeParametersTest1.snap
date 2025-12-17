@@ -1,0 +1,1110 @@
+{
+  "data" : {
+    "model" : {
+      "callWorkflowParameters" : {
+        "common" : {
+          "execution" : {
+            "invocationDuration" : "SHORT_DURATION",
+            "keepFailingJobs" : false,
+            "discardJobOnSuccessfulExecution" : false
+          },
+          "workflowOrDeploymentSelection" : {
+            "runWorkflow" : {
+              "workflowPath" : {
+                "path" : {
+                  "fsCategory" : "relative-to-current-hubspace",
+                  "path" : "Call Workflow cases/Called Workflow",
+                  "timeout" : 10000,
+                  "context" : {
+                    "fsToString" : "(RELATIVE, knime.space, Call Workflow cases/Called Workflow)"
+                  }
+                }
+              },
+              "version" : "11",
+              "executionContext" : "b33a639c-540d-4a79-9304-8f9ff9bc41b3"
+            }
+          },
+          "timeout" : {
+            "loadTimeout" : 30,
+            "fetchParametersTimeout" : 40,
+            "backoffPolicy" : {
+              "base" : 1250,
+              "multiplier" : 2,
+              "retries" : 4
+            }
+          }
+        },
+        "dialogState" : {
+          "lastProcessingUuid" : "initialProcessingUuid",
+          "finishedProcessingUuid" : "initialFinishedProcessingUuid"
+        },
+        "workflowConnectionIsLoading" : false
+      },
+      "calleeParameters" : {
+        "makeDialogDirtyParameters" : {
+          "showWorkflowParametersChanged" : false,
+          "workflowParametersChanged" : false
+        },
+        "inputParameters" : [ {
+          "parameterName" : "variable-param",
+          "portTypeId" : "org.knime.core.node.port.flowvariable.FlowVariablePortObject"
+        }, {
+          "parameterName" : "input-parameter-2",
+          "portTypeId" : "org.knime.core.node.BufferedDataTable"
+        }, {
+          "parameterName" : "input-parameter-7",
+          "portTypeId" : "org.knime.core.node.BufferedDataTable"
+        }, {
+          "parameterName" : "input-parameter-8",
+          "portTypeId" : "org.knime.core.node.BufferedDataTable"
+        }, {
+          "parameterName" : "some-crazy-parameter",
+          "portTypeId" : "org.knime.core.node.BufferedDataTable"
+        } ],
+        "initialValueInputParameters" : [ ],
+        "outputParameters" : [ {
+          "parameterName" : "output-parameter",
+          "portTypeId" : "org.knime.core.node.BufferedDataTable"
+        } ],
+        "initialValueOutputParameters" : [ ]
+      },
+      "hasWorkflowParametersError" : false
+    }
+  },
+  "schema" : {
+    "type" : "object",
+    "properties" : {
+      "model" : {
+        "type" : "object",
+        "properties" : {
+          "callWorkflowParameters" : {
+            "type" : "object",
+            "properties" : {
+              "common" : {
+                "type" : "object",
+                "properties" : {
+                  "execution" : {
+                    "type" : "object",
+                    "properties" : {
+                      "discardJobOnSuccessfulExecution" : {
+                        "type" : "boolean",
+                        "title" : "Discard job on successful execution",
+                        "description" : "When selected, successful jobs of the called workflow will be discarded from the remote executor. When not selected, successful jobs will be kept.",
+                        "default" : true
+                      },
+                      "invocationDuration" : {
+                        "oneOf" : [ {
+                          "const" : "LONG_DURATION",
+                          "title" : "Long duration"
+                        }, {
+                          "const" : "SHORT_DURATION",
+                          "title" : "Short duration"
+                        } ],
+                        "title" : "Invocation duration",
+                        "description" : "Choose the expected duration of the called workflow execution.\n<ul>\n<li><b>Long duration</b>: Choose this if the called workflow is expected to run for more than ten seconds. When selected, the invocation will poll its status repeatedly until the job completes (or fails). The polling is implemented so that for the first few seconds there will be frequent status checks (poll interval 100ms or 500ms), whereas jobs that run minutes or hours will be checked only every few seconds.</li>\n<li><b>Short duration</b>: Choose this if the called workflow is expected to finish within ten seconds. When selected, the invocation will not poll its status but wait until the job completes (or fails). This removes the polling overhead and makes this option quicker for short-running workflows. Choosing this option for long-running workflows (> a minute) will cause timeout problems.</li>\n</ul>"
+                      },
+                      "keepFailingJobs" : {
+                        "type" : "boolean",
+                        "title" : "Retain job on failure",
+                        "description" : "When selected, failing jobs of the called workflow will be kept on the remote executor. This can be useful for debugging purposes. When not selected, the failing jobs will be discarded.",
+                        "default" : true
+                      }
+                    },
+                    "default" : {
+                      "keepFailingJobs" : true,
+                      "discardJobOnSuccessfulExecution" : true
+                    }
+                  },
+                  "timeout" : {
+                    "type" : "object",
+                    "properties" : {
+                      "backoffPolicy" : {
+                        "type" : "object",
+                        "properties" : {
+                          "base" : {
+                            "type" : "integer",
+                            "format" : "int64",
+                            "title" : "Base timeout (milliseconds)",
+                            "description" : "During asynchronous invocation (option \"Long duration\"), if a HTTP 5XX error occurs when polling for the job status, the node will retry the request. The node will wait a certain amount of time before each retry. The time to wait before the <i>n</i>-th attempt is determined by <i>base * multiplier^n</i>.",
+                            "default" : 1200
+                          },
+                          "multiplier" : {
+                            "type" : "integer",
+                            "format" : "int64",
+                            "title" : "Multiplier",
+                            "description" : "The multiplier for the backoff delay calculation. Use a multiplier of 1 for a constant backoff, or a multiplier greater than 1 for an exponential backoff.",
+                            "default" : 1
+                          },
+                          "retries" : {
+                            "type" : "integer",
+                            "format" : "int32",
+                            "title" : "Maximum number of retries",
+                            "description" : "The maximum number of retries. Set to 0 to disable retrying.",
+                            "default" : 3
+                          }
+                        },
+                        "default" : {
+                          "base" : 1200,
+                          "multiplier" : 1,
+                          "retries" : 3
+                        }
+                      },
+                      "fetchParametersTimeout" : {
+                        "type" : "integer",
+                        "format" : "int32",
+                        "title" : "Fetch parameters timeout",
+                        "description" : "The maximum amount of time to wait for the remote executor when fetching the input and output parameters of the called workflow. Specified in seconds. A value of 0 means that no timeout will be used.",
+                        "default" : 10
+                      },
+                      "loadTimeout" : {
+                        "type" : "integer",
+                        "format" : "int32",
+                        "title" : "Workflow load timeout",
+                        "description" : "The maximum amount of time to wait for the remote executor when trying to initialize remote workflow execution. Specified in seconds. A value of 0 means that no timeout will be used.",
+                        "default" : 60
+                      }
+                    },
+                    "default" : {
+                      "loadTimeout" : 60,
+                      "fetchParametersTimeout" : 10,
+                      "backoffPolicy" : {
+                        "base" : 1200,
+                        "multiplier" : 1,
+                        "retries" : 3
+                      }
+                    }
+                  },
+                  "workflowOrDeploymentSelection" : {
+                    "type" : "object",
+                    "properties" : {
+                      "deploymentId" : {
+                        "type" : "string",
+                        "title" : "Deployment",
+                        "description" : "The deployed workflow to execute. This option is only visible when the node is connected to a KNIME Hub Authenticator node.\n"
+                      },
+                      "hubAuthenticatorMissingMessage" : {
+                        "type" : "object"
+                      },
+                      "runWorkflow" : {
+                        "type" : "object",
+                        "properties" : {
+                          "executionContext" : {
+                            "type" : "string",
+                            "title" : "Execution context",
+                            "description" : "Only for workflows on a KNIME Hub. The workflow will be executed in the selected context. An execution context of a hub space defines for instance the installed extensions, available credentials, and the pool from which computation resources are used when the service is invoked.\n"
+                          },
+                          "version" : {
+                            "type" : "string",
+                            "title" : "Workflow version",
+                            "description" : "If available, select the version of the workflow to read. A limited number of versions will be fetched and provided in a dropdown menu. If the desired version is not included in the dropdown list, it can be set with a flow variable (e.g. \"333\" for version 333 on the hub).\n",
+                            "default" : "LATEST_STATE"
+                          },
+                          "workflowPath" : {
+                            "type" : "object",
+                            "properties" : {
+                              "path" : {
+                                "type" : "object",
+                                "default" : {
+                                  "fsCategory" : "LOCAL",
+                                  "path" : "",
+                                  "timeout" : 10000,
+                                  "context" : {
+                                    "fsToString" : "(LOCAL, )"
+                                  }
+                                }
+                              }
+                            },
+                            "title" : "Workflow",
+                            "description" : "The path to the workflow you want to call.",
+                            "default" : {
+                              "path" : {
+                                "fsCategory" : "relative-to-current-hubspace",
+                                "path" : "",
+                                "timeout" : 10000,
+                                "context" : {
+                                  "fsToString" : "(RELATIVE, knime.space, )"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "default" : {
+                          "workflowPath" : {
+                            "path" : {
+                              "fsCategory" : "relative-to-current-hubspace",
+                              "path" : "",
+                              "timeout" : 10000,
+                              "context" : {
+                                "fsToString" : "(RELATIVE, knime.space, )"
+                              }
+                            }
+                          },
+                          "version" : "LATEST_STATE"
+                        }
+                      }
+                    },
+                    "default" : {
+                      "runWorkflow" : {
+                        "workflowPath" : {
+                          "path" : {
+                            "fsCategory" : "relative-to-current-hubspace",
+                            "path" : "",
+                            "timeout" : 10000,
+                            "context" : {
+                              "fsToString" : "(RELATIVE, knime.space, )"
+                            }
+                          }
+                        },
+                        "version" : "LATEST_STATE"
+                      }
+                    }
+                  }
+                },
+                "default" : {
+                  "execution" : {
+                    "keepFailingJobs" : true,
+                    "discardJobOnSuccessfulExecution" : true
+                  },
+                  "workflowOrDeploymentSelection" : {
+                    "runWorkflow" : {
+                      "workflowPath" : {
+                        "path" : {
+                          "fsCategory" : "relative-to-current-hubspace",
+                          "path" : "",
+                          "timeout" : 10000,
+                          "context" : {
+                            "fsToString" : "(RELATIVE, knime.space, )"
+                          }
+                        }
+                      },
+                      "version" : "LATEST_STATE"
+                    }
+                  },
+                  "timeout" : {
+                    "loadTimeout" : 60,
+                    "fetchParametersTimeout" : 10,
+                    "backoffPolicy" : {
+                      "base" : 1200,
+                      "multiplier" : 1,
+                      "retries" : 3
+                    }
+                  }
+                }
+              },
+              "dialogState" : {
+                "type" : "object",
+                "properties" : {
+                  "copiedLastProcessingUuid" : {
+                    "type" : "string"
+                  },
+                  "finishedProcessingUuid" : {
+                    "type" : "string",
+                    "default" : "initialFinishedProcessingUuid"
+                  },
+                  "lastProcessingUuid" : {
+                    "type" : "string",
+                    "default" : "initialProcessingUuid"
+                  }
+                },
+                "default" : {
+                  "lastProcessingUuid" : "initialProcessingUuid",
+                  "finishedProcessingUuid" : "initialFinishedProcessingUuid"
+                }
+              },
+              "workflowConnectionIsLoading" : {
+                "type" : "boolean",
+                "default" : false
+              }
+            },
+            "default" : {
+              "common" : {
+                "execution" : {
+                  "keepFailingJobs" : true,
+                  "discardJobOnSuccessfulExecution" : true
+                },
+                "workflowOrDeploymentSelection" : {
+                  "runWorkflow" : {
+                    "workflowPath" : {
+                      "path" : {
+                        "fsCategory" : "relative-to-current-hubspace",
+                        "path" : "",
+                        "timeout" : 10000,
+                        "context" : {
+                          "fsToString" : "(RELATIVE, knime.space, )"
+                        }
+                      }
+                    },
+                    "version" : "LATEST_STATE"
+                  }
+                },
+                "timeout" : {
+                  "loadTimeout" : 60,
+                  "fetchParametersTimeout" : 10,
+                  "backoffPolicy" : {
+                    "base" : 1200,
+                    "multiplier" : 1,
+                    "retries" : 3
+                  }
+                }
+              },
+              "dialogState" : {
+                "lastProcessingUuid" : "initialProcessingUuid",
+                "finishedProcessingUuid" : "initialFinishedProcessingUuid"
+              },
+              "workflowConnectionIsLoading" : false
+            }
+          },
+          "calleeParameters" : {
+            "type" : "object",
+            "properties" : {
+              "additionalInputPortsToBeRemovedMessage" : {
+                "type" : "object"
+              },
+              "additionalOutPortsToBeRemovedMessage" : {
+                "type" : "object"
+              },
+              "initialValueInputParameters" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "assignedToMessage" : {
+                      "type" : "object"
+                    },
+                    "parameterName" : {
+                      "type" : "string"
+                    },
+                    "portTypeId" : {
+                      "type" : "string"
+                    }
+                  }
+                },
+                "default" : [ ]
+              },
+              "initialValueOutputParameters" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "assignedToMessage" : {
+                      "type" : "object"
+                    },
+                    "parameterName" : {
+                      "type" : "string"
+                    },
+                    "portTypeId" : {
+                      "type" : "string"
+                    }
+                  }
+                },
+                "default" : [ ]
+              },
+              "inputParameters" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "assignedToMessage" : {
+                      "type" : "object"
+                    },
+                    "parameterName" : {
+                      "type" : "string"
+                    },
+                    "portTypeId" : {
+                      "type" : "string"
+                    }
+                  }
+                },
+                "title" : "Input parameters",
+                "description" : "After you have specified a workflow path, you will see the input parameters of the workflow. Every input parameter corresponds to an input port of the node. This section shows which input port's data is sent  to which input parameter. By using the arrows, you can configure the binding of input ports to input parameters.",
+                "default" : [ ]
+              },
+              "loadingInputParametersMessage" : {
+                "type" : "object"
+              },
+              "makeDialogDirtyParameters" : {
+                "type" : "object",
+                "properties" : {
+                  "showWorkflowParametersChanged" : {
+                    "type" : "boolean",
+                    "default" : false
+                  },
+                  "workflowParametersChanged" : {
+                    "type" : "boolean",
+                    "title" : "Change on apply",
+                    "description" : "This option is automatically set when input or output parameters changed but are the same number as the existing ports in order to allow applying the dialog in this case. Manual changes to this setting are ignored.",
+                    "default" : false
+                  }
+                },
+                "default" : {
+                  "showWorkflowParametersChanged" : false,
+                  "workflowParametersChanged" : false
+                }
+              },
+              "outputParameters" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "assignedToMessage" : {
+                      "type" : "object"
+                    },
+                    "parameterName" : {
+                      "type" : "string"
+                    },
+                    "portTypeId" : {
+                      "type" : "string"
+                    }
+                  }
+                },
+                "title" : "Output parameters",
+                "description" : "Similar to the input parameters. Maps data sent back from the workflow to this node's output ports.",
+                "default" : [ ]
+              },
+              "workflowParametersErrorMessage" : {
+                "type" : "object"
+              }
+            },
+            "default" : {
+              "makeDialogDirtyParameters" : {
+                "showWorkflowParametersChanged" : false,
+                "workflowParametersChanged" : false
+              },
+              "inputParameters" : [ ],
+              "initialValueInputParameters" : [ ],
+              "outputParameters" : [ ],
+              "initialValueOutputParameters" : [ ]
+            }
+          },
+          "hasWorkflowParametersError" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }
+      }
+    }
+  },
+  "ui_schema" : {
+    "elements" : [ {
+      "label" : "Execution Settings",
+      "type" : "Section",
+      "rule" : {
+        "effect" : "SHOW",
+        "condition" : {
+          "schema" : {
+            "not" : { }
+          }
+        }
+      },
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/execution/properties/invocationDuration",
+        "options" : {
+          "format" : "valueSwitch"
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/execution/properties/keepFailingJobs",
+        "options" : {
+          "format" : "checkbox"
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/execution/properties/discardJobOnSuccessfulExecution",
+        "options" : {
+          "format" : "checkbox"
+        }
+      } ]
+    }, {
+      "label" : "Workflow",
+      "type" : "Section",
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/workflowPath",
+        "options" : {
+          "fileSystems" : [ "CONNECTED", "SPACE" ],
+          "selectionMode" : "WORKFLOW",
+          "spaceFSOptions" : {
+            "mountId" : "Local space"
+          },
+          "format" : "fileChooser"
+        },
+        "rule" : {
+          "effect" : "HIDE",
+          "condition" : {
+            "schema" : {
+              "not" : { }
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/version",
+        "options" : {
+          "format" : "dropDown"
+        },
+        "providedOptions" : [ "possibleValues" ],
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "schema" : {
+                "not" : { }
+              }
+            }, {
+              "schema" : {
+                "not" : {
+                  "not" : { }
+                }
+              }
+            } ]
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/executionContext",
+        "options" : {
+          "format" : "dropDown"
+        },
+        "providedOptions" : [ "possibleValues" ],
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "schema" : {
+                "not" : { }
+              }
+            }, {
+              "schema" : {
+                "not" : {
+                  "not" : { }
+                }
+              }
+            } ]
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/deploymentId",
+        "options" : {
+          "format" : "dropDown"
+        },
+        "providedOptions" : [ "possibleValues" ],
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "schema" : {
+              "not" : { }
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "id" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/hubAuthenticatorMissingMessage",
+        "options" : {
+          "format" : "textMessage"
+        },
+        "providedOptions" : [ "message" ]
+      } ]
+    }, {
+      "type" : "Control",
+      "id" : "#/properties/model/properties/calleeParameters/properties/loadingInputParametersMessage",
+      "options" : {
+        "format" : "textMessage"
+      },
+      "providedOptions" : [ "message" ],
+      "rule" : {
+        "effect" : "SHOW",
+        "condition" : {
+          "scope" : "#/properties/model/properties/callWorkflowParameters/properties/workflowConnectionIsLoading",
+          "schema" : {
+            "const" : true
+          }
+        }
+      }
+    }, {
+      "type" : "Control",
+      "id" : "#/properties/model/properties/calleeParameters/properties/workflowParametersErrorMessage",
+      "options" : {
+        "format" : "textMessage"
+      },
+      "providedOptions" : [ "message" ],
+      "rule" : {
+        "effect" : "HIDE",
+        "condition" : {
+          "scope" : "#/properties/model/properties/callWorkflowParameters/properties/workflowConnectionIsLoading",
+          "schema" : {
+            "const" : true
+          }
+        }
+      }
+    }, {
+      "type" : "Control",
+      "scope" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged",
+      "options" : {
+        "format" : "checkbox"
+      },
+      "rule" : {
+        "effect" : "SHOW",
+        "condition" : {
+          "scope" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/showWorkflowParametersChanged",
+          "schema" : {
+            "const" : true
+          }
+        }
+      }
+    }, {
+      "label" : "Input Parameters",
+      "type" : "Section",
+      "description" : "After you have specified a workflow path, you will see the input parameters of the workflow. Every input parameter corresponds to an input port of the node. This section shows which input port's data is sent  to which input parameter. By using the arrows, you can configure the binding of input ports to input parameters.",
+      "rule" : {
+        "effect" : "HIDE",
+        "condition" : {
+          "type" : "OR",
+          "conditions" : [ {
+            "scope" : "#/properties/model/properties/callWorkflowParameters/properties/workflowConnectionIsLoading",
+            "schema" : {
+              "const" : true
+            }
+          }, {
+            "scope" : "#/properties/model/properties/hasWorkflowParametersError",
+            "schema" : {
+              "const" : true
+            }
+          } ]
+        }
+      },
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/calleeParameters/properties/inputParameters",
+        "options" : {
+          "detail" : [ {
+            "type" : "Control",
+            "id" : "#/properties/assignedToMessage",
+            "options" : {
+              "format" : "textMessage"
+            },
+            "providedOptions" : [ "message" ]
+          } ],
+          "arrayElementTitle" : "Input port",
+          "showSortButtons" : true,
+          "hasFixedSize" : true
+        },
+        "providedOptions" : [ "elementSubTitle" ],
+        "rule" : {
+          "effect" : "HIDE",
+          "condition" : {
+            "scope" : "#/properties/model/properties/calleeParameters/properties/inputParameters",
+            "schema" : {
+              "not" : {
+                "contains" : { }
+              }
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "id" : "#/properties/model/properties/calleeParameters/properties/additionalInputPortsToBeRemovedMessage",
+        "options" : {
+          "format" : "textMessage"
+        },
+        "providedOptions" : [ "message" ]
+      } ]
+    }, {
+      "label" : "Output Parameters",
+      "type" : "Section",
+      "description" : "Similar to the input parameters. Maps data sent back from the workflow to this node's output ports.",
+      "rule" : {
+        "effect" : "HIDE",
+        "condition" : {
+          "type" : "OR",
+          "conditions" : [ {
+            "scope" : "#/properties/model/properties/callWorkflowParameters/properties/workflowConnectionIsLoading",
+            "schema" : {
+              "const" : true
+            }
+          }, {
+            "scope" : "#/properties/model/properties/hasWorkflowParametersError",
+            "schema" : {
+              "const" : true
+            }
+          } ]
+        }
+      },
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/calleeParameters/properties/outputParameters",
+        "options" : {
+          "detail" : [ {
+            "type" : "Control",
+            "id" : "#/properties/assignedToMessage",
+            "options" : {
+              "format" : "textMessage"
+            },
+            "providedOptions" : [ "message" ]
+          } ],
+          "arrayElementTitle" : "Output port",
+          "showSortButtons" : true,
+          "hasFixedSize" : true
+        },
+        "providedOptions" : [ "elementSubTitle" ],
+        "rule" : {
+          "effect" : "HIDE",
+          "condition" : {
+            "scope" : "#/properties/model/properties/calleeParameters/properties/outputParameters",
+            "schema" : {
+              "not" : {
+                "contains" : { }
+              }
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "id" : "#/properties/model/properties/calleeParameters/properties/additionalOutPortsToBeRemovedMessage",
+        "options" : {
+          "format" : "textMessage"
+        },
+        "providedOptions" : [ "message" ]
+      } ]
+    }, {
+      "label" : "Connection Timeouts",
+      "type" : "Section",
+      "options" : {
+        "isAdvanced" : true
+      },
+      "rule" : {
+        "effect" : "SHOW",
+        "condition" : {
+          "schema" : {
+            "not" : { }
+          }
+        }
+      },
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/timeout/properties/loadTimeout",
+        "options" : {
+          "stepSize" : 30.0,
+          "validation" : {
+            "max" : {
+              "errorMessage" : "The value must not exceed 2147483647.",
+              "parameters" : {
+                "isExclusive" : false,
+                "max" : 2.147483647E9
+              }
+            },
+            "min" : {
+              "errorMessage" : "The value must be at least 0.",
+              "parameters" : {
+                "isExclusive" : false,
+                "min" : 0.0
+              }
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/timeout/properties/fetchParametersTimeout",
+        "options" : {
+          "stepSize" : 30.0,
+          "validation" : {
+            "max" : {
+              "errorMessage" : "The value must not exceed 2147483647.",
+              "parameters" : {
+                "isExclusive" : false,
+                "max" : 2.147483647E9
+              }
+            },
+            "min" : {
+              "errorMessage" : "The value must be at least 0.",
+              "parameters" : {
+                "isExclusive" : false,
+                "min" : 0.0
+              }
+            }
+          }
+        }
+      } ]
+    }, {
+      "label" : "Job Status Polling",
+      "type" : "Section",
+      "description" : "During asynchronous invocation, if a HTTP 5XX error occurs when polling for the job status, the node will retry the request. The node will wait a certain amount of time before each retry. The time to wait before the <i>n</i>-th attempt is determined by <i>base * multiplier^n</i>.",
+      "options" : {
+        "isAdvanced" : true
+      },
+      "rule" : {
+        "effect" : "SHOW",
+        "condition" : {
+          "schema" : {
+            "not" : { }
+          }
+        }
+      },
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/timeout/properties/backoffPolicy/properties/base",
+        "options" : {
+          "stepSize" : 50.0,
+          "validation" : {
+            "max" : {
+              "errorMessage" : "Value too large to process without risking precision loss (> 9007199254740991).",
+              "parameters" : {
+                "isExclusive" : false,
+                "max" : 9.007199254740991E15
+              }
+            },
+            "min" : {
+              "errorMessage" : "The value must be at least 0.",
+              "parameters" : {
+                "isExclusive" : false,
+                "min" : 0.0
+              }
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/timeout/properties/backoffPolicy/properties/multiplier",
+        "options" : {
+          "validation" : {
+            "max" : {
+              "errorMessage" : "Value too large to process without risking precision loss (> 9007199254740991).",
+              "parameters" : {
+                "isExclusive" : false,
+                "max" : 9.007199254740991E15
+              }
+            },
+            "min" : {
+              "errorMessage" : "The value must be at least 0.",
+              "parameters" : {
+                "isExclusive" : false,
+                "min" : 0.0
+              }
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/timeout/properties/backoffPolicy/properties/retries",
+        "options" : {
+          "validation" : {
+            "max" : {
+              "errorMessage" : "The value must not exceed 2147483647.",
+              "parameters" : {
+                "isExclusive" : false,
+                "max" : 2.147483647E9
+              }
+            },
+            "min" : {
+              "errorMessage" : "The value must be at least 0.",
+              "parameters" : {
+                "isExclusive" : false,
+                "min" : 0.0
+              }
+            }
+          }
+        }
+      } ]
+    } ]
+  },
+  "persist" : {
+    "type" : "object",
+    "properties" : {
+      "model" : {
+        "type" : "object",
+        "properties" : {
+          "callWorkflowParameters" : {
+            "type" : "object",
+            "properties" : {
+              "common" : {
+                "type" : "object",
+                "properties" : {
+                  "execution" : {
+                    "type" : "object",
+                    "properties" : {
+                      "invocationDuration" : {
+                        "configPaths" : [ [ "isSynchronous" ] ],
+                        "deprecatedConfigKeys" : [ {
+                          "deprecated" : [ ]
+                        } ]
+                      },
+                      "keepFailingJobs" : { },
+                      "discardJobOnSuccessfulExecution" : { }
+                    },
+                    "propertiesRoute" : [ ".." ]
+                  },
+                  "workflowOrDeploymentSelection" : {
+                    "type" : "object",
+                    "properties" : {
+                      "runWorkflow" : {
+                        "type" : "object",
+                        "properties" : {
+                          "workflowPath" : {
+                            "configPaths" : [ [ "calleeWorkflow", "path" ] ]
+                          },
+                          "version" : {
+                            "configPaths" : [ [ "hubItemVersion" ] ]
+                          },
+                          "executionContext" : { }
+                        },
+                        "propertiesRoute" : [ ".." ]
+                      },
+                      "deploymentId" : { },
+                      "hubAuthenticatorMissingMessage" : { }
+                    },
+                    "propertiesRoute" : [ ".." ]
+                  },
+                  "timeout" : {
+                    "type" : "object",
+                    "properties" : {
+                      "loadTimeout" : { },
+                      "fetchParametersTimeout" : { },
+                      "backoffPolicy" : {
+                        "type" : "object",
+                        "properties" : {
+                          "base" : {
+                            "configKey" : "backoffBase"
+                          },
+                          "multiplier" : {
+                            "configKey" : "backoffMultiplier"
+                          },
+                          "retries" : {
+                            "configKey" : "backoffRetries"
+                          }
+                        }
+                      }
+                    },
+                    "propertiesRoute" : [ ".." ]
+                  }
+                },
+                "propertiesRoute" : [ ".." ]
+              },
+              "dialogState" : {
+                "configPaths" : [ ]
+              },
+              "workflowConnectionIsLoading" : {
+                "configKey" : "workflowConnectionIsLoading"
+              }
+            },
+            "propertiesRoute" : [ ".." ]
+          },
+          "calleeParameters" : {
+            "propertiesConfigPaths" : [ ],
+            "configKey" : "calleeProperties"
+          },
+          "hasWorkflowParametersError" : {
+            "configKey" : "hasWorkflowParametersError"
+          }
+        }
+      }
+    }
+  },
+  "initialUpdates" : [ {
+    "scope" : "#/properties/model/properties/callWorkflowParameters/properties/workflowConnectionIsLoading",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : true
+    } ]
+  }, {
+    "scope" : "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : [ {
+        "parameterName" : "variable-param",
+        "portTypeId" : "org.knime.core.node.port.flowvariable.FlowVariablePortObject"
+      }, {
+        "parameterName" : "input-parameter-2",
+        "portTypeId" : "org.knime.core.node.BufferedDataTable"
+      }, {
+        "parameterName" : "input-parameter-7",
+        "portTypeId" : "org.knime.core.node.BufferedDataTable"
+      }, {
+        "parameterName" : "input-parameter-8",
+        "portTypeId" : "org.knime.core.node.BufferedDataTable"
+      }, {
+        "parameterName" : "some-crazy-parameter",
+        "portTypeId" : "org.knime.core.node.BufferedDataTable"
+      } ]
+    } ]
+  }, {
+    "scope" : "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : [ {
+        "parameterName" : "output-parameter",
+        "portTypeId" : "org.knime.core.node.BufferedDataTable"
+      } ]
+    } ]
+  }, {
+    "id" : "#/properties/model/properties/calleeParameters/properties/loadingInputParametersMessage",
+    "providedOptionName" : "message",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : {
+        "title" : "Loading workflow parameters...",
+        "description" : "The parameters are being loaded from the selected workflow.",
+        "type" : "INFO"
+      }
+    } ]
+  } ],
+  "globalUpdates" : [ {
+    "trigger" : {
+      "id" : "after-apply-dialog"
+    },
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/portTypeId", "#/properties/model/properties/calleeParameters/properties/outputParameters", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/portTypeId" ]
+  }, {
+    "trigger" : {
+      "id" : "after-open-dialog"
+    },
+    "triggerInitially" : true,
+    "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/common", "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/executionContext", "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/workflowPath", "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/lastProcessingUuid" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/deploymentId"
+    },
+    "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/lastProcessingUuid" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/version"
+    },
+    "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/lastProcessingUuid" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/workflowPath"
+    },
+    "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/workflowPath", "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/lastProcessingUuid" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/copiedLastProcessingUuid"
+    },
+    "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/common", "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/copiedLastProcessingUuid", "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/finishedProcessingUuid"
+    },
+    "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/finishedProcessingUuid", "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/lastProcessingUuid" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/lastProcessingUuid"
+    },
+    "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/finishedProcessingUuid", "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/lastProcessingUuid" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/calleeParameters/properties/inputParameters"
+    },
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/portTypeId", "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged", "#/properties/model/properties/calleeParameters/properties/outputParameters" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged"
+    },
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged", "#/properties/model/properties/calleeParameters/properties/outputParameters" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/calleeParameters/properties/outputParameters"
+    },
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged", "#/properties/model/properties/calleeParameters/properties/outputParameters", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/portTypeId" ]
+  } ]
+}

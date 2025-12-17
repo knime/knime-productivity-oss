@@ -282,11 +282,11 @@ public class CallWorkflowConnectionConfiguration {
     /**
      * Initializes members from the given settings. Missing and problematic values will lead to an exception.
      *
-     * @param settings
-     * @throws InvalidSettingsException
+     * @param settings the settings to load from
+     * @throws InvalidSettingsException if the settings are invalid or incomplete
+     * @since 5.10
      */
-    protected void loadSettingsInModel(final NodeSettingsRO settings)
-        throws InvalidSettingsException {
+    public void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
         loadBaseSettings(settings, true);
         m_reportConfiguration.loadInModel(settings);
         ConnectionUtil.validateConfiguration(this);
