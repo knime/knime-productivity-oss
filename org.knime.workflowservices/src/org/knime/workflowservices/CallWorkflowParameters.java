@@ -82,6 +82,7 @@ import org.knime.workflowservices.connection.util.ConnectionUtil;
  * current node parameters and make the rest of the dialog depend on that.
  *
  * @author Paul Baernreuther, KNIME GmbH, Germany
+ * @since 5.10
  */
 @LoadDefaultsForAbsentFields
 @SuppressWarnings("restriction")

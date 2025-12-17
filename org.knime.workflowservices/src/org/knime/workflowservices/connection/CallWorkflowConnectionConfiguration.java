@@ -284,7 +284,7 @@ public class CallWorkflowConnectionConfiguration {
      *
      * @param settings
      * @throws InvalidSettingsException
-     * @since 5.9 // TODO -> 5.10
+     * @since 5.10
      */
     public void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
         loadBaseSettings(settings, true);

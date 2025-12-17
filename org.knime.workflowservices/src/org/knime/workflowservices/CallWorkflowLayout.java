@@ -28,9 +28,10 @@ import org.knime.node.parameters.updates.Effect.EffectType;
 import org.knime.workflowservices.CommonParameters.IsRemoteExecution;
 
 /**
- *
- * @author paulbaernreuther
+ * Layout interface for the Call Workflow node dialog.
+ * @since 5.10
  */
+@SuppressWarnings("javadoc")
 public interface CallWorkflowLayout {
 
     @Section(title = "Execution Settings")
