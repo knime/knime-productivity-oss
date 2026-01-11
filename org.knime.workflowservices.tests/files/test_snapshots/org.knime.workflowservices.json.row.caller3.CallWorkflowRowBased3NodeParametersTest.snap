@@ -42,16 +42,15 @@
         "workflowConnectionIsLoading" : false
       },
       "calleeParameters" : {
-        "makeDialogDirtyParameters" : {
-          "showWorkflowParametersChanged" : false,
-          "workflowParametersChanged" : false
-        },
-        "inputParameters" : [ ],
-        "initialValueInputParameters" : [ ],
-        "outputParameters" : [ ],
-        "initialValueOutputParameters" : [ ]
+        "containerInputParameters" : [ ],
+        "dropParameterIdentifiers" : false,
+        "initialValueContainerInputParameters" : [ ]
       },
-      "hasWorkflowParametersError" : false
+      "hasInputNodesError" : false,
+      "reportingParameters" : {
+        "createReport" : false,
+        "reportFormat" : "PDF"
+      }
     }
   },
   "schema" : {
@@ -383,128 +382,171 @@
           "calleeParameters" : {
             "type" : "object",
             "properties" : {
-              "additionalInputPortsToBeRemovedMessage" : {
-                "type" : "object"
-              },
-              "additionalOutPortsToBeRemovedMessage" : {
-                "type" : "object"
-              },
-              "initialValueInputParameters" : {
+              "containerInputParameters" : {
                 "type" : "array",
                 "items" : {
                   "type" : "object",
                   "properties" : {
-                    "assignedToMessage" : {
-                      "type" : "object"
+                    "customJson" : {
+                      "type" : "string",
+                      "title" : "Custom JSON",
+                      "description" : "Enter the custom JSON value to be passed to the input node.",
+                      "default" : "{}"
+                    },
+                    "inputOption" : {
+                      "oneOf" : [ {
+                        "const" : "DEFAULT",
+                        "title" : "Default"
+                      }, {
+                        "const" : "CUSTOM",
+                        "title" : "Custom JSON"
+                      }, {
+                        "const" : "COLUMN",
+                        "title" : "From column"
+                      } ],
+                      "title" : "Input mode",
+                      "description" : "Select how the input value should be provided.\n<ul>\n<li><b>Default</b>: send nothing, causing the default JSON object defined by the according Container Input node to be used. The called workflow is executed once, the result is reused for all subsequent rows. Note that if the called workflow has been saved with one of the output nodes in executed state, the return value for that output value is the json value \"null\".</li>\n<li><b>Custom JSON</b>: Provide a custom JSON value for the parameter.</li>\n<li><b>From column</b>: Select column of the input table. The called workflow is executed for each row.</li>\n</ul>",
+                      "default" : "DEFAULT"
+                    },
+                    "jsonColumn" : {
+                      "type" : "string",
+                      "title" : "JSON column",
+                      "description" : "Select the column containing JSON values to be passed to the input node."
                     },
                     "parameterName" : {
-                      "type" : "string"
-                    },
-                    "portTypeId" : {
-                      "type" : "string"
-                    }
-                  }
-                },
-                "default" : [ ]
-              },
-              "initialValueOutputParameters" : {
-                "type" : "array",
-                "items" : {
-                  "type" : "object",
-                  "properties" : {
-                    "assignedToMessage" : {
-                      "type" : "object"
-                    },
-                    "parameterName" : {
-                      "type" : "string"
-                    },
-                    "portTypeId" : {
-                      "type" : "string"
-                    }
-                  }
-                },
-                "default" : [ ]
-              },
-              "inputParameters" : {
-                "type" : "array",
-                "items" : {
-                  "type" : "object",
-                  "properties" : {
-                    "assignedToMessage" : {
-                      "type" : "object"
-                    },
-                    "parameterName" : {
-                      "type" : "string"
-                    },
-                    "portTypeId" : {
-                      "type" : "string"
+                      "type" : "string",
+                      "title" : "Parameter name",
+                      "description" : "Name of the input parameter in the called workflow. This parameter is read-only."
                     }
                   }
                 },
                 "title" : "Input parameters",
-                "description" : "After you have specified a workflow path, you will see the input parameters of the workflow. Every input parameter corresponds to an input port of the node. This section shows which input port's data is sent  to which input parameter. By using the arrows, you can configure the binding of input ports to input parameters.",
+                "description" : "After you have selected a workflow, you will see the input parameters of the workflow. Configure how to pass in data for each parameter.",
                 "default" : [ ]
               },
-              "loadingInputParametersMessage" : {
-                "type" : "object"
+              "dropParameterIdentifiers" : {
+                "type" : "boolean",
+                "default" : false
               },
-              "makeDialogDirtyParameters" : {
-                "type" : "object",
-                "properties" : {
-                  "showWorkflowParametersChanged" : {
-                    "type" : "boolean",
-                    "default" : false
-                  },
-                  "workflowParametersChanged" : {
-                    "type" : "boolean",
-                    "title" : "Change on apply",
-                    "description" : "This option is automatically set when input or output parameters changed but are the same number as the existing ports in order to allow applying the dialog in this case. Manual changes to this setting are ignored.",
-                    "default" : false
-                  }
-                },
-                "default" : {
-                  "showWorkflowParametersChanged" : false,
-                  "workflowParametersChanged" : false
-                }
-              },
-              "outputParameters" : {
+              "initialValueContainerInputParameters" : {
                 "type" : "array",
                 "items" : {
                   "type" : "object",
                   "properties" : {
-                    "assignedToMessage" : {
-                      "type" : "object"
+                    "customJson" : {
+                      "type" : "string",
+                      "title" : "Custom JSON",
+                      "description" : "Enter the custom JSON value to be passed to the input node.",
+                      "default" : "{}"
+                    },
+                    "inputOption" : {
+                      "oneOf" : [ {
+                        "const" : "DEFAULT",
+                        "title" : "Default"
+                      }, {
+                        "const" : "CUSTOM",
+                        "title" : "Custom JSON"
+                      }, {
+                        "const" : "COLUMN",
+                        "title" : "From column"
+                      } ],
+                      "title" : "Input mode",
+                      "description" : "Select how the input value should be provided.\n<ul>\n<li><b>Default</b>: send nothing, causing the default JSON object defined by the according Container Input node to be used. The called workflow is executed once, the result is reused for all subsequent rows. Note that if the called workflow has been saved with one of the output nodes in executed state, the return value for that output value is the json value \"null\".</li>\n<li><b>Custom JSON</b>: Provide a custom JSON value for the parameter.</li>\n<li><b>From column</b>: Select column of the input table. The called workflow is executed for each row.</li>\n</ul>",
+                      "default" : "DEFAULT"
+                    },
+                    "jsonColumn" : {
+                      "type" : "string",
+                      "title" : "JSON column",
+                      "description" : "Select the column containing JSON values to be passed to the input node."
                     },
                     "parameterName" : {
-                      "type" : "string"
-                    },
-                    "portTypeId" : {
-                      "type" : "string"
+                      "type" : "string",
+                      "title" : "Parameter name",
+                      "description" : "Name of the input parameter in the called workflow. This parameter is read-only."
                     }
                   }
                 },
-                "title" : "Output parameters",
-                "description" : "Similar to the input parameters. Maps data sent back from the workflow to this node's output ports.",
                 "default" : [ ]
               },
-              "workflowParametersErrorMessage" : {
+              "inputNodesErrorMessage" : {
+                "type" : "object"
+              },
+              "loadingInputNodesMessage" : {
+                "type" : "object"
+              },
+              "noInputParametersMessage" : {
                 "type" : "object"
               }
             },
             "default" : {
-              "makeDialogDirtyParameters" : {
-                "showWorkflowParametersChanged" : false,
-                "workflowParametersChanged" : false
-              },
-              "inputParameters" : [ ],
-              "initialValueInputParameters" : [ ],
-              "outputParameters" : [ ],
-              "initialValueOutputParameters" : [ ]
+              "containerInputParameters" : [ ],
+              "dropParameterIdentifiers" : false,
+              "initialValueContainerInputParameters" : [ ]
             }
           },
-          "hasWorkflowParametersError" : {
+          "hasInputNodesError" : {
             "type" : "boolean",
             "default" : false
+          },
+          "reportingParameters" : {
+            "type" : "object",
+            "properties" : {
+              "createReport" : {
+                "type" : "boolean",
+                "title" : "Create report",
+                "description" : "If checked, the report associated with the remote workflow will be generated and put into the output table. The output table will contain a column containing the binary content of the report (column type: binary object); the column can be further processed, e.g. use a \"Binary Objects to Files\" node to write the content to a file, or use a database writer to write the report as BLOB into a database. Failures to generate the report (for instance, because no report is attached to the workflow) will result in a missing cell.",
+                "default" : false
+              },
+              "reportFormat" : {
+                "oneOf" : [ {
+                  "const" : "PDF",
+                  "title" : "Pdf"
+                }, {
+                  "const" : "HTML",
+                  "title" : "Html"
+                }, {
+                  "const" : "DOC",
+                  "title" : "Doc"
+                }, {
+                  "const" : "DOCX",
+                  "title" : "Docx"
+                }, {
+                  "const" : "XLS",
+                  "title" : "Xls"
+                }, {
+                  "const" : "XLSX",
+                  "title" : "Xlsx"
+                }, {
+                  "const" : "PPT",
+                  "title" : "Ppt"
+                }, {
+                  "const" : "PPTX",
+                  "title" : "Pptx"
+                }, {
+                  "const" : "PS",
+                  "title" : "Ps"
+                }, {
+                  "const" : "ODP",
+                  "title" : "Odp"
+                }, {
+                  "const" : "ODT",
+                  "title" : "Odt"
+                }, {
+                  "const" : "ODS",
+                  "title" : "Ods"
+                }, {
+                  "const" : "CSV",
+                  "title" : "Csv"
+                } ],
+                "title" : "Report format",
+                "description" : "Choose the format of the report to be generated.",
+                "default" : "PDF"
+              }
+            },
+            "default" : {
+              "createReport" : false,
+              "reportFormat" : "PDF"
+            }
           }
         }
       }
@@ -531,8 +573,9 @@
         "rule" : {
           "effect" : "DISABLE",
           "condition" : {
+            "scope" : "#/properties/model/properties/reportingParameters/properties/createReport",
             "schema" : {
-              "not" : { }
+              "const" : true
             }
           }
         }
@@ -684,7 +727,7 @@
       } ]
     }, {
       "type" : "Control",
-      "id" : "#/properties/model/properties/calleeParameters/properties/loadingInputParametersMessage",
+      "id" : "#/properties/model/properties/calleeParameters/properties/loadingInputNodesMessage",
       "options" : {
         "format" : "textMessage"
       },
@@ -700,7 +743,7 @@
       }
     }, {
       "type" : "Control",
-      "id" : "#/properties/model/properties/calleeParameters/properties/workflowParametersErrorMessage",
+      "id" : "#/properties/model/properties/calleeParameters/properties/inputNodesErrorMessage",
       "options" : {
         "format" : "textMessage"
       },
@@ -709,21 +752,6 @@
         "effect" : "HIDE",
         "condition" : {
           "scope" : "#/properties/model/properties/callWorkflowParameters/properties/workflowConnectionIsLoading",
-          "schema" : {
-            "const" : true
-          }
-        }
-      }
-    }, {
-      "type" : "Control",
-      "scope" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged",
-      "options" : {
-        "format" : "checkbox"
-      },
-      "rule" : {
-        "effect" : "SHOW",
-        "condition" : {
-          "scope" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/showWorkflowParametersChanged",
           "schema" : {
             "const" : true
           }
@@ -732,7 +760,6 @@
     }, {
       "label" : "Input Parameters",
       "type" : "Section",
-      "description" : "After you have specified a workflow path, you will see the input parameters of the workflow. Every input parameter corresponds to an input port of the node. This section shows which input port's data is sent  to which input parameter. By using the arrows, you can configure the binding of input ports to input parameters.",
       "rule" : {
         "effect" : "HIDE",
         "condition" : {
@@ -743,7 +770,7 @@
               "const" : true
             }
           }, {
-            "scope" : "#/properties/model/properties/hasWorkflowParametersError",
+            "scope" : "#/properties/model/properties/hasInputNodesError",
             "schema" : {
               "const" : true
             }
@@ -752,96 +779,130 @@
       },
       "elements" : [ {
         "type" : "Control",
-        "scope" : "#/properties/model/properties/calleeParameters/properties/inputParameters",
+        "scope" : "#/properties/model/properties/calleeParameters/properties/containerInputParameters",
         "options" : {
           "detail" : [ {
             "type" : "Control",
-            "id" : "#/properties/assignedToMessage",
+            "scope" : "#/properties/parameterName",
+            "rule" : {
+              "effect" : "DISABLE",
+              "condition" : {
+                "schema" : { }
+              }
+            }
+          }, {
+            "type" : "Control",
+            "scope" : "#/properties/inputOption",
             "options" : {
-              "format" : "textMessage"
+              "format" : "valueSwitch"
+            }
+          }, {
+            "type" : "Control",
+            "scope" : "#/properties/customJson",
+            "options" : {
+              "rows" : 4,
+              "format" : "textArea"
             },
-            "providedOptions" : [ "message" ]
+            "rule" : {
+              "effect" : "SHOW",
+              "condition" : {
+                "scope" : "#/properties/inputOption",
+                "schema" : {
+                  "oneOf" : [ {
+                    "const" : "CUSTOM"
+                  } ]
+                }
+              }
+            }
+          }, {
+            "type" : "Control",
+            "scope" : "#/properties/jsonColumn",
+            "options" : {
+              "format" : "dropDown"
+            },
+            "providedOptions" : [ "possibleValues" ],
+            "rule" : {
+              "effect" : "SHOW",
+              "condition" : {
+                "scope" : "#/properties/inputOption",
+                "schema" : {
+                  "oneOf" : [ {
+                    "const" : "COLUMN"
+                  } ]
+                }
+              }
+            }
           } ],
-          "arrayElementTitle" : "Input port",
-          "showSortButtons" : true,
+          "arrayElementTitle" : "Input parameter",
           "hasFixedSize" : true
         },
-        "providedOptions" : [ "elementSubTitle" ],
         "rule" : {
           "effect" : "HIDE",
           "condition" : {
-            "scope" : "#/properties/model/properties/calleeParameters/properties/inputParameters",
-            "schema" : {
-              "not" : {
-                "contains" : { }
+            "type" : "OR",
+            "conditions" : [ {
+              "scope" : "#/properties/model/properties/callWorkflowParameters/properties/workflowConnectionIsLoading",
+              "schema" : {
+                "const" : true
               }
-            }
+            }, {
+              "scope" : "#/properties/model/properties/hasInputNodesError",
+              "schema" : {
+                "const" : true
+              }
+            } ]
           }
         }
       }, {
         "type" : "Control",
-        "id" : "#/properties/model/properties/calleeParameters/properties/additionalInputPortsToBeRemovedMessage",
+        "id" : "#/properties/model/properties/calleeParameters/properties/noInputParametersMessage",
         "options" : {
           "format" : "textMessage"
         },
-        "providedOptions" : [ "message" ]
+        "providedOptions" : [ "message" ],
+        "rule" : {
+          "effect" : "HIDE",
+          "condition" : {
+            "type" : "OR",
+            "conditions" : [ {
+              "scope" : "#/properties/model/properties/callWorkflowParameters/properties/workflowConnectionIsLoading",
+              "schema" : {
+                "const" : true
+              }
+            }, {
+              "scope" : "#/properties/model/properties/hasInputNodesError",
+              "schema" : {
+                "const" : true
+              }
+            } ]
+          }
+        }
       } ]
     }, {
-      "label" : "Output Parameters",
+      "label" : "Reporting",
       "type" : "Section",
-      "description" : "Similar to the input parameters. Maps data sent back from the workflow to this node's output ports.",
-      "rule" : {
-        "effect" : "HIDE",
-        "condition" : {
-          "type" : "OR",
-          "conditions" : [ {
-            "scope" : "#/properties/model/properties/callWorkflowParameters/properties/workflowConnectionIsLoading",
-            "schema" : {
-              "const" : true
-            }
-          }, {
-            "scope" : "#/properties/model/properties/hasWorkflowParametersError",
-            "schema" : {
-              "const" : true
-            }
-          } ]
-        }
-      },
       "elements" : [ {
         "type" : "Control",
-        "scope" : "#/properties/model/properties/calleeParameters/properties/outputParameters",
+        "scope" : "#/properties/model/properties/reportingParameters/properties/createReport",
         "options" : {
-          "detail" : [ {
-            "type" : "Control",
-            "id" : "#/properties/assignedToMessage",
-            "options" : {
-              "format" : "textMessage"
-            },
-            "providedOptions" : [ "message" ]
-          } ],
-          "arrayElementTitle" : "Output port",
-          "showSortButtons" : true,
-          "hasFixedSize" : true
-        },
-        "providedOptions" : [ "elementSubTitle" ],
-        "rule" : {
-          "effect" : "HIDE",
-          "condition" : {
-            "scope" : "#/properties/model/properties/calleeParameters/properties/outputParameters",
-            "schema" : {
-              "not" : {
-                "contains" : { }
-              }
-            }
-          }
+          "format" : "checkbox"
         }
       }, {
         "type" : "Control",
-        "id" : "#/properties/model/properties/calleeParameters/properties/additionalOutPortsToBeRemovedMessage",
+        "scope" : "#/properties/model/properties/reportingParameters/properties/reportFormat",
         "options" : {
-          "format" : "textMessage"
+          "format" : "dropDown"
         },
-        "providedOptions" : [ "message" ]
+        "providedOptions" : [ "possibleValues" ],
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "scope" : "#/properties/model/properties/reportingParameters/properties/createReport",
+            "schema" : {
+              "const" : true
+            }
+          }
+        }
       } ]
     }, {
       "label" : "Connection Timeouts",
@@ -1069,11 +1130,16 @@
             "propertiesRoute" : [ ".." ]
           },
           "calleeParameters" : {
-            "propertiesConfigPaths" : [ ],
-            "configKey" : "calleeProperties"
+            "configPaths" : [ ],
+            "deprecatedConfigKeys" : [ {
+              "deprecated" : [ [ "parameterToJsonConfigMap" ], [ "parameterToJsonColumnMap" ], [ "dropParameterIdentifiers" ] ]
+            } ]
           },
-          "hasWorkflowParametersError" : {
-            "configKey" : "hasWorkflowParametersError"
+          "hasInputNodesError" : {
+            "configKey" : "hasInputNodesError"
+          },
+          "reportingParameters" : {
+            "configPaths" : [ [ "reportFormatOrNull" ] ]
           }
         }
       }
@@ -1086,16 +1152,70 @@
       "value" : true
     } ]
   }, {
-    "scope" : "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters",
+    "scope" : "#/properties/model/properties/calleeParameters/properties/containerInputParameters/items/properties/jsonColumn",
+    "providedOptionName" : "possibleValues",
     "values" : [ {
       "indices" : [ ],
       "value" : [ ]
     } ]
   }, {
-    "scope" : "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters",
+    "scope" : "#/properties/model/properties/calleeParameters/properties/initialValueContainerInputParameters",
     "values" : [ {
       "indices" : [ ],
       "value" : [ ]
+    } ]
+  }, {
+    "scope" : "#/properties/model/properties/calleeParameters/properties/initialValueContainerInputParameters/items/properties/jsonColumn",
+    "providedOptionName" : "possibleValues",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : [ ]
+    } ]
+  }, {
+    "scope" : "#/properties/model/properties/reportingParameters/properties/reportFormat",
+    "providedOptionName" : "possibleValues",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : [ {
+        "id" : "PDF",
+        "text" : "PDF"
+      }, {
+        "id" : "HTML",
+        "text" : "HTML"
+      }, {
+        "id" : "DOC",
+        "text" : "DOC"
+      }, {
+        "id" : "DOCX",
+        "text" : "DOCX"
+      }, {
+        "id" : "XLS",
+        "text" : "XLS"
+      }, {
+        "id" : "XLSX",
+        "text" : "XLSX"
+      }, {
+        "id" : "PPT",
+        "text" : "PPT"
+      }, {
+        "id" : "PPTX",
+        "text" : "PPTX"
+      }, {
+        "id" : "PS",
+        "text" : "PS"
+      }, {
+        "id" : "ODP",
+        "text" : "ODP"
+      }, {
+        "id" : "ODT",
+        "text" : "ODT"
+      }, {
+        "id" : "ODS",
+        "text" : "ODS"
+      }, {
+        "id" : "CSV",
+        "text" : "CSV"
+      } ]
     } ]
   }, {
     "id" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/versionsTempState/properties/loadingVersionsMessage",
@@ -1109,13 +1229,13 @@
       }
     } ]
   }, {
-    "id" : "#/properties/model/properties/calleeParameters/properties/loadingInputParametersMessage",
+    "id" : "#/properties/model/properties/calleeParameters/properties/loadingInputNodesMessage",
     "providedOptionName" : "message",
     "values" : [ {
       "indices" : [ ],
       "value" : {
-        "title" : "Loading workflow parameters...",
-        "description" : "The parameters are being loaded from the selected workflow.",
+        "title" : "Loading workflow input parameters...",
+        "description" : "The input parameters are being loaded from the selected workflow.",
         "type" : "INFO"
       }
     } ]
@@ -1124,7 +1244,7 @@
     "trigger" : {
       "id" : "after-apply-dialog"
     },
-    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/portTypeId", "#/properties/model/properties/calleeParameters/properties/outputParameters", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/portTypeId" ]
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/containerInputParameters" ]
   }, {
     "trigger" : {
       "id" : "after-open-dialog"
@@ -1155,7 +1275,7 @@
     "trigger" : {
       "scope" : "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/copiedLastProcessingUuid"
     },
-    "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/common", "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/workflowPath", "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/copiedLastProcessingUuid", "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters" ]
+    "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/common", "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/workflowPath", "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/copiedLastProcessingUuid", "#/properties/model/properties/calleeParameters/properties/initialValueContainerInputParameters" ]
   }, {
     "trigger" : {
       "scope" : "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/finishedProcessingUuid"
@@ -1168,18 +1288,18 @@
     "dependencies" : [ "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/finishedProcessingUuid", "#/properties/model/properties/callWorkflowParameters/properties/dialogState/properties/lastProcessingUuid" ]
   }, {
     "trigger" : {
-      "scope" : "#/properties/model/properties/calleeParameters/properties/inputParameters"
+      "scope" : "#/properties/model/properties/calleeParameters/properties/containerInputParameters"
     },
-    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/portTypeId", "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged", "#/properties/model/properties/calleeParameters/properties/outputParameters" ]
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/containerInputParameters/items/properties/inputOption", "#/properties/model/properties/calleeParameters/properties/containerInputParameters/items/properties/jsonColumn" ]
   }, {
     "trigger" : {
-      "scope" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged"
+      "scope" : "#/properties/model/properties/calleeParameters/properties/containerInputParameters/items/properties/inputOption"
     },
-    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged", "#/properties/model/properties/calleeParameters/properties/outputParameters" ]
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/containerInputParameters/items/properties/inputOption", "#/properties/model/properties/calleeParameters/properties/containerInputParameters/items/properties/jsonColumn" ]
   }, {
     "trigger" : {
-      "scope" : "#/properties/model/properties/calleeParameters/properties/outputParameters"
+      "scope" : "#/properties/model/properties/calleeParameters/properties/containerInputParameters/items/properties/jsonColumn"
     },
-    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged", "#/properties/model/properties/calleeParameters/properties/outputParameters", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/portTypeId" ]
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/containerInputParameters/items/properties/inputOption", "#/properties/model/properties/calleeParameters/properties/containerInputParameters/items/properties/jsonColumn" ]
   } ]
 }

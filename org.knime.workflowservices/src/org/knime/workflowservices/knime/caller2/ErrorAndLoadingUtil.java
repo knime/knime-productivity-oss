@@ -31,8 +31,8 @@ import org.knime.node.parameters.updates.EffectPredicateProvider;
 import org.knime.node.parameters.updates.StateProvider;
 import org.knime.node.parameters.updates.util.BooleanReference;
 import org.knime.node.parameters.widget.message.TextMessage;
-import org.knime.workflowservices.CallWorkflowParameters;
 import org.knime.workflowservices.CallWorkflowParameters.WorkflowFetchIsRunning;
+import org.knime.workflowservices.ErrorMessageProvider;
 import org.knime.workflowservices.IWorkflowBackend;
 
 final class ErrorAndLoadingUtil {
@@ -71,44 +71,14 @@ final class ErrorAndLoadingUtil {
     /**
      * Error message shown when there is an error loading workflow parameters.
      */
-    static final class WorkflowParametersErrorMessageProvider implements StateProvider<Optional<TextMessage.Message>> {
+    static final class WorkflowParametersErrorMessageProvider extends ErrorMessageProvider<Pair< //
+            Map<String, IWorkflowBackend.ResourceContentType>, Map<String, IWorkflowBackend.ResourceContentType>>> {
 
-        private Supplier<CallWorkflowParameters.WithError<Pair<Map<String, IWorkflowBackend.ResourceContentType>,
-            Map<String, IWorkflowBackend.ResourceContentType>>, Exception>> m_resourceDescriptionsProvider;
-
-        @Override
-        public void init(final StateProviderInitializer initializer) {
-            m_resourceDescriptionsProvider =
-                initializer.computeFromProvidedState(WorkflowParametersUtil.WorkflowResourceDescriptionsProvider.class);
+        WorkflowParametersErrorMessageProvider() {
+            super("Failed to load workflow parameters",
+                WorkflowParametersUtil.WorkflowResourceDescriptionsProvider.class);
         }
 
-        @Override
-        public Optional<TextMessage.Message> computeState(final NodeParametersInput parametersInput) {
-            final var resourcesOrError = m_resourceDescriptionsProvider.get();
-            if (resourcesOrError.hasError()) {
-                final var exception = resourcesOrError.exception();
-                return Optional.of(new TextMessage.Message("Failed to load workflow parameters",
-                    toReadableString(exception), TextMessage.MessageType.ERROR));
-            }
-            return Optional.empty();
-        }
-
-        static String toReadableString(final Exception exception) {
-            final var rootMessage = getRootMessage(exception);
-            if (rootMessage.isEmpty() || exception instanceof IllegalStateException) {
-                return rootMessage;
-            }
-            return exception.getClass().getSimpleName() + ": " + rootMessage;
-        }
-
-        static String getRootMessage(final Throwable throwable) {
-            Throwable root = throwable;
-            while (root.getCause() != null) {
-                root = root.getCause();
-            }
-            final var rootMessage = root.getMessage();
-            return rootMessage == null ? "" : rootMessage;
-        }
     }
 
     static final class HasWorkflowParametersErrorMessage implements StateProvider<Boolean>, BooleanReference {

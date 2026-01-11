@@ -54,9 +54,14 @@ import org.knime.node.parameters.migration.LoadDefaultsForAbsentFields;
 import org.knime.node.parameters.migration.Migration;
 import org.knime.node.parameters.persistence.Persistor;
 import org.knime.node.parameters.persistence.legacy.EnumBooleanPersistor;
+import org.knime.node.parameters.updates.Effect;
+import org.knime.node.parameters.updates.Effect.EffectType;
+import org.knime.node.parameters.updates.EffectPredicate;
+import org.knime.node.parameters.updates.EffectPredicateProvider;
 import org.knime.node.parameters.widget.choices.Label;
 import org.knime.node.parameters.widget.choices.ValueSwitchWidget;
 import org.knime.workflowservices.CallWorkflowLayout.ExecutionSettingsSection;
+import org.knime.workflowservices.ReportingParameters.CreateReport;
 
 /**
  * Execution parameters for Call Workflow nodes.
@@ -87,6 +92,7 @@ class ExecutionParameters implements NodeParameters {
     @Widget(title = "Invocation duration",
         description = "Choose the expected duration of the called workflow execution.")
     @ValueSwitchWidget
+    @Effect(predicate = CreateReportSettingAvailableAndCreateReport.class, type = EffectType.DISABLE)
     @Persistor(InvocationDurationPersistor.class)
     @Migration(InvocationDurationDefaultProvider.class)
     InvocationDuration m_invocationDuration;
@@ -96,6 +102,14 @@ class ExecutionParameters implements NodeParameters {
 
         InvocationDurationPersistor() {
             super("isSynchronous", InvocationDuration.class, InvocationDuration.SHORT_DURATION);
+        }
+    }
+
+    private static final class CreateReportSettingAvailableAndCreateReport implements EffectPredicateProvider {
+
+        @Override
+        public EffectPredicate init(final PredicateInitializer i) {
+            return i.isMissing(CreateReport.class) ? i.never() : i.getPredicate(CreateReport.class);
         }
     }
 
@@ -113,8 +127,7 @@ class ExecutionParameters implements NodeParameters {
 
     @Widget(title = "Retain job on failure",
         description = "When selected, failing jobs of the called workflow will be kept on the remote executor. "
-            + "This can be useful for debugging purposes. When not selected, the failing jobs will be "
-            + "discarded.")
+            + "This can be useful for debugging purposes. When not selected, the failing jobs will be discarded.")
     boolean m_keepFailingJobs = true;
 
     @Widget(title = "Discard job on successful execution",
