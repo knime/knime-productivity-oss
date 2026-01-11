@@ -107,6 +107,7 @@ import org.knime.core.node.util.StringFormat;
 import org.knime.core.util.UniqueNameGenerator;
 import org.knime.core.util.report.ReportingConstants.RptOutputFormat;
 import org.knime.workflowservices.BackendExecutionResult;
+import org.knime.workflowservices.CallWorkflowParameters;
 import org.knime.workflowservices.IWorkflowBackend;
 import org.knime.workflowservices.IWorkflowBackend.ReportGenerationException;
 import org.knime.workflowservices.connection.AbstractHubAuthenticationPortObjectSpec;
@@ -395,6 +396,13 @@ public class CallWorkflowRowBased3NodeModel extends NodeModel {
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
+        if (settings.getBoolean(CallWorkflowParameters.WORKFLOW_IS_LOADING_CFG_KEY, false)) {
+            throw new InvalidSettingsException("Cannot apply configuration while fetching input parameters.");
+        }
+        if (settings.getBoolean(CallWorkflowRowBased3NodeParameters.HAS_INPUT_NODES_ERROR_CFG_KEY, false)) {
+            throw new InvalidSettingsException(
+                "Cannot apply configuration when input parameters could not be successfully fetched.");
+        }
         m_configuration.validateConfigurationForModel(settings);
     }
 

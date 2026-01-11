@@ -74,7 +74,17 @@ import org.knime.workflowservices.connection.CallWorkflowConnectionConfiguration
  *
  * @author Bernd Wiswedel, KNIME AG, Zurich, Switzerland
  */
-public class CallWorkflowRowBased3Configuration extends CallWorkflowConnectionConfiguration  {
+public class CallWorkflowRowBased3Configuration extends CallWorkflowConnectionConfiguration {
+
+    static final String PARAMETER_TO_JSON_CONFIG_MAP_CFG_KEY = "parameterToJsonConfigMap";
+
+    static final String JSON_CFG_KEY = "json";
+
+    static final String PARAMETER_TO_JSON_COLUMN_MAP_CFG_KEY = "parameterToJsonColumnMap";
+
+    static final String JSON_COLUMN_CFG_KEY = "json-column";
+
+    static final String DROP_PARAMETER_IDENTIFIERS_CFG_KEY = "dropParameterIdentifiers";
 
     /** @see #getParameterToJsonConfigMap() */
     private Map<String, ExternalNodeData> m_parameterToJsonConfigMap = Collections.emptyMap();
@@ -102,28 +112,28 @@ public class CallWorkflowRowBased3Configuration extends CallWorkflowConnectionCo
         super.saveSettings(settings);
 
         // constant JSON inputs
-        var staticInputs = settings.addNodeSettings("parameterToJsonConfigMap");
+        var staticInputs = settings.addNodeSettings(PARAMETER_TO_JSON_CONFIG_MAP_CFG_KEY);
         for (Map.Entry<String, ExternalNodeData> entry : m_parameterToJsonConfigMap.entrySet()) {
             String parameterId = entry.getKey();
             String parameterName =
                 isDropParameterIdentifiers() ? ExternalNodeData.getSimpleIDFrom(parameterId) : parameterId;
             var childSettings = staticInputs.addNodeSettings(parameterName);
             var json = entry.getValue().getJSONValue().toString(); //NOSONAR if we put an entry, it has a JSON value
-            childSettings.addString("json", json);
+            childSettings.addString(JSON_CFG_KEY, json);
         }
 
         // column inputs
-        var dynamicInputs = settings.addNodeSettings("parameterToJsonColumnMap");
+        var dynamicInputs = settings.addNodeSettings(PARAMETER_TO_JSON_COLUMN_MAP_CFG_KEY);
         for (Map.Entry<String, String> entry : m_parameterToJsonColumnMap.entrySet()) {
             String parameterId = entry.getKey();
             String parameterName =
                 isDropParameterIdentifiers() ? ExternalNodeData.getSimpleIDFrom(parameterId) : parameterId;
             var childSettings = dynamicInputs.addNodeSettings(parameterName);
-            childSettings.addString("json-column", entry.getValue());
+            childSettings.addString(JSON_COLUMN_CFG_KEY, entry.getValue());
         }
 
         // drop parameter identifiers
-        settings.addBoolean("dropParameterIdentifiers", m_dropParameterIdentifiers);
+        settings.addBoolean(DROP_PARAMETER_IDENTIFIERS_CFG_KEY, m_dropParameterIdentifiers);
     }
 
     /**
@@ -134,12 +144,11 @@ public class CallWorkflowRowBased3Configuration extends CallWorkflowConnectionCo
      * @throws InvalidSettingsException
      */
     @Override
-    public void loadSettingsInModel(final NodeSettingsRO settings)
-        throws InvalidSettingsException {
+    public void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
         super.loadSettingsInModel(settings);
         loadJsonConfigMap(settings, true);
         loadJsonColumnMap(settings, true);
-        m_dropParameterIdentifiers = settings.getBoolean("dropParameterIdentifiers", false);
+        m_dropParameterIdentifiers = settings.getBoolean(DROP_PARAMETER_IDENTIFIERS_CFG_KEY, false);
     }
 
     /**
@@ -162,7 +171,7 @@ public class CallWorkflowRowBased3Configuration extends CallWorkflowConnectionCo
             loadJsonColumnMap(settings, false);
         } catch (InvalidSettingsException e) { // NOSONAR doesn't happen when strict = false
         }
-        m_dropParameterIdentifiers = settings.getBoolean("dropParameterIdentifiers", false);
+        m_dropParameterIdentifiers = settings.getBoolean(DROP_PARAMETER_IDENTIFIERS_CFG_KEY, false);
     }
 
     /**
@@ -175,7 +184,7 @@ public class CallWorkflowRowBased3Configuration extends CallWorkflowConnectionCo
      */
     private void loadJsonConfigMap(final NodeSettingsRO settings, final boolean strict)
         throws InvalidSettingsException {
-        var settings2 = settings.getNodeSettings("parameterToJsonConfigMap");
+        var settings2 = settings.getNodeSettings(PARAMETER_TO_JSON_CONFIG_MAP_CFG_KEY);
         m_parameterToJsonConfigMap = new LinkedHashMap<>();
         for (String s : settings2.keySet()) {
             NodeSettingsRO childSettings;
@@ -187,7 +196,7 @@ public class CallWorkflowRowBased3Configuration extends CallWorkflowConnectionCo
                 }
                 continue;
             }
-            var json = childSettings.getString("json");
+            var json = childSettings.getString(JSON_CFG_KEY);
             try {
                 var object = JSONUtil.parseJSONValue(json);
                 var parameterName = isDropParameterIdentifiers() ? ExternalNodeData.getSimpleIDFrom(s) : s;
@@ -217,7 +226,7 @@ public class CallWorkflowRowBased3Configuration extends CallWorkflowConnectionCo
         m_parameterToJsonColumnMap = new LinkedHashMap<>();
         NodeSettingsRO settings3;
         try {
-            settings3 = settings.getNodeSettings("parameterToJsonColumnMap");
+            settings3 = settings.getNodeSettings(PARAMETER_TO_JSON_COLUMN_MAP_CFG_KEY);
         } catch (InvalidSettingsException e) {
             if (strict) {
                 throw e;
@@ -227,7 +236,7 @@ public class CallWorkflowRowBased3Configuration extends CallWorkflowConnectionCo
         for (String s : settings3.keySet()) {
             try {
                 var childSettings = settings3.getNodeSettings(s);
-                var jsonColumn = childSettings.getString("json-column");
+                var jsonColumn = childSettings.getString(JSON_COLUMN_CFG_KEY);
                 var parameterName = isDropParameterIdentifiers() ? ExternalNodeData.getSimpleIDFrom(s) : s;
                 m_parameterToJsonColumnMap.put(parameterName, jsonColumn);
             } catch (InvalidSettingsException e) {
