@@ -547,6 +547,14 @@
         "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/execution/properties/invocationDuration",
         "options" : {
           "format" : "valueSwitch"
+        },
+        "rule" : {
+          "effect" : "DISABLE",
+          "condition" : {
+            "schema" : {
+              "not" : { }
+            }
+          }
         }
       }, {
         "type" : "Control",
