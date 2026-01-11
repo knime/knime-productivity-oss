@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://www.knime.org/2008/09/XMLConfig" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.knime.org/2008/09/XMLConfig http://www.knime.org/XMLConfig_2008_09.xsd" key="settings.xml">
+    <entry key="node_file" type="xstring" value="settings.xml"/>
+    <config key="flow_stack"/>
+    <config key="internal_node_subsettings">
+        <entry key="memory_policy" type="xstring" value="CacheSmallInMemory"/>
+    </config>
+    <config key="model">
+        <config key="calleeWorkflow_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_WorkflowChooser"/>
+            <entry key="EnabledStatus" type="xboolean" value="true"/>
+        </config>
+        <config key="calleeWorkflow">
+            <config key="file_system_chooser__Internals">
+                <entry key="has_fs_port" type="xboolean" value="false"/>
+                <entry key="overwritten_by_variable" type="xboolean" value="false"/>
+                <entry key="convenience_fs_category" type="xstring" value="RELATIVE"/>
+                <entry key="relative_to" type="xstring" value="knime.space"/>
+                <entry key="spaceId" type="xstring" value=""/>
+                <entry key="spaceName" type="xstring" value=""/>
+                <entry key="connected_fs" type="xboolean" value="true"/>
+            </config>
+            <config key="path">
+                <entry key="location_present" type="xboolean" value="true"/>
+                <entry key="file_system_type" type="xstring" value="RELATIVE"/>
+                <entry key="file_system_specifier" type="xstring" value="knime.space"/>
+                <entry key="path" type="xstring" value="Call Workflow cases/Called Workflow"/>
+            </config>
+            <config key="filter_mode_Internals">
+                <entry key="SettingsModelID" type="xstring" value="SMID_FilterMode"/>
+                <entry key="EnabledStatus" type="xboolean" value="true"/>
+            </config>
+        </config>
+        <entry key="discardJobOnSuccessfulExecution" type="xboolean" value="true"/>
+        <entry key="isSynchronous" type="xboolean" value="false"/>
+        <entry key="keepFailingJobs" type="xboolean" value="true"/>
+        <entry key="executionContext" type="xstring" value="b33a639c-540d-4a79-9304-8f9ff9bc41b3"/>
+        <entry key="hubItemVersion" type="xstring" value="LATEST_STATE"/>
+        <entry key="deploymentId" type="xstring" isnull="true" value=""/>
+        <entry key="reportFormatOrNull" type="xstring" isnull="true" value=""/>
+        <entry key="loadTimeout" type="xint" value="60"/>
+        <entry key="fetchParametersTimeout" type="xint" value="10"/>
+        <config key="backoffPolicy">
+            <entry key="backoffBase" type="xlong" value="1200"/>
+            <entry key="backoffMultiplier" type="xlong" value="1"/>
+            <entry key="backoffRetries" type="xint" value="3"/>
+        </config>
+        <entry key="selectedInputParameter" type="xstring" value="table-input"/>
+        <entry key="selectedOutputParameter" type="xstring" value="table-output"/>
+        <entry key="flowVariableDestination" type="xstring" value="row-input"/>
+        <entry key="useFullyQualifiedIds" type="xboolean" value="false"/>
+    </config>
+    <entry key="customDescription" type="xstring" isnull="true" value=""/>
+    <entry key="state" type="xstring" value="IDLE"/>
+    <entry key="factory" type="xstring" value="org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeFactory"/>
+    <entry key="node-name" type="xstring" value="Call Workflow (Table Based)"/>
+    <entry key="node-bundle-name" type="xstring" value="KNIME Nodes to build and use KNIME workflow services"/>
+    <entry key="node-bundle-symbolic-name" type="xstring" value="org.knime.workflowservices"/>
+    <entry key="node-bundle-vendor" type="xstring" value="KNIME AG, Zurich, Switzerland"/>
+    <entry key="node-bundle-version" type="xstring" value="5.10.0.v202601090649"/>
+    <entry key="node-feature-name" type="xstring" value="KNIME Personal Productivity Tools"/>
+    <entry key="node-feature-symbolic-name" type="xstring" value="org.knime.features.personalproductivity.feature.group"/>
+    <entry key="node-feature-vendor" type="xstring" value="KNIME AG, Zurich, Switzerland"/>
+    <entry key="node-feature-version" type="xstring" value="5.10.0.v202601090649"/>
+    <config key="factory_settings"/>
+    <config key="node_creation_config">
+        <config key="File System Connection"/>
+        <config key="Input Port"/>
+        <config key="Output Port"/>
+    </config>
+    <entry key="name" type="xstring" value="Call Workflow (Table Based)"/>
+    <entry key="hasContent" type="xboolean" value="false"/>
+    <entry key="isInactive" type="xboolean" value="false"/>
+    <config key="ports">
+        <config key="port_1">
+            <entry key="index" type="xint" value="1"/>
+            <entry key="port_dir_location" type="xstring" isnull="true" value=""/>
+        </config>
+    </config>
+    <config key="filestores">
+        <entry key="file_store_location" type="xstring" isnull="true" value=""/>
+        <entry key="file_store_id" type="xstring" isnull="true" value=""/>
+    </config>
+</config>

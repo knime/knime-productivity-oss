@@ -22,10 +22,12 @@ package org.knime.workflowservices.json.table.caller2;
 
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
+import org.knime.workflowservices.CallWorkflowParameters;
 import org.knime.workflowservices.connection.AbstractHubAuthenticationPortObjectSpec;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 import org.knime.workflowservices.json.table.caller.AbstractCallWorkflowTableNodeModel;
@@ -65,5 +67,19 @@ final class CallWorkflowTable2NodeModel extends AbstractCallWorkflowTableNodeMod
         final int dataPortIdx = CallWorkflowTable2NodeFactory.getDataPortIndex(m_configuration);
         return (BufferedDataTable)inObjects[dataPortIdx];
     }
+
+    @Override
+    protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
+        if (settings.getBoolean(CallWorkflowParameters.WORKFLOW_IS_LOADING_CFG_KEY, false)) {
+            throw new InvalidSettingsException("Cannot apply configuration while fetching workflow nodes.");
+        }
+        if (settings.getBoolean(CallWorkflowTable2NodeParameters.HAS_WORKFLOW_NODES_ERROR_CFG_KEY, false)) {
+            throw new InvalidSettingsException(
+                "Cannot apply configuration when the workflow nodes could not be successfully fetched.");
+        }
+        super.validateSettings(settings);
+    }
+
+
 
 }
