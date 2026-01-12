@@ -42,12 +42,9 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.ViewUtils;
-import org.knime.core.util.hub.HubItemVersion;
-import org.knime.core.util.hub.HubItemVersionPersistor;
 import org.knime.core.util.hub.ItemVersion;
 import org.knime.core.util.hub.ItemVersionStringPersistor;
 import org.knime.core.util.hub.NamedItemVersion;
-import org.knime.core.util.hub.SpecificVersion;
 
 /**
  * A panel that allows to select a version for a workflow.
@@ -55,7 +52,7 @@ import org.knime.core.util.hub.SpecificVersion;
  * <h2>Interactive life cycle</h2>
  * <ol>
  * <li>Create the panel and embed the panel into a containing dialog via {@link #getPanel()}.</li>
- * <li>Call {@link #setSelectedVersion(HubItemVersion)} to restore the version from the node settings.</li>
+ * <li>Call {@link #setSelectedVersion(ItemVersion)} to restore the version from the node settings.</li>
  * <li>Disable the panel using {@link #setLoading(boolean)}.</li>
  * <li>Async fetch the versions and call {@link #setVersions(List)}. This enables the panel again.</li>
  * <li>The user selects a version. This will notify listeners that registered via
@@ -65,8 +62,7 @@ import org.knime.core.util.hub.SpecificVersion;
  *
  * <h2>Non-interactive life cycle</h2>
  * <ul>
- * <li>The constructor argument {@link FlowVariableModel} provides access to the version flow variable. See
- * {@link HubItemVersionPersistor#createFlowVariableModel(org.knime.core.node.NodeDialogPane)}</li>
+ * <li>The constructor argument {@link FlowVariableModel} provides access to the version flow variable.</li>
  * <li>If the {@link FlowVariableModel} provides a value, {@link #onVersionFlowVariableChanged(ChangeEvent)} is called.
  * This sets the selected version.</li>
  * <li>When versions are set via {@link #setVersions(List)} the existence of the selected version is validated.</li>
@@ -357,7 +353,7 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
         if (niv == LATEST_VERSION) {
             return ItemVersion.mostRecent();
         }
-        return new SpecificVersion(niv.version());
+        return ItemVersion.of(niv.version());
     }
 
     // ------------------- Utility -------------------
