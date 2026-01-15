@@ -60,7 +60,7 @@ import org.knime.core.webui.node.dialog.defaultdialog.internal.widget.PersistWit
 import org.knime.core.webui.node.dialog.defaultdialog.util.updates.StateComputationFailureException;
 import org.knime.node.parameters.NodeParameters;
 import org.knime.node.parameters.NodeParametersInput;
-import org.knime.node.parameters.migration.LoadDefaultsForAbsentFields;
+import org.knime.node.parameters.migration.Migrate;
 import org.knime.node.parameters.persistence.Persist;
 import org.knime.node.parameters.persistence.Persistor;
 import org.knime.node.parameters.updates.ParameterReference;
@@ -85,7 +85,6 @@ import org.knime.workflowservices.connection.util.ConnectionUtil;
  * @author Paul Baernreuther, KNIME GmbH, Germany
  * @since 5.10
  */
-@LoadDefaultsForAbsentFields
 @SuppressWarnings("restriction")
 public class CallWorkflowParameters implements NodeParameters {
 
@@ -117,6 +116,7 @@ public class CallWorkflowParameters implements NodeParameters {
     @ValueProvider(ProvideTrueOnUnfinishedProcessingUuid.class)
     @ValueReference(WorkflowFetchIsRunning.class)
     @Persist(configKey = WORKFLOW_IS_LOADING_CFG_KEY)
+    @Migrate(loadDefaultIfAbsent = true)
     boolean m_workflowConnectionIsLoading;
 
     /**

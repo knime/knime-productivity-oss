@@ -36,6 +36,36 @@ import org.knime.workflowservices.json.table.caller2.CallWorkflowTable2NodeFacto
  */
 public final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnectionConfiguration {
 
+    /**
+     * public since:
+     * @since 5.10
+     */
+    public static final String SELECTED_INPUT_PARAMETER_CFG_KEY = "selectedInputParameter";
+
+    /**
+     * public since:
+     * @since 5.10
+     */
+    public static final String SELECTED_OUTPUT_PARAMETER_CFG_KEY = "selectedOutputParameter";
+
+    /**
+     * public since:
+     * @since 5.10
+     */
+    public static final String FLOW_VARIABLE_DESTINATION_CFG_KEY = "flowVariableDestination";
+
+    /**
+     * public since:
+     * @since 5.10
+     */
+    public static final String FLOW_CREDENTIALS_DESTINATION_CFG_KEY = "flowCredentialsDestination";
+
+    /**
+     * public since:
+     * @since 5.10
+     */
+    public static final String USE_FULLY_QUALIFIED_IDS_CFG_KEY = "useFullyQualifiedIds";
+
     private String m_selectedInputParameter;
 
     private String m_selectedOutputParameter;
@@ -59,7 +89,8 @@ public final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnec
      * @param portGroupName see super constructor
      * @see CallWorkflowConnectionConfiguration#CallWorkflowConnectionConfiguration(NodeCreationConfiguration, String)
      */
-    public CallWorkflowTableNodeConfiguration(final NodeCreationConfiguration nodeCreationConfiguration, final String portGroupName) {
+    public CallWorkflowTableNodeConfiguration(final NodeCreationConfiguration nodeCreationConfiguration,
+        final String portGroupName) {
         super(nodeCreationConfiguration, portGroupName);
     }
 
@@ -73,22 +104,22 @@ public final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnec
         saveSettings(settings);
 
         if (m_selectedInputParameter != null) {
-            settings.addString("selectedInputParameter", m_selectedInputParameter);
+            settings.addString(SELECTED_INPUT_PARAMETER_CFG_KEY, m_selectedInputParameter);
         }
 
         if (m_selectedOutputParameter != null) {
-            settings.addString("selectedOutputParameter", m_selectedOutputParameter);
+            settings.addString(SELECTED_OUTPUT_PARAMETER_CFG_KEY, m_selectedOutputParameter);
         }
 
         if (m_flowVariableDestination != null) {
-            settings.addString("flowVariableDestination", m_flowVariableDestination);
+            settings.addString(FLOW_VARIABLE_DESTINATION_CFG_KEY, m_flowVariableDestination);
         }
 
         if (m_flowCredentialsDestination != null) {
-            settings.addString("flowCredentialsDestination", m_flowCredentialsDestination);
+            settings.addString(FLOW_CREDENTIALS_DESTINATION_CFG_KEY, m_flowCredentialsDestination);
         }
 
-        settings.addBoolean("useFullyQualifiedIds", m_useFullyQualifiedIds);
+        settings.addBoolean(USE_FULLY_QUALIFIED_IDS_CFG_KEY, m_useFullyQualifiedIds);
 
         return this;
     }
@@ -100,14 +131,13 @@ public final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnec
      * @return this configuration
      * @throws InvalidSettingsException
      */
-    CallWorkflowTableNodeConfiguration loadInModel(final NodeSettingsRO settings)
-        throws InvalidSettingsException {
+    CallWorkflowTableNodeConfiguration loadInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
         loadSettingsInModel(settings);
-        m_selectedInputParameter = settings.getString("selectedInputParameter", "");
-        m_selectedOutputParameter = settings.getString("selectedOutputParameter", "");
-        m_flowVariableDestination = settings.getString("flowVariableDestination", "");
-        m_flowCredentialsDestination = settings.getString("flowCredentialsDestination", "");
-        m_useFullyQualifiedIds = settings.getBoolean("useFullyQualifiedIds");
+        m_selectedInputParameter = settings.getString(SELECTED_INPUT_PARAMETER_CFG_KEY, "");
+        m_selectedOutputParameter = settings.getString(SELECTED_OUTPUT_PARAMETER_CFG_KEY, "");
+        m_flowVariableDestination = settings.getString(FLOW_VARIABLE_DESTINATION_CFG_KEY, "");
+        m_flowCredentialsDestination = settings.getString(FLOW_CREDENTIALS_DESTINATION_CFG_KEY, "");
+        m_useFullyQualifiedIds = settings.getBoolean(USE_FULLY_QUALIFIED_IDS_CFG_KEY);
         return this;
     }
 
@@ -119,13 +149,14 @@ public final class CallWorkflowTableNodeConfiguration extends CallWorkflowConnec
      * @throws InvalidSettingsException
      * @throws NotConfigurableException
      */
-    public CallWorkflowTableNodeConfiguration loadInDialog(final NodeSettingsRO settings) throws NotConfigurableException {
+    public CallWorkflowTableNodeConfiguration loadInDialog(final NodeSettingsRO settings)
+        throws NotConfigurableException {
         loadSettingsInDialog(settings);
-        m_selectedInputParameter = settings.getString("selectedInputParameter", "");
-        m_selectedOutputParameter = settings.getString("selectedOutputParameter", "");
-        m_flowVariableDestination = settings.getString("flowVariableDestination", "");
-        m_flowCredentialsDestination = settings.getString("flowCredentialsDestination", "");
-        m_useFullyQualifiedIds = settings.getBoolean("useFullyQualifiedIds", false);
+        m_selectedInputParameter = settings.getString(SELECTED_INPUT_PARAMETER_CFG_KEY, "");
+        m_selectedOutputParameter = settings.getString(SELECTED_OUTPUT_PARAMETER_CFG_KEY, "");
+        m_flowVariableDestination = settings.getString(FLOW_VARIABLE_DESTINATION_CFG_KEY, "");
+        m_flowCredentialsDestination = settings.getString(FLOW_CREDENTIALS_DESTINATION_CFG_KEY, "");
+        m_useFullyQualifiedIds = settings.getBoolean(USE_FULLY_QUALIFIED_IDS_CFG_KEY, false);
         return this;
     }
 
