@@ -79,10 +79,10 @@ import org.knime.core.util.hub.SpecificVersion;
 @SuppressWarnings("javadoc")
 public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List<NamedItemVersion>, ItemVersion> {
 
-    private static final NamedItemVersion LATEST_STATE =
+    static final NamedItemVersion LATEST_STATE =
         new NamedItemVersion(Integer.MAX_VALUE, "Latest edits", "", "", "", "");
 
-    private static final NamedItemVersion LATEST_VERSION =
+    static final NamedItemVersion LATEST_VERSION =
         new NamedItemVersion(Integer.MAX_VALUE, "Latest version", "", "", "", "");
 
     /** For registering listeners on the selected hub item version. */
@@ -347,7 +347,7 @@ public final class CalleeVersionSelectionPanel implements Fetcher.Processor<List
                 .findAny());
     }
 
-    private static ItemVersion fromNamedItemVersion(final NamedItemVersion niv) {
+    static ItemVersion fromNamedItemVersion(final NamedItemVersion niv) {
         if (niv == null) {
             return null;
         }

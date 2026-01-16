@@ -46,23 +46,28 @@
 
 package org.knime.workflowservices;
 
+import static org.knime.workflowservices.CalleeVersionSelectionPanel.LATEST_STATE;
+import static org.knime.workflowservices.CalleeVersionSelectionPanel.LATEST_VERSION;
+import static org.knime.workflowservices.CalleeVersionSelectionPanel.fromNamedItemVersion;
+
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
-import org.knime.base.node.io.filehandling.webui.FileChooserPathAccessor;
-import org.knime.base.node.io.filehandling.webui.FileSystemPortConnectionUtil;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.util.hub.CurrentState;
 import org.knime.core.util.hub.ItemVersion;
 import org.knime.core.util.hub.ItemVersionStringPersistor;
 import org.knime.core.util.hub.MostRecent;
+import org.knime.core.util.hub.NamedItemVersion;
 import org.knime.core.util.hub.SpecificVersion;
 import org.knime.core.webui.node.dialog.defaultdialog.internal.file.FileSelection;
 import org.knime.core.webui.node.dialog.defaultdialog.internal.file.FileSelectionWidget;
@@ -73,8 +78,6 @@ import org.knime.core.webui.node.dialog.defaultdialog.internal.file.WithFileSyst
 import org.knime.core.webui.node.dialog.defaultdialog.util.updates.StateComputationFailureException;
 import org.knime.filehandling.core.connections.FSCategory;
 import org.knime.filehandling.core.connections.FSLocation;
-import org.knime.filehandling.core.connections.FSPath;
-import org.knime.filehandling.core.connections.ItemVersionAware.RepositoryItemVersion;
 import org.knime.filehandling.core.connections.RelativeTo;
 import org.knime.node.parameters.NodeParameters;
 import org.knime.node.parameters.NodeParametersInput;
@@ -90,12 +93,18 @@ import org.knime.node.parameters.updates.ParameterReference;
 import org.knime.node.parameters.updates.StateProvider;
 import org.knime.node.parameters.updates.ValueProvider;
 import org.knime.node.parameters.updates.ValueReference;
+import org.knime.node.parameters.updates.util.BooleanReference;
 import org.knime.node.parameters.widget.choices.ChoicesProvider;
 import org.knime.node.parameters.widget.choices.StringChoice;
 import org.knime.node.parameters.widget.choices.StringChoicesProvider;
+import org.knime.node.parameters.widget.message.TextMessage;
+import org.knime.node.parameters.widget.message.TextMessage.Message;
+import org.knime.node.parameters.widget.message.TextMessage.MessageType;
 import org.knime.workflowservices.CallWorkflowParameters.DependOnFetchConfig;
+import org.knime.workflowservices.CallWorkflowParameters.WithError;
 import org.knime.workflowservices.CommonParameters.IsHubAuthenticatorConnected;
 import org.knime.workflowservices.CommonParameters.IsRemoteExecution;
+import org.knime.workflowservices.RunWorkflowParameters.VersionsDialogTempState.NotLoadingVersions;
 import org.knime.workflowservices.connection.WorkflowExecutionConnector;
 import org.knime.workflowservices.connection.util.ConnectionUtil;
 
@@ -140,12 +149,141 @@ class RunWorkflowParameters implements NodeParameters {
                 333 on the hub).
                 """)
     @ChoicesProvider(WorkflowVersionChoicesProvider.class)
-    @Effect(predicate = NoHubAuthenticatorConnectedAndRemoteExecution.class, type = EffectType.SHOW)
+    @Effect(predicate = NoHubAuthenticatorConnectedAndRemoteExecutionAndNotLoadingVersions.class,
+        type = EffectType.SHOW)
     @Persistor(WorkflowVersionPersistor.class)
     @ValueReference(WorkflowVersionRef.class)
     String m_version = WorkflowVersionPersistor.CURRENT_STATE_LINK_TYPE;
 
+    static final class NoHubAuthenticatorConnectedAndRemoteExecutionAndNotLoadingVersions
+        implements EffectPredicateProvider {
+
+        @Override
+        public EffectPredicate init(final PredicateInitializer i) {
+            return i.getPredicate(NoHubAuthenticatorConnectedAndRemoteExecution.class)
+                .and(i.getPredicate(NotLoadingVersions.class));
+        }
+
+    }
+
+    static final class NoVersionsOrNotLoadingVersions implements EffectPredicateProvider {
+
+        @Override
+        public EffectPredicate init(final PredicateInitializer i) {
+            return not(i.getPredicate(NoHubAuthenticatorConnectedAndRemoteExecution.class))
+                .or(i.getPredicate(NotLoadingVersions.class));
+        }
+
+    }
+
     interface WorkflowVersionRef extends ParameterReference<String> {
+    }
+
+    /**
+     * Since the version choices are being fetched whenever a new workflow path is selected and are only available after
+     * a while we need to enforce that the user cannot choose a version in the meantime. Secondly, we prevent this
+     * blocking to take effect when the user chooses a new version (which DOES update the versions since we load the
+     * workflow anyway).
+     *
+     * In the future we want to solve such problems by loading animations from the frontend although in this particular
+     * case this would be tricky since we don't want that loading animation when choosing a new version.
+     */
+    @Persistor(VersionsDialogTempState.DoNotPersist.class)
+    VersionsDialogTempState m_versionsTempState = new VersionsDialogTempState();
+
+    static final class VersionsDialogTempState implements NodeParameters {
+
+        static final class DoNotPersist implements NodeParametersPersistor<VersionsDialogTempState> {
+
+            @Override
+            public VersionsDialogTempState load(final NodeSettingsRO settings) throws InvalidSettingsException {
+                return new VersionsDialogTempState();
+            }
+
+            @Override
+            public void save(final VersionsDialogTempState param, final NodeSettingsWO settings) {
+                // Do nothing
+            }
+
+            @Override
+            public String[][] getConfigPaths() {
+                return new String[0][];
+            }
+
+        }
+
+        @ValueReference(WorkflowPathOfCurrentVersionsRef.class)
+        @ValueProvider(CopyWorkflowPathOnVersionsUpdate.class)
+        FileSelection m_workflowPathOfCurrentVersions;
+
+        interface WorkflowPathOfCurrentVersionsRef extends ParameterReference<FileSelection> {
+        }
+
+        @ValueProvider(CheckEqualityOfWorkflowPathWithItsCopy.class)
+        @ValueReference(NotLoadingVersions.class)
+        boolean m_notLoadingVersions = true;
+
+        @TextMessage(LoadingVersionsMessage.class)
+        @Effect(predicate = NoVersionsOrNotLoadingVersions.class, type = EffectType.HIDE)
+        Void m_loadingVersionsMessage;
+
+        static final class LoadingVersionsMessage implements StateProvider<Optional<TextMessage.Message>> {
+
+            @Override
+            public void init(final StateProviderInitializer initializer) {
+                initializer.computeBeforeOpenDialog();
+            }
+
+            @Override
+            public Optional<Message> computeState(final NodeParametersInput parametersInput)
+                throws StateComputationFailureException {
+                return Optional.of(new Message("Loading versions…", "", MessageType.INFO));
+            }
+
+        }
+
+        static final class NotLoadingVersions implements BooleanReference {
+
+        }
+
+        static final class CopyWorkflowPathOnVersionsUpdate implements StateProvider<FileSelection> {
+
+            private Supplier<FileSelection> m_workflowPathSupplier;
+
+            @Override
+            public void init(final StateProviderInitializer initializer) {
+                initializer.computeFromProvidedState(WorkflowVersionChoicesProvider.class);
+                m_workflowPathSupplier = initializer.getValueSupplier(WorkflowPathRef.class);
+            }
+
+            @Override
+            public FileSelection computeState(final NodeParametersInput parametersInput)
+                throws StateComputationFailureException {
+                return m_workflowPathSupplier.get();
+            }
+
+        }
+
+        static final class CheckEqualityOfWorkflowPathWithItsCopy implements StateProvider<Boolean> {
+
+            private Supplier<FileSelection> m_workflowPathSupplier;
+
+            private Supplier<FileSelection> m_workflowPathCopySupplier;
+
+            @Override
+            public void init(final StateProviderInitializer initializer) {
+                m_workflowPathSupplier = initializer.computeFromValueSupplier(WorkflowPathRef.class);
+                m_workflowPathCopySupplier =
+                    initializer.computeFromValueSupplier(WorkflowPathOfCurrentVersionsRef.class);
+            }
+
+            @Override
+            public Boolean computeState(final NodeParametersInput parametersInput)
+                throws StateComputationFailureException {
+                return Objects.equals(m_workflowPathSupplier.get(), m_workflowPathCopySupplier.get());
+            }
+
+        }
     }
 
     @Widget(title = "Execution context", //
@@ -228,31 +366,16 @@ class RunWorkflowParameters implements NodeParameters {
         }
     }
 
-    /**
-     * Choices provider for workflow versions. Fetches available versions from Hub when applicable.
-     *
-     * Although the provided {@link WorkflowExecutionConnector} would also allow for listing the versions, we do not use
-     * it here to enable quicker UI response when changing the workflow path. Otherwise, the user would have to wait for
-     * all downstream computations of the workflow connection to be finished before the correct versions are being
-     * displayed.
-     *
-     * This implementation is copied from the Workflow Reader node.
-     */
     static final class WorkflowVersionChoicesProvider implements StringChoicesProvider {
 
-        private static final String VERSION_SELECTOR_CURRENT_STATE = "Latest edits";
+        private static final List<NamedItemVersion> DEFAULT_VERSIONS = List.of(LATEST_STATE);
 
-        private static final String VERSION_SELECTOR_LATEST_VERSION = "Latest version";
-
-        private static final Map<String, ItemVersion> DEFAULT_VERSIONS =
-            Map.of(VERSION_SELECTOR_CURRENT_STATE, ItemVersion.currentState());
-
-        private Supplier<FileSelection> m_workflowPathSupplier;
+        private Supplier<WithError<WorkflowExecutionConnector, Exception>> m_workflowConnectionProvider;
 
         @Override
         public void init(final StateProviderInitializer initializer) {
-            m_workflowPathSupplier = initializer.computeFromValueSupplier(WorkflowPathRef.class);
-            initializer.computeAfterOpenDialog();
+            m_workflowConnectionProvider =
+                initializer.computeFromProvidedState(CallWorkflowParameters.WorkflowExecutionConnectorProvider.class);
         }
 
         @Override
@@ -260,73 +383,44 @@ class RunWorkflowParameters implements NodeParameters {
             if (IsHubAuthenticatorConnected.isHubAuthenticatorConnected(context)) {
                 return List.of();
             }
-            final var availableVersions = fetchAvailableVersions(context);
+            final var availableVersions = getAvailableVersions();
             final var choices = new ArrayList<StringChoice>();
-            for (final var entry : availableVersions.entrySet()) {
-                choices.add(new StringChoice(itemVersionToString(entry.getValue()), entry.getKey()));
+            for (final var version : availableVersions) {
+                final var itemVersion = fromNamedItemVersion(version);
+                choices.add(new StringChoice(WorkflowVersionPersistor.itemVersionToString(itemVersion),
+                    makeVersionTitle(version)));
             }
             return choices;
         }
 
-        private Map<String, ItemVersion> fetchAvailableVersions(final NodeParametersInput context) {
-            final var workflowPath = m_workflowPathSupplier.get();
-            if (workflowPath == null || workflowPath.getFSLocation() == null) {
-                return DEFAULT_VERSIONS;
-            }
-            final var fsConnection = FileSystemPortConnectionUtil.getFileSystemConnection(context);
-            try (final var accessor = new FileChooserPathAccessor(workflowPath, fsConnection)) {
-                final var paths = accessor.getFSPaths(statusMessage -> {
-                });
-                if (paths.isEmpty()) {
+        private List<NamedItemVersion> getAvailableVersions() {
+            try {
+
+                final var withErrorWCP = m_workflowConnectionProvider.get();
+                if (withErrorWCP.hasError()) {
                     return DEFAULT_VERSIONS;
                 }
-
-                final var path = paths.get(0);
-                final var hubVersions = getHubVersions(path);
-                if (hubVersions.isPresent()) {
-                    return hubVersions.get();
+                final var versions = withErrorWCP.value().getItemVersions();
+                if (versions.isEmpty()) {
+                    return DEFAULT_VERSIONS;
                 }
-            } catch (Exception e) { // NOSONAR
-                // This catches exceptions like NoSuchFile / AccessDenied
-                // We simply return the default map (only current state)
+                return Stream
+                    .concat(Stream.concat(Stream.of(LATEST_STATE), Stream.of(LATEST_VERSION)), versions.stream())
+                    .toList();
+            } catch (IOException ioex) {
+                NodeLogger.getLogger(WorkflowVersionChoicesProvider.class).error(ioex);
+                return DEFAULT_VERSIONS;
             }
 
-            return DEFAULT_VERSIONS;
         }
 
-        private static Optional<Map<String, ItemVersion>> getHubVersions(final FSPath path) throws IOException {
-            try (var fileSystem = path.getFileSystem()) {
-                final var versionAwareOpt = fileSystem.getItemVersionAware();
-                if (versionAwareOpt.isPresent()) {
-                    final var versionAware = versionAwareOpt.get();
-                    final var hubVersions = versionAware.getRepositoryItemVersions(path);
-                    if (!hubVersions.isEmpty()) {
-                        final var versions = new LinkedHashMap<String, ItemVersion>();
-                        versions.put(VERSION_SELECTOR_CURRENT_STATE, ItemVersion.currentState());
-                        versions.put(VERSION_SELECTOR_LATEST_VERSION, ItemVersion.mostRecent());
-                        hubVersions
-                            .forEach(v -> versions.put(makeVersionTitle(v), ItemVersion.of((int)v.getVersion())));
-                        return Optional.of(versions);
-                    }
-                }
+        private static String makeVersionTitle(final NamedItemVersion v) {
+            if (Set.of(LATEST_VERSION, LATEST_STATE).contains(v)) {
+                return v.title();
             }
-            return Optional.empty();
+            return "Version " + v.version() + ": " + v.title();
         }
 
-        private static String makeVersionTitle(final RepositoryItemVersion v) {
-            return "Version " + v.getVersion() + ": " + v.getTitle();
-        }
-
-        private static String itemVersionToString(final ItemVersion version) {
-            if (version instanceof SpecificVersion sv) {
-                return sv.getVersionString();
-            } else if (version instanceof CurrentState) {
-                return WorkflowVersionPersistor.CURRENT_STATE_LINK_TYPE;
-            } else if (version instanceof MostRecent) {
-                return WorkflowVersionPersistor.MOST_RECENT_LINK_TYPE;
-            }
-            throw new IllegalStateException("Unexpected version class: " + version.getClass());
-        }
     }
 
     /**
