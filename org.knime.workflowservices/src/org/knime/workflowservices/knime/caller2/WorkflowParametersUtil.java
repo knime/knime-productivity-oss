@@ -225,12 +225,11 @@ final class WorkflowParametersUtil {
             if (obj == null) {
                 return false;
             }
-            if (this.getClass() != obj.getClass()) {
-                return false;
+            if (obj instanceof WorkflowParameterElement other) {
+                return Objects.equals(other.m_parameterName, m_parameterName)
+                        && Objects.equals(other.m_portTypeId, m_portTypeId);
             }
-            final var other = (WorkflowParameterElement)obj;
-            return Objects.equals(other.m_parameterName, m_parameterName)
-                && Objects.equals(other.m_portTypeId, m_portTypeId);
+            return false;
         }
 
         abstract static class AssignedToMessageProvider<T extends WorkflowParameterElement>
@@ -389,7 +388,7 @@ final class WorkflowParametersUtil {
                     portTypeId = entry.getValue().toPortType().getPortObjectClass().getName();
                 } catch (IllegalArgumentException | NullPointerException | InvalidSettingsException e) {
                     LOGGER.debug("Failed to resolve port type for parameter: " + parameterName, e);
-                    portTypeId = null;
+                    continue;
                 }
                 final var element = createParameterElement(parameterName, portTypeId);
                 elements.add(element);
