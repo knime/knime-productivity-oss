@@ -27,6 +27,7 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.webui.node.dialog.defaultdialog.internal.widget.ArrayWidgetInternal;
+import org.knime.core.webui.node.dialog.defaultdialog.internal.widget.PersistWithin.PersistEmbedded;
 import org.knime.node.parameters.NodeParameters;
 import org.knime.node.parameters.Widget;
 import org.knime.node.parameters.array.ArrayWidget;
@@ -103,6 +104,7 @@ final class CalleeParameters implements NodeParameters {
     Void m_workflowParametersErrorMessage;
 
     @Layout(LoadingAndErrorMessages.class)
+    @PersistEmbedded
     MakeDialogDirtyParameters m_makeDialogDirtyParameters = new MakeDialogDirtyParameters();
 
     @Widget(title = "Input parameters", description = INPUT_PARAMS_DESC)
