@@ -44,10 +44,7 @@
         "workflowConnectionIsLoading" : false
       },
       "calleeParameters" : {
-        "makeDialogDirtyParameters" : {
-          "showWorkflowParametersChanged" : false,
-          "workflowParametersChanged" : false
-        },
+        "makeDialogDirtyParameters" : { },
         "inputParameters" : [ {
           "parameterName" : "variable-param",
           "portTypeId" : "org.knime.core.node.port.flowvariable.FlowVariablePortObject"
@@ -471,21 +468,11 @@
               "makeDialogDirtyParameters" : {
                 "type" : "object",
                 "properties" : {
-                  "showWorkflowParametersChanged" : {
-                    "type" : "boolean",
-                    "default" : false
-                  },
                   "workflowParametersChanged" : {
-                    "type" : "boolean",
-                    "title" : "Change on apply",
-                    "description" : "This option is automatically set when input or output parameters changed but are the same number as the existing ports in order to allow applying the dialog in this case. Manual changes to this setting are ignored.",
-                    "default" : false
+                    "type" : "object"
                   }
                 },
-                "default" : {
-                  "showWorkflowParametersChanged" : false,
-                  "workflowParametersChanged" : false
-                }
+                "default" : { }
               },
               "outputParameters" : {
                 "type" : "array",
@@ -512,10 +499,7 @@
               }
             },
             "default" : {
-              "makeDialogDirtyParameters" : {
-                "showWorkflowParametersChanged" : false,
-                "workflowParametersChanged" : false
-              },
+              "makeDialogDirtyParameters" : { },
               "inputParameters" : [ ],
               "initialValueInputParameters" : [ ],
               "outputParameters" : [ ],
@@ -736,19 +720,11 @@
       }
     }, {
       "type" : "Control",
-      "scope" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged",
+      "id" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged",
       "options" : {
-        "format" : "checkbox"
+        "format" : "dirtyTracker"
       },
-      "rule" : {
-        "effect" : "SHOW",
-        "condition" : {
-          "scope" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/showWorkflowParametersChanged",
-          "schema" : {
-            "const" : true
-          }
-        }
-      }
+      "providedOptions" : [ "makeDirty" ]
     }, {
       "label" : "Input Parameters",
       "type" : "Section",
@@ -1208,16 +1184,11 @@
     "trigger" : {
       "scope" : "#/properties/model/properties/calleeParameters/properties/inputParameters"
     },
-    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/portTypeId", "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged", "#/properties/model/properties/calleeParameters/properties/outputParameters" ]
-  }, {
-    "trigger" : {
-      "scope" : "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged"
-    },
-    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged", "#/properties/model/properties/calleeParameters/properties/outputParameters" ]
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/inputParameters/items/properties/portTypeId", "#/properties/model/properties/calleeParameters/properties/outputParameters" ]
   }, {
     "trigger" : {
       "scope" : "#/properties/model/properties/calleeParameters/properties/outputParameters"
     },
-    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/makeDialogDirtyParameters/properties/workflowParametersChanged", "#/properties/model/properties/calleeParameters/properties/outputParameters", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/portTypeId" ]
+    "dependencies" : [ "#/properties/model/properties/calleeParameters/properties/initialValueInputParameters", "#/properties/model/properties/calleeParameters/properties/initialValueOutputParameters", "#/properties/model/properties/calleeParameters/properties/inputParameters", "#/properties/model/properties/calleeParameters/properties/outputParameters", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/parameterName", "#/properties/model/properties/calleeParameters/properties/outputParameters/items/properties/portTypeId" ]
   } ]
 }
