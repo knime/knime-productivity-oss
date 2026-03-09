@@ -87,8 +87,6 @@ import org.knime.node.parameters.persistence.NodeParametersPersistor;
 import org.knime.node.parameters.persistence.Persistor;
 import org.knime.node.parameters.updates.Effect;
 import org.knime.node.parameters.updates.Effect.EffectType;
-import org.knime.node.parameters.updates.EffectPredicate;
-import org.knime.node.parameters.updates.EffectPredicateProvider;
 import org.knime.node.parameters.updates.ParameterReference;
 import org.knime.node.parameters.updates.StateProvider;
 import org.knime.node.parameters.updates.ValueProvider;
@@ -149,32 +147,11 @@ class RunWorkflowParameters implements NodeParameters {
                 333 on the hub).
                 """)
     @ChoicesProvider(WorkflowVersionChoicesProvider.class)
-    @Effect(predicate = NoHubAuthenticatorConnectedAndRemoteExecutionAndNotLoadingVersions.class,
-        type = EffectType.SHOW)
+    @Effect(predicate = IsRemoteExecution.class, type = EffectType.SHOW)
+    @Effect(predicate = NotLoadingVersions.class, type = EffectType.SHOW)
     @Persistor(WorkflowVersionPersistor.class)
     @ValueReference(WorkflowVersionRef.class)
     String m_version = WorkflowVersionPersistor.CURRENT_STATE_LINK_TYPE;
-
-    static final class NoHubAuthenticatorConnectedAndRemoteExecutionAndNotLoadingVersions
-        implements EffectPredicateProvider {
-
-        @Override
-        public EffectPredicate init(final PredicateInitializer i) {
-            return i.getPredicate(NoHubAuthenticatorConnectedAndRemoteExecution.class)
-                .and(i.getPredicate(NotLoadingVersions.class));
-        }
-
-    }
-
-    static final class NoVersionsOrNotLoadingVersions implements EffectPredicateProvider {
-
-        @Override
-        public EffectPredicate init(final PredicateInitializer i) {
-            return not(i.getPredicate(NoHubAuthenticatorConnectedAndRemoteExecution.class))
-                .or(i.getPredicate(NotLoadingVersions.class));
-        }
-
-    }
 
     interface WorkflowVersionRef extends ParameterReference<String> {
     }
@@ -224,7 +201,8 @@ class RunWorkflowParameters implements NodeParameters {
         boolean m_notLoadingVersions = true;
 
         @TextMessage(LoadingVersionsMessage.class)
-        @Effect(predicate = NoVersionsOrNotLoadingVersions.class, type = EffectType.HIDE)
+        @Effect(predicate = IsRemoteExecution.class, type = EffectType.SHOW)
+        @Effect(predicate = NotLoadingVersions.class, type = EffectType.HIDE)
         Void m_loadingVersionsMessage;
 
         static final class LoadingVersionsMessage implements StateProvider<Optional<TextMessage.Message>> {
@@ -295,21 +273,11 @@ class RunWorkflowParameters implements NodeParameters {
                 """)
     @ChoicesProvider(ExecutionContextChoicesProvider.class)
     @ValueProvider(AutoGuessExecutionContextProvider.class)
-    @Effect(predicate = NoHubAuthenticatorConnectedAndRemoteExecution.class, type = EffectType.SHOW)
+    @Effect(predicate = IsRemoteExecution.class, type = EffectType.SHOW)
     @ValueReference(ExecutionContextRef.class)
     String m_executionContext;
 
     interface ExecutionContextRef extends ParameterReference<String> {
-    }
-
-    static final class NoHubAuthenticatorConnectedAndRemoteExecution implements EffectPredicateProvider {
-
-        @Override
-        public EffectPredicate init(final PredicateInitializer i) {
-            return and(i.getPredicate(IsRemoteExecution.class),
-                i.getPredicate(IsHubAuthenticatorConnected.class).negate());
-        }
-
     }
 
     /**

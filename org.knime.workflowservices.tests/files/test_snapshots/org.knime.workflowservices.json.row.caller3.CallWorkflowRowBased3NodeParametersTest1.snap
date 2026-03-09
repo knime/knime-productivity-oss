@@ -625,93 +625,107 @@
           }
         }
       }, {
-        "type" : "Control",
-        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/version",
-        "options" : {
-          "format" : "dropDown"
-        },
-        "providedOptions" : [ "possibleValues" ],
-        "rule" : {
-          "effect" : "SHOW",
-          "condition" : {
-            "type" : "AND",
-            "conditions" : [ {
-              "type" : "AND",
-              "conditions" : [ {
-                "schema" : {
-                  "not" : { }
-                }
-              }, {
-                "schema" : {
-                  "not" : {
-                    "not" : { }
-                  }
-                }
-              } ]
-            }, {
-              "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/versionsTempState/properties/notLoadingVersions",
-              "schema" : {
-                "const" : true
-              }
-            } ]
-          }
-        }
-      }, {
-        "type" : "Control",
-        "id" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/versionsTempState/properties/loadingVersionsMessage",
-        "options" : {
-          "format" : "textMessage"
-        },
-        "providedOptions" : [ "message" ],
+        "type" : "MultiRuleWrapper",
         "rule" : {
           "effect" : "HIDE",
           "condition" : {
-            "type" : "OR",
-            "conditions" : [ {
-              "type" : "OR",
-              "conditions" : [ {
-                "schema" : {
-                  "not" : {
-                    "not" : { }
-                  }
-                }
-              }, {
-                "schema" : {
-                  "not" : { }
-                }
-              } ]
-            }, {
-              "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/versionsTempState/properties/notLoadingVersions",
-              "schema" : {
-                "const" : true
-              }
-            } ]
+            "schema" : {
+              "not" : { }
+            }
           }
-        }
-      }, {
-        "type" : "Control",
-        "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/executionContext",
-        "options" : {
-          "format" : "dropDown"
         },
-        "providedOptions" : [ "possibleValues" ],
-        "rule" : {
-          "effect" : "SHOW",
-          "condition" : {
-            "type" : "AND",
-            "conditions" : [ {
+        "elements" : [ {
+          "type" : "MultiRuleWrapper",
+          "rule" : {
+            "effect" : "SHOW",
+            "condition" : {
               "schema" : {
                 "not" : { }
               }
-            }, {
-              "schema" : {
-                "not" : {
-                  "not" : { }
+            }
+          },
+          "elements" : [ {
+            "type" : "Control",
+            "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/version",
+            "options" : {
+              "format" : "dropDown"
+            },
+            "providedOptions" : [ "possibleValues" ],
+            "rule" : {
+              "effect" : "SHOW",
+              "condition" : {
+                "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/versionsTempState/properties/notLoadingVersions",
+                "schema" : {
+                  "const" : true
                 }
               }
-            } ]
+            }
+          } ]
+        } ]
+      }, {
+        "type" : "MultiRuleWrapper",
+        "rule" : {
+          "effect" : "HIDE",
+          "condition" : {
+            "schema" : {
+              "not" : { }
+            }
           }
-        }
+        },
+        "elements" : [ {
+          "type" : "MultiRuleWrapper",
+          "rule" : {
+            "effect" : "SHOW",
+            "condition" : {
+              "schema" : {
+                "not" : { }
+              }
+            }
+          },
+          "elements" : [ {
+            "type" : "Control",
+            "id" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/versionsTempState/properties/loadingVersionsMessage",
+            "options" : {
+              "format" : "textMessage"
+            },
+            "providedOptions" : [ "message" ],
+            "rule" : {
+              "effect" : "HIDE",
+              "condition" : {
+                "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/versionsTempState/properties/notLoadingVersions",
+                "schema" : {
+                  "const" : true
+                }
+              }
+            }
+          } ]
+        } ]
+      }, {
+        "type" : "MultiRuleWrapper",
+        "rule" : {
+          "effect" : "HIDE",
+          "condition" : {
+            "schema" : {
+              "not" : { }
+            }
+          }
+        },
+        "elements" : [ {
+          "type" : "Control",
+          "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/runWorkflow/properties/executionContext",
+          "options" : {
+            "format" : "dropDown"
+          },
+          "providedOptions" : [ "possibleValues" ],
+          "rule" : {
+            "effect" : "SHOW",
+            "condition" : {
+              "schema" : {
+                "not" : { }
+              }
+            }
+          }
+        } ]
       }, {
         "type" : "Control",
         "scope" : "#/properties/model/properties/callWorkflowParameters/properties/common/properties/workflowOrDeploymentSelection/properties/deploymentId",
