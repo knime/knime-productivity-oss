@@ -445,8 +445,6 @@
                   "properties" : {
                     "customJson" : {
                       "type" : "string",
-                      "title" : "Custom JSON",
-                      "description" : "Enter the custom JSON value to be passed to the input node.",
                       "default" : "{}"
                     },
                     "inputOption" : {
@@ -460,19 +458,13 @@
                         "const" : "COLUMN",
                         "title" : "From column"
                       } ],
-                      "title" : "Input mode",
-                      "description" : "Select how the input value should be provided.\n<ul>\n<li><b>Default</b>: send nothing, causing the default JSON object defined by the according Container Input node to be used. The called workflow is executed once, the result is reused for all subsequent rows. Note that if the called workflow has been saved with one of the output nodes in executed state, the return value for that output value is the json value \"null\".</li>\n<li><b>Custom JSON</b>: Provide a custom JSON value for the parameter.</li>\n<li><b>From column</b>: Select column of the input table. The called workflow is executed for each row.</li>\n</ul>",
                       "default" : "DEFAULT"
                     },
                     "jsonColumn" : {
-                      "type" : "string",
-                      "title" : "JSON column",
-                      "description" : "Select the column containing JSON values to be passed to the input node."
+                      "type" : "string"
                     },
                     "parameterName" : {
-                      "type" : "string",
-                      "title" : "Parameter name",
-                      "description" : "Name of the input parameter in the called workflow. This parameter is read-only."
+                      "type" : "string"
                     }
                   }
                 },
@@ -1199,13 +1191,6 @@
         "customJson" : "{}",
         "jsonColumn" : "json"
       } ]
-    } ]
-  }, {
-    "scope" : "#/properties/model/properties/calleeParameters/properties/initialValueContainerInputParameters/items/properties/jsonColumn",
-    "providedOptionName" : "possibleValues",
-    "values" : [ {
-      "indices" : [ ],
-      "value" : [ ]
     } ]
   }, {
     "scope" : "#/properties/model/properties/reportingParameters/properties/reportFormat",
