@@ -4,6 +4,7 @@
       "callWorkflowParameters" : {
         "common" : {
           "execution" : {
+            "invocationDuration" : "LONG_DURATION",
             "keepFailingJobs" : true,
             "discardJobOnSuccessfulExecution" : true
           },
@@ -12,10 +13,10 @@
               "workflowPath" : {
                 "path" : {
                   "fsCategory" : "relative-to-current-hubspace",
-                  "path" : "",
+                  "path" : "Call Workflow cases/Called Workflow",
                   "timeout" : 10000,
                   "context" : {
-                    "fsToString" : "(RELATIVE, knime.space, )"
+                    "fsToString" : "(RELATIVE, knime.space, Call Workflow cases/Called Workflow)"
                   }
                 }
               },
@@ -42,14 +43,23 @@
         "workflowConnectionIsLoading" : false
       },
       "calleeParameters" : {
-        "containerInputParameters" : [ ],
+        "containerInputParameters" : [ {
+          "parameterName" : "input-parameter-12",
+          "inputOption" : "CUSTOM",
+          "customJson" : "{}"
+        }, {
+          "parameterName" : "input-parameter-9",
+          "inputOption" : "COLUMN",
+          "customJson" : "{}",
+          "jsonColumn" : "json"
+        } ],
         "dropParameterIdentifiers" : false,
         "initialValueContainerInputParameters" : [ ]
       },
       "hasInputNodesError" : false,
       "reportingParameters" : {
-        "createReport" : false,
-        "reportFormat" : "PDF"
+        "createReport" : true,
+        "reportFormat" : "XLSX"
       }
     }
   },
@@ -806,11 +816,8 @@
             "type" : "Control",
             "scope" : "#/properties/customJson",
             "options" : {
-              "fileType" : "JSON",
-              "language" : "json",
-              "maxRows" : 15,
-              "minRows" : 3,
-              "format" : "codeEditor"
+              "rows" : 4,
+              "format" : "textArea"
             },
             "rule" : {
               "effect" : "SHOW",
@@ -1171,7 +1178,16 @@
     "scope" : "#/properties/model/properties/calleeParameters/properties/initialValueContainerInputParameters",
     "values" : [ {
       "indices" : [ ],
-      "value" : [ ]
+      "value" : [ {
+        "parameterName" : "input-parameter-12",
+        "inputOption" : "CUSTOM",
+        "customJson" : "{}"
+      }, {
+        "parameterName" : "input-parameter-9",
+        "inputOption" : "COLUMN",
+        "customJson" : "{}",
+        "jsonColumn" : "json"
+      } ]
     } ]
   }, {
     "scope" : "#/properties/model/properties/reportingParameters/properties/reportFormat",

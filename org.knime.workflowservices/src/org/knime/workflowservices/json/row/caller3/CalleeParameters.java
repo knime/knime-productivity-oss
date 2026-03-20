@@ -30,6 +30,7 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.dialog.ExternalNodeData;
+import org.knime.core.webui.node.dialog.defaultdialog.widget.Modification;
 import org.knime.node.parameters.NodeParameters;
 import org.knime.node.parameters.NodeParametersInput;
 import org.knime.node.parameters.Widget;
@@ -134,6 +135,7 @@ final class CalleeParameters implements NodeParameters {
     @ValueReference(ContainerInputParametersInitialValueRef.class)
     @ValueProvider(InitialContainerInputParametersProvider.class)
     @Persistor(DoNotPersistArray.class)
+    @Modification(ContainerInputParameters.StripAllUiAnnotationsModifier.class)
     ContainerInputParameters[] m_initialValueContainerInputParameters = new ContainerInputParameters[0];
 
     interface ContainerInputParametersInitialValueRef extends ParameterReference<ContainerInputParameters[]> {
