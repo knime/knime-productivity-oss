@@ -29,6 +29,8 @@ import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.json.JSONValue;
 import org.knime.core.node.dialog.ExternalNodeData;
 import org.knime.core.webui.node.dialog.defaultdialog.util.updates.StateComputationFailureException;
+import org.knime.core.webui.node.dialog.defaultdialog.widget.Modification;
+import org.knime.core.webui.node.dialog.defaultdialog.widget.Modification.WidgetGroupModifier;
 import org.knime.node.parameters.NodeParameters;
 import org.knime.node.parameters.NodeParametersInput;
 import org.knime.node.parameters.Widget;
@@ -72,7 +74,11 @@ final class ContainerInputParameters implements NodeParameters {
     @Widget(title = "Parameter name",
         description = "Name of the input parameter in the called workflow. This parameter is read-only.")
     @Effect(predicate = AlwaysTrue.class, type = EffectType.DISABLE)
+    @Modification.WidgetReference(ParNameWidgetRef.class)
     String m_parameterName;
+
+    private interface ParNameWidgetRef extends Modification.Reference {
+    }
 
     static final class AlwaysTrue implements EffectPredicateProvider {
         @Override
@@ -84,12 +90,20 @@ final class ContainerInputParameters implements NodeParameters {
     @Widget(title = "Input mode", description = "Select how the input value should be provided.")
     @ValueReference(JsonInputOption.Ref.class)
     @ValueSwitchWidget
+    @Modification.WidgetReference(InputModeWidgetRef.class)
     JsonInputOption m_inputOption = JsonInputOption.DEFAULT;
+
+    private interface InputModeWidgetRef extends Modification.Reference {
+    }
 
     @Widget(title = "Custom JSON", description = "Enter the custom JSON value to be passed to the input node.")
     @Effect(predicate = JsonInputOption.IsCustom.class, type = Effect.EffectType.SHOW)
     @TextAreaWidget
+    @Modification.WidgetReference(CustomJsonWidgetRef.class)
     String m_customJson = "{}";
+
+    private interface CustomJsonWidgetRef extends Modification.Reference {
+    }
 
     @Widget(title = "JSON column",
         description = "Select the column containing JSON values to be passed to the input node.")
@@ -97,7 +111,11 @@ final class ContainerInputParameters implements NodeParameters {
     @ChoicesProvider(JsonColumnChoicesProvider.class)
     @ValueReference(JsonColumnRef.class)
     @ValueProvider(AutoGuessJsonColumnProvider.class)
+    @Modification.WidgetReference(JsonColumnWidgetRef.class)
     String m_jsonColumn;
+
+    private interface JsonColumnWidgetRef extends Modification.Reference {
+    }
 
     interface JsonColumnRef extends ParameterReference<String> {
     }
@@ -157,6 +175,31 @@ final class ContainerInputParameters implements NodeParameters {
             return input.getInTableSpec(inputIndices[0]);
         }
         return Optional.empty();
+
+    }
+
+    static final class StripAllUiAnnotationsModifier implements Modification.Modifier {
+
+        @Override
+        public void modify(final WidgetGroupModifier group) {
+            final var parNameWidget = group.find(ParNameWidgetRef.class);
+            parNameWidget.removeAnnotation(Widget.class);
+            parNameWidget.removeAnnotation(Effect.class);
+            final var inputModeWidget = group.find(InputModeWidgetRef.class);
+            inputModeWidget.removeAnnotation(Widget.class);
+            inputModeWidget.removeAnnotation(ValueSwitchWidget.class);
+            inputModeWidget.removeAnnotation(ValueReference.class);
+            final var customJsonWidget = group.find(CustomJsonWidgetRef.class);
+            customJsonWidget.removeAnnotation(Widget.class);
+            customJsonWidget.removeAnnotation(Effect.class);
+            customJsonWidget.removeAnnotation(TextAreaWidget.class);
+            final var jsonColumnWidget = group.find(JsonColumnWidgetRef.class);
+            jsonColumnWidget.removeAnnotation(Widget.class);
+            jsonColumnWidget.removeAnnotation(Effect.class);
+            jsonColumnWidget.removeAnnotation(ChoicesProvider.class);
+            jsonColumnWidget.removeAnnotation(ValueReference.class);
+            jsonColumnWidget.removeAnnotation(ValueProvider.class);
+        }
 
     }
 
