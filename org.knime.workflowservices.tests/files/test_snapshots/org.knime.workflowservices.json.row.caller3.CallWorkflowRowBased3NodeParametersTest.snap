@@ -814,8 +814,11 @@
             "type" : "Control",
             "scope" : "#/properties/customJson",
             "options" : {
-              "rows" : 4,
-              "format" : "textArea"
+              "fileType" : "JSON",
+              "language" : "json",
+              "maxRows" : 15,
+              "minRows" : 3,
+              "format" : "codeEditor"
             },
             "rule" : {
               "effect" : "SHOW",

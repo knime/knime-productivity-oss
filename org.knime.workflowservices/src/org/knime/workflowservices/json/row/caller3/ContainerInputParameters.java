@@ -44,7 +44,8 @@ import org.knime.node.parameters.widget.choices.ChoicesProvider;
 import org.knime.node.parameters.widget.choices.ColumnChoicesProvider;
 import org.knime.node.parameters.widget.choices.ValueSwitchWidget;
 import org.knime.node.parameters.widget.choices.util.ColumnSelectionUtil;
-import org.knime.node.parameters.widget.text.TextAreaWidget;
+import org.knime.node.parameters.widget.text.CodeEditorWidget;
+import org.knime.node.parameters.widget.text.CodeEditorWidgetLanguage;
 import org.knime.workflowservices.json.row.caller3.CalleeParameters.ContainerInputParametersRef;
 
 /**
@@ -88,7 +89,7 @@ final class ContainerInputParameters implements NodeParameters {
 
     @Widget(title = "Custom JSON", description = "Enter the custom JSON value to be passed to the input node.")
     @Effect(predicate = JsonInputOption.IsCustom.class, type = Effect.EffectType.SHOW)
-    @TextAreaWidget
+    @CodeEditorWidget(language = CodeEditorWidgetLanguage.JSON)
     String m_customJson = "{}";
 
     @Widget(title = "JSON column",
