@@ -156,7 +156,9 @@ public class CallWorkflowParameters implements NodeParameters {
                 new CallWorkflowConnectionConfiguration(nodeCreationConfig, FILE_SYSTEM_CONNECTION_PORT_GROUP_ID);
 
             tempConfig.loadSettingsInModel(tempSettings);
-            tempConfig.configureCalleeModel(input.getInPortSpecs());
+            if (!IsHubAuthenticatorConnected.isHubAuthenticatorConnected(input)) {
+                tempConfig.configureCalleeModel(input.getInPortSpecs());
+            }
             IsHubAuthenticatorConnected.getConnectedHubAuthenticatorSpec(input)
                 .ifPresent(tempConfig::setHubAuthentication);
             return tempConfig.createFetchConfiguration();
