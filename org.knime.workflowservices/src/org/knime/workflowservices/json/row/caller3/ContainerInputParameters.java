@@ -48,7 +48,6 @@ import org.knime.node.parameters.widget.choices.ValueSwitchWidget;
 import org.knime.node.parameters.widget.choices.util.ColumnSelectionUtil;
 import org.knime.node.parameters.widget.text.CodeEditorWidget;
 import org.knime.node.parameters.widget.text.CodeEditorWidgetLanguage;
-import org.knime.node.parameters.widget.text.TextAreaWidget;
 import org.knime.workflowservices.json.row.caller3.CalleeParameters.ContainerInputParametersRef;
 
 /**
@@ -194,7 +193,7 @@ final class ContainerInputParameters implements NodeParameters {
             final var customJsonWidget = group.find(CustomJsonWidgetRef.class);
             customJsonWidget.removeAnnotation(Widget.class);
             customJsonWidget.removeAnnotation(Effect.class);
-            customJsonWidget.removeAnnotation(TextAreaWidget.class);
+            customJsonWidget.removeAnnotation(CodeEditorWidget.class);
             final var jsonColumnWidget = group.find(JsonColumnWidgetRef.class);
             jsonColumnWidget.removeAnnotation(Widget.class);
             jsonColumnWidget.removeAnnotation(Effect.class);
